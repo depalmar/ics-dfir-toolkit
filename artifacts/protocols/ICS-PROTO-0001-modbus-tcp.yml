@@ -47,7 +47,8 @@ parsers:
     url: https://docs.suricata.io/en/latest/rules/modbus-keyword.html
     logs: [eve.json event_type modbus]
     license: GPL-2.0
-platforms: [ICS-0005]
+platforms: [ICS-0005, ICS-0002, ICS-0006, ICS-0007]
+malware: [ICS-MAL-0007, ICS-MAL-0009]
 notes: >-
   Schneider Electric's UMAS (ICS-PROTO-0012) rides inside Modbus TCP on port
   502 under a reserved function code; ICSNPP-Modbus states that vendor- and

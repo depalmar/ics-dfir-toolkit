@@ -142,6 +142,18 @@ events:
       whether it reached the plant.
     attack: [T0883, T0885]
     basis: government
+  - event: ICSNPP OPC UA Binary opcua_binary_create_session.log, opcua_binary_browse.log and opcua_binary_read.log - record counts per client address and session
+    value: >-
+      Which clients opened OPC UA sessions and how many browse and read
+      records each produced. A client new to the server that creates a
+      session, produces a long run of browse records and then reads many
+      values is the pattern Mandiant maps for TAGRUN to Point & Tag
+      Identification and Monitor Process State (ICS-HUNT-0020). Counts of log
+      records only, not service content; nothing is visible under
+      SignAndEncrypt.
+    attack: [T0861, T0801]
+    seen_in: [INCONTROLLER (TAGRUN)]
+    basis: government
 tooling:
   - name: Zeek
     url: https://zeek.org/
@@ -405,4 +417,18 @@ sources:
       in the approved application client list, where the traffic pattern is
       consistent with write/control method invocations rather than
       subscription/read traffic.
+    read: direct
+  - title: ICSNPP OPC UA Binary README (cisagov/icsnpp-opcua-binary), Browse Service logs
+    url: https://raw.githubusercontent.com/cisagov/icsnpp-opcua-binary/main/README.md
+    accessed: "2026-11-08"
+    kind: government
+    quote: This log captures the details associated with calls to the Browse Service.
+    read: direct
+  - title: Mandiant - INCONTROLLER, TAGRUN ATT&CK for ICS mapping (Table 2)
+    url: https://cloud.google.com/blog/topics/threat-intelligence/incontroller-state-sponsored-ics-tool/
+    accessed: "2026-11-08"
+    kind: researcher
+    quote: >-
+      TAGRUN Collection T0801: Monitor Process State TAGRUN Collection T0861:
+      Point & Tag Identification
     read: direct

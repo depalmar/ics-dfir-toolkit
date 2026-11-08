@@ -43,7 +43,7 @@ parsers:
   - tool: Suricata (ENIP/CIP app-layer parser and enip_command / cip_service keywords; disabled by default in suricata.yaml)
     url: https://github.com/OISF/suricata/blob/main/doc/userguide/rules/enip-keyword.rst
     license: GPL-2.0
-platforms: [ICS-0001]
+platforms: [ICS-0001, ICS-0002, ICS-0005, ICS-0008]
 notes: >-
   PCCC (ICS-PROTO-0005) can be carried encapsulated in CIP. CISA AA26-097A
   lists 44818 and 2222 among the ports targeted on internet-facing PLCs.

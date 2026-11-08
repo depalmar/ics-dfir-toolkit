@@ -36,6 +36,7 @@ parsers:
       - iec104_read.log
     license: BSD-3-Clause
 platforms: [ICS-0014]
+malware: [ICS-MAL-0004, ICS-MAL-0006, ICS-MAL-0008]
 notes: >-
   The spicy-iec104 package summary states it covers all ASDU types except
   C_TS_NA_1, C_CD_NA_1 and file-related ones. Log names above are the $path

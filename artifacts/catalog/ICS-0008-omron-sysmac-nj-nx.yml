@@ -185,7 +185,10 @@ notes: >-
   device logs" without naming which log. FINS port numbers were not taken
   from these sources (see ICS-PROTO-0014). OMRON's OPC UA server on some NJ/NX
   models was not read and OPC UA is not listed under protocols. The OMRON
-  security brief Mandiant cites was not read.
+  security brief Mandiant cites was not read. The network-traffic artifact
+  (FINS, HTTP, telnet, FTP to the CPU Unit) is rated medium, not high: its
+  behavioural claims rest on Mandiant's INCONTROLLER report alone, a single
+  researcher source (consistency audit, 2026-11-08).
 response: baseline
 artifacts:
   - locator: Controller event log - System Event Log and Access Event Log (Sysmac Studio Controller Event Log tab; HMI; CSV export)
@@ -318,7 +321,7 @@ artifacts:
     volatility: off-box
     forensic_value: high
     evidence_type: [discovery, initial-access, execution, impair-process-control]
-    confidence: high
+    confidence: medium
     collection_impact: passive
     description: >-
       OMSHELL scans and identifies devices with FINS over UDP, works mainly

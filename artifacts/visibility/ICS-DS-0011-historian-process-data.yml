@@ -6,7 +6,7 @@ id: ICS-DS-0011
 name: Historian process data
 category: historian
 purdue_levels: ["2", "3", "3.5"]
-platforms: [ICS-0012]
+platforms: [ICS-0012, ICS-0002, ICS-0007, ICS-0011, ICS-0015]
 location: >-
   On the plant historian (for example AVEVA PI Data Archive) and any DMZ or
   enterprise replica: time-series values for configured tags, plus the

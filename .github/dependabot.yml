@@ -1,0 +1,24 @@
+# Dependabot keeps the two supply chains this repository has current: the
+# Python packages the scripts import and the GitHub Actions the workflows run.
+# It opens pull requests; the validate workflow gates them like any other.
+version: 2
+updates:
+  - package-ecosystem: pip
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+    labels: [dependencies]
+    groups:
+      python:
+        patterns: ["*"]
+
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+    labels: [dependencies]
+    groups:
+      actions:
+        patterns: ["*"]

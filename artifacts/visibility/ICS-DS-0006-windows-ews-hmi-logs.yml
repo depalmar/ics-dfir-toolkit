@@ -6,7 +6,7 @@ id: ICS-DS-0006
 name: Windows Security, Sysmon and PowerShell logs on EWS / HMI hosts
 category: host-windows
 purdue_levels: ["2", "3"]
-platforms: [ICS-0010, ICS-0011]
+platforms: [ICS-0010, ICS-0011, ICS-0007, ICS-0012, ICS-0015]
 location: >-
   On each Windows engineering workstation, HMI and SCADA server: the Security
   event log (Microsoft-Windows-Security-Auditing provider), the Sysmon log
@@ -137,6 +137,35 @@ events:
     value: >-
       Sysmon detected and blocked file shredding, as by SDelete, which MITRE names as a Data Destruction tool. Whether a given wiper trips it was not tested.
     attack: [T0809]
+    basis: vendor
+  - event: Security 6416 - A new external device was recognized by the System (Device ID, Device Name, Class ID, Class Name, Vendor IDs; needs the "Audit PNP Activity" subcategory, Windows 10 / Server 2016 and later)
+    value: >-
+      When a USB disk, portable device or CD/DVD drive arrived on an EWS, HMI or
+      SCADA host, with its device instance path. Microsoft's own use case is a
+      USB stick attached to a critical server "which is typically not allowed".
+      Removable media carried Stuxnet to non-networked engineering hosts and an
+      ISO attached as a virtual CD-ROM started Sandworm's 2022 MicroSCADA attack
+      (ICS-HUNT-0019). Whether an ISO inserted into an existing virtual drive
+      raises 6416 is not documented.
+    attack: [T0847, T1091]
+    seen_in: [Stuxnet, Sandworm MicroSCADA 2022]
+    basis: vendor
+  - event: Security 4656 and 4663 under the "Audit Removable Storage" subcategory - handle requested and object accessed on a removable storage device
+    value: >-
+      Which files were written to, read from or executed from removable
+      storage, for all objects without a SACL. Microsoft recommends it because
+      "malicious software very often uses removable devices as a method to get
+      into the system".
+    attack: [T0847, T1091]
+    basis: vendor
+  - event: Sysmon Event ID 12 (registry object added or deleted) and 13 (registry value set) - TargetObject, Details
+    value: >-
+      Service and autostart registry changes, including a new driver service
+      under HKLM\SYSTEM\CurrentControlSet\Services; Stuxnet registered its
+      MrxCls boot-start driver and MrxNet rootkit this way (ICS-PACK-0007).
+      Only keys the Sysmon configuration includes are logged.
+    attack: [T1543.003, T1112, T1014]
+    seen_in: [Stuxnet]
     basis: vendor
 tooling:
   - name: Sysmon (Microsoft Sysinternals)
@@ -530,4 +559,38 @@ sources:
       A non-privileged or abnormal process attempts to open a handle with full
       access (0x1F0FFF) to lsass.exe and subsequently invokes memory dump, file
       creation, or registry modification indicative of credential scraping.
+    read: direct
+  - title: Microsoft Learn - 6416(S) A new external device was recognized by the System
+    url: https://learn.microsoft.com/en-us/previous-versions/windows/it-pro/windows-10/security/threat-protection/auditing/event-6416
+    accessed: "2026-11-08"
+    kind: vendor
+    quote: This event generates every time a new external device is recognized by a system.
+    read: direct
+  - title: Microsoft Learn - Audit PNP Activity
+    url: https://learn.microsoft.com/en-us/previous-versions/windows/it-pro/windows-10/security/threat-protection/auditing/audit-pnp-activity
+    accessed: "2026-11-08"
+    kind: vendor
+    quote: >-
+      You can track, for example, whether a USB flash drive or stick was
+      attached to a critical server, which is typically not allowed.
+    read: direct
+  - title: Microsoft Learn - Audit Removable Storage
+    url: https://learn.microsoft.com/en-us/previous-versions/windows/it-pro/windows-10/security/threat-protection/auditing/audit-removable-storage
+    accessed: "2026-11-08"
+    kind: vendor
+    quote: >-
+      It is often useful to track actions with removable storage devices and
+      the files or folders on them, because malicious software very often uses
+      removable devices as a method to get into the system. At the same time,
+      you will be able to track which files were written or executed from a
+      removable storage device.
+    read: direct
+  - title: Sysmon v15.22 (Microsoft Sysinternals), Event ID 12
+    url: https://learn.microsoft.com/en-us/sysinternals/downloads/sysmon
+    accessed: "2026-11-08"
+    kind: vendor
+    quote: >-
+      Registry key and value create and delete operations map to this event
+      type, which can be useful for monitoring for changes to Registry
+      autostart locations, or specific malware registry modifications.
     read: direct

@@ -5,7 +5,7 @@ id: ICS-INC-0011
 name: Colonial Pipeline precautionary OT shutdown after DarkSide ransomware on IT
 aliases:
   - DarkSide ransomware attack on a US pipeline company
-date: '2021-05'
+date: '2021-05-07'
 date_basis: >-
   CISA/FBI AA21-131A was first published 11 May 2021 about a ransomware attack on "a pipeline company"; the
   company's own statement says "On May 7, the Colonial Pipeline Company learned it was the victim of a

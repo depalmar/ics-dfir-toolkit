@@ -66,6 +66,26 @@ events:
   - event: Connections using standard protocols on non-standard ports
     value: AA25-343A asks owners to block unused high ephemeral ports and monitor for attempted connections using standard protocols on non-standard ports.
     basis: government
+  - event: Inbound connection attempts from one source address to many owner addresses on 5900-5910, or on 44818, 2222, 102 or 502, within minutes (denies and allows)
+    value: >-
+      The sweep that precedes the opportunistic HMI and PLC intrusions in
+      AA25-343A and AA26-097A: Nmap or OpenVAS searching for VNC, then password
+      spraying. Grouping by source per hour shows the scanner, and any later
+      allowed session from the same source is the follow-through
+      (ICS-HUNT-0022). Needs denies logged, not just allows.
+    attack: [T1595.002, T0883]
+    seen_in: [AA25-343A, AA26-097A]
+    basis: government
+  - event: Outbound SMB (139/445) from an HMI or SCADA server to an internet address
+    value: >-
+      The network side of an HMI loading a screen or file from an attacker's
+      share: CISA's Cimplicity log examples show screens served from UNC paths
+      on internet addresses, and the installer was copied from such a share.
+      A control-network host has no reason to open SMB to the internet
+      (ICS-HUNT-0021).
+    attack: [T0819]
+    seen_in: [BlackEnergy / ICS-ALERT-14-281-01E]
+    basis: government
 attack_data_components: [DC0078, DC0082, DC0051, DC0053]
 gaps:
   - Shows sessions that crossed the firewall only; lateral movement inside a flat control network is invisible.
@@ -167,4 +187,21 @@ sources:
       Identifies suspicious outbound traffic volume mismatches from processes that
       typically do not generate network activity, particularly over C2 protocols
       like HTTPS, DNS, or custom TCP/UDP ports, following file or data access.
+    read: direct
+  - title: CISA AA25-343A, ATT&CK table (T1595.002)
+    url: https://www.cisa.gov/news-events/cybersecurity-advisories/aa25-343a
+    accessed: "2026-11-08"
+    kind: government
+    quote: >-
+      Threat actors use open source tools to look for IP addresses in target
+      countries with visible VNC services on common ports.
+    read: direct
+  - title: CISA ICS-ALERT-14-281-01E - Ongoing Sophisticated Malware Campaign Compromising ICS (Update E), Cimplicity
+    url: https://www.cisa.gov/news-events/ics-alerts/ics-alert-14-281-01e
+    accessed: "2026-11-08"
+    kind: government
+    quote: >-
+      Using this vulnerability, attackers were able to have the HMI server
+      execute a malicious .cim file [Cimplicity screen file] hosted on an
+      attacker-controlled server.
     read: direct

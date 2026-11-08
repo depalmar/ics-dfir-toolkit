@@ -21,6 +21,16 @@ Facet values are computed here (FACET_KEYS); the JS defines how each facet is
 labelled and ordered. --check fails if the two disagree, if a static
 "#lib?key=value" link names an unknown key or value, if an element id repeats,
 or if anything external is loaded. Coverage reuses mappings.coverage().
+
+Correlations are computed here from the records' id fields, never from free
+text: the actor x platform, malware x platform and malware x protocol
+matrices, the incident timeline and the per-record relationship map (both
+directions) in data["viz"] and data["rel"]. --check fails if any of them names
+an id no library holds. The global search index (_s per record: title, id,
+summary, aliases, tags, indicator values and the names of the ids it lists) is built here too.
+The page defaults to light; a viewer's choice is kept in localStorage. The
+footer's LinkedIn links are read from README.md's byline, and --check fails
+when either is missing there.
 """
 from __future__ import annotations
 
@@ -122,6 +132,23 @@ XREF = re.compile(r"\b(?:ICS-(?:PROTO|DS|TA|MAL|IOC|INC|HUNT|PACK)-\d{4}|ICS-\d{
 SIGMA_ATT = re.compile(r"^attack\.(t\d{4}(?:\.\d{3})?)$")
 ACRONYM = {"ot": "OT", "ews": "EWS", "hmi": "HMI", "vnc": "VNC", "rdp": "RDP", "ssh": "SSH", "plc": "PLC",
            "cli": "CLI"}
+LINKEDIN = {"profile": re.compile(r"https://www\.linkedin\.com/in/[A-Za-z0-9_%-]+/?"),
+            "company": re.compile(r"https://www\.linkedin\.com/company/[A-Za-z0-9_%-]+/?")}
+
+# Correlations: the id-list fields that link records, the libraries whose drawers get the
+# relationship panel, and the physical-consequence bands the incident timeline colours.
+REL_FIELDS = ("platforms", "protocols", "actors", "malware", "incidents", "iocs", "hunts", "packs")
+INTEL = ("actors", "malware", "incidents", "iocs")
+BAND = {"none-reported": "none", "attempted-no-effect": "none", "unknown": "none",
+        "loss-of-view": "manip", "manual-operations": "manip", "process-manipulation": "manip",
+        "loss-of-control": "control",
+        "service-outage": "outage", "equipment-damage": "outage", "safety-system-trip": "outage"}
+BAND_LABEL = {"outage": "Outage, equipment damage or safety trip", "control": "Loss of control",
+              "manip": "Loss of view, manual operations or process manipulation",
+              "none": "No physical effect reported, attempted or unknown"}
+# Search text per record for the global search: the summary-like fields of each library.
+SEARCH_FIELDS = ("summary", "hypothesis", "description", "why", "staleness", "location", "ledger", "kev_vendor",
+                 "kev_product", "vendor", "set", "spec_owner", "os_base", "matrix")
 
 
 def js_data(obj) -> str:
@@ -131,10 +158,23 @@ def js_data(obj) -> str:
             .replace("<!--", "\\u003c!--").replace("</", "<\\/"))
 
 
-def credit() -> str:
-    """The credit line, read from NOTICE: the names live only where CLAUDE.md allows them."""
+def credit_parts() -> tuple[str, str]:
+    """(maintainer, publisher) from NOTICE: the names live only where CLAUDE.md allows them."""
     m = re.search(r"^Copyright \d{4} (.+?) and (.+?)\s*$", (ROOT / "NOTICE").read_text(encoding="utf-8"), re.M)
-    return f"{m.group(1)} \u00b7 {m.group(2)}" if m else ""
+    return (m.group(1), m.group(2)) if m else ("", "")
+
+
+def credit() -> str:
+    """The credit line as the footer's text reads it."""
+    a, b = credit_parts()
+    return f"{a} \u00b7 {b}" if a else ""
+
+
+def linkedin() -> dict[str, str]:
+    """The maintainer's profile and the company page, read from README.md's byline (the two
+    linkedin.com links) so the page never hardcodes them. A missing one fails --check."""
+    txt = (ROOT / "README.md").read_text(encoding="utf-8")
+    return {k: m.group(0) for k, p in LINKEDIN.items() if (m := p.search(txt))}
 
 
 def short(name: str) -> str:
@@ -222,9 +262,11 @@ FACET_KEYS = {
     "datasources": {"category": lambda r: one(r.get("category")), "purdue": lambda r: L(r.get("purdue_levels")),
                     "impact": impacts, "confidence": conf},
     "actors": {"motivation": lambda r: one(r.get("motivation")), "reporter": lambda r: L(r.get("reported_by")),
-               "stage": lambda r: one(r.get("ics_kill_chain_stage")), "confidence": conf},
+               "stage": lambda r: one(r.get("ics_kill_chain_stage")), "platform": lambda r: L(r.get("platforms")),
+               "confidence": conf},
     "malware": {"type": lambda r: one(r.get("type")), "runs": lambda r: L(r.get("runs_on")),
-                "effect": lambda r: L(r.get("ics_effects")),
+                "effect": lambda r: L(r.get("ics_effects")), "platform": lambda r: L(r.get("platforms")),
+                "protocol": lambda r: L(r.get("protocols")),
                 "detection": lambda r: ["yes" if r.get("detections") else "none"], "confidence": conf},
     "incidents": {"consequence": lambda r: one(r.get("physical_consequence")),
                   "sector": lambda r: L(r.get("sectors")), "country": lambda r: L(r.get("countries")),
@@ -379,10 +421,94 @@ def build_data(d: dict) -> dict:
         for r in libs[lib]:
             r["_f"] = {k: list(dict.fromkeys(fn(r))) for k, fn in FACET_KEYS[lib].items()}
             r.pop("_linked", None)
+            r["_s"] = search_text(r, names)
     return {"libs": libs, "facetKeys": {k: list(v) for k, v in FACET_KEYS.items()}, "groups": GROUPS,
             "libLabel": LIB_LABEL, "where": where, "names": names, "short": short_names,
             "backrefs": {k: sorted(v) for k, v in sorted(backrefs.items())}, "hardSets": hard_sets,
+            "rel": relationships(libs, where), "viz": viz_data(libs, where),
             "response": [dict(r) for r in d["response"]], "impact": IMPACT, "conf": CONF, "repo": REPO_URL}
+
+
+def search_text(r: dict, names: dict) -> str:
+    """One line per record for the global search: title, id, the summary-like fields, aliases,
+    tags, and the names of the ids its list fields carry (a hunt naming ICS-TA-0001 is found by
+    "Sandworm"). The per-library search still indexes the whole record."""
+    parts = [r["_title"], str(r["id"])]
+    parts += [str(r[k]) for k in SEARCH_FIELDS if isinstance(r.get(k), str)]
+    parts += [str(x) for x in r.get("products") or [] if isinstance(x, (str, int))]
+    parts += [a.get("name", "") if isinstance(a, dict) else str(a) for a in r.get("aliases") or []]
+    parts += [str(t) for t in r.get("tags") or []]
+    parts += [str(i.get("value", "")) for i in r.get("indicators") or [] if isinstance(i, dict)]   # a pasted address finds its set
+    for k in REL_FIELDS:
+        parts += [names[x] for x in L(r.get(k)) if x in names and names[x] != x]
+    return " ".join(p for p in parts if p)
+
+
+def relationships(libs: dict, where: dict) -> dict[str, dict[str, list[str]]]:
+    """id -> {library: [ids]} for every threat-intel record, from the id-list fields of the
+    record itself and of every record that names it: both directions, no free text."""
+    rel: dict[str, dict[str, set]] = {}
+    for lib in INTEL + ("hunts", "packs"):
+        for r in libs[lib]:
+            for f in REL_FIELDS:
+                for x in L(r.get(f)):
+                    if x not in where or x == r["id"]:
+                        continue
+                    for a, b in ((r["id"], x), (x, r["id"])):
+                        if where[a] in INTEL:
+                            rel.setdefault(a, {}).setdefault(where[b], set()).add(b)
+    return {k: {lib: sorted(v) for lib, v in sorted(g.items())} for k, g in sorted(rel.items())}
+
+
+def ymd(v) -> float | None:
+    """A fuzzy date (YYYY, YYYY-MM or YYYY-MM-DD) as a fractional year, only as precise as given."""
+    m = re.match(r"^(\d{4})(?:-(\d{2}))?(?:-(\d{2}))?", str(v or ""))
+    if not m:
+        return None
+    y, mo, dd = int(m.group(1)), int(m.group(2) or 1), int(m.group(3) or 1)
+    return y + (mo - 1) / 12 + (dd - 1) / 365
+
+
+def viz_data(libs: dict, where: dict) -> dict:
+    """The matrices and the timeline, from id fields only. A cell is [row, col, direct, via]:
+    direct = the row record names the column; via = linked records that name it."""
+    def ids(r, k):
+        return [x for x in L(r.get(k)) if x in where]
+    actors, malware, incidents = libs["actors"], libs["malware"], libs["incidents"]
+    plats = [p["id"] for p in libs["platforms"]]
+    protos = [p["id"] for p in libs["protocols"]]
+    mal_of = {a["id"]: set(ids(a, "malware")) for a in actors}
+    inc_of = {a["id"]: set(ids(a, "incidents")) for a in actors}
+    for m in malware:
+        for a in ids(m, "actors"):
+            mal_of.setdefault(a, set()).add(m["id"])
+    for i in incidents:
+        for a in ids(i, "actors"):
+            inc_of.setdefault(a, set()).add(i["id"])
+    plat_of = {r["id"]: set(ids(r, "platforms")) for lib in INTEL for r in libs[lib]}
+    minc = {m["id"]: set(ids(m, "incidents")) for m in malware}
+    for i in incidents:
+        for m in ids(i, "malware"):
+            minc.setdefault(m, set()).add(i["id"])
+
+    ap = []
+    for a in actors:
+        for p in plats:
+            direct = p in plat_of[a["id"]]
+            via = sorted(x for x in mal_of.get(a["id"], ()) | inc_of.get(a["id"], ()) if p in plat_of.get(x, ()))
+            if direct or via:
+                ap.append([a["id"], p, int(direct), via])
+    mp = [[m["id"], p, 1, sorted(x for x in minc.get(m["id"], ()) if p in plat_of.get(x, ()))]
+          for m in malware for p in plats if p in plat_of[m["id"]]]
+    mx = [[m["id"], x, 1, []] for m in malware for x in protos if x in ids(m, "protocols")]
+    tl = [{"id": i["id"], "date": str(i.get("date") or ""), "t": ymd(i.get("date")),
+           "consequence": str(i.get("physical_consequence") or "unknown"),
+           "band": BAND.get(str(i.get("physical_consequence")), "none")} for i in incidents]
+    tl = sorted((x for x in tl if x["t"] is not None), key=lambda x: (x["t"], x["id"]))
+    return {"actors_platforms": {"rows": [a["id"] for a in actors], "cols": plats, "cells": ap},
+            "malware_platforms": {"rows": [m["id"] for m in malware], "cols": plats, "cells": mp},
+            "malware_protocols": {"rows": [m["id"] for m in malware], "cols": protos, "cells": mx},
+            "timeline": tl}
 
 
 # --------------------------------------------------------------------------- server-rendered parts
@@ -492,21 +618,156 @@ def render_kev_head(d: dict) -> str:
             f"<tbody>{rows}</tbody></table></div></details>")
 
 
+# Cell colour of the ATT&CK grid, in precedence order, and the words its legend and tooltips use.
+GRID_STATUS = [("gap", "gap", "gap: used, nothing hunts or detects it"),
+               ("blind", "blind spot", "blind spot: used, no data source records it"),
+               ("detected", "detected", "detected by a pack or Sigma rule"), ("hunted", "hunted", "hunted"),
+               ("seen", "seen", "seen by a data source, not recorded in use")]
+DASH = "\u2014"
+
+
 def render_cov_head(data: dict) -> str:
     cov = data["libs"]["coverage"]
     n_ics = sum(t["matrix"] == "ICS" for t in cov)
     n_gap = sum("gap" in t["_f"]["status"] for t in cov)
     n_blind = sum("blind" in t["_f"]["status"] for t in cov)
+    counts = {k: 0 for k, _, _ in GRID_STATUS}
+    groups = {"ICS": "", "Enterprise": ""}
+    for t in cov:
+        st = t["_f"]["status"]
+        cls = next(k for k, _, _ in GRID_STATUS if k in st)
+        counts[cls] += 1
+        words = "; ".join(w for k, _, w in GRID_STATUS if k in st)
+        groups[t["matrix"]] += (f'<a class="cc cc-{cls}{" bl" if "blind" in st and cls != "blind" else ""}" '
+                                f'href="#coverage/{e(t["id"])}" title="{e(t["id"])}: {e(words)}">{e(t["id"])}</a>')
+    legend = "".join(flink(data, "coverage", "status", k, f'<i class="cc-{k}"></i>{e(lab)} <b>{counts[k]}</b>', "lg")
+                     for k, lab, _ in GRID_STATUS)
+    grid = "".join(f'<section class="cg"><h4>{m} <span class="n">{sum(t["matrix"] == m for t in cov)}</span></h4>'
+                   f'<div class="cells">{cells}</div></section>' for m, cells in groups.items())
     return (f'<div class="stats">{flink(data, "coverage", "status", "gap", f"<b>{n_gap}</b> gaps", "stat st-bad")}'
             f'{flink(data, "coverage", "status", "blind", f"<b>{n_blind}</b> blind spots", "stat st-warn")}'
             f'<span class="stat"><b>{len(cov)}</b> techniques: {n_ics} ICS, {len(cov) - n_ics} Enterprise</span></div>'
             '<p class="small muted"><b>Used</b>: malware, actors or incidents recorded using it. <b>Seen</b>: data sources '
             'whose events show it. <b>Hunted</b>: hunts. <b>Detected</b>: packs and Sigma rules. A blind spot is used '
             'with no data source that records it. Technique names are not stored in the repository; each drawer links '
-            'to attack.mitre.org. The same table is generated as MAPPINGS.md.</p>')
+            'to attack.mitre.org. The same table is generated as MAPPINGS.md.</p>'
+            '<details class="viz" id="viz-cov" open><summary>Technique grid: every technique shaded by its status, '
+            'ICS then Enterprise</summary><div class="vizb">'
+            f'<div class="cglg" aria-label="Legend">{legend}<span class="lg"><i class="cc-gap bl"></i>dashed: also a blind spot</span></div>'
+            f'<div class="covgrid">{grid}</div>'
+            '<p class="small muted">A cell takes the most urgent status it has, in the legend\'s order. Click one for the '
+            'technique\'s row and its drawer; click a legend entry for the filtered table.</p></div></details>')
 
 
-def lib_panel(lib: str, data: dict, extra: str = "") -> str:
+def matrix_html(data: dict, key: str, row_lib: str, facet: str, col_lib: str, noun: str) -> str:
+    """One correlation matrix as a table that scrolls inside its own box. Row headers open the
+    record, column headers the platform or protocol, a cell the record with the library filtered
+    to that column, and the totals the filtered library."""
+    mz, names = data["viz"][key], data["names"]
+    cells = {(r, c): (d, via) for r, c, d, via in mz["cells"]}
+    vendor = {p["id"]: str(p.get("vendor") or "") for p in data["libs"]["platforms"]}
+
+    def col_name(c: str) -> str:
+        n = short(names.get(c, c))
+        v = vendor.get(c, "")
+        return n[len(v):].strip() if v and n.startswith(v) and len(n) > len(v) + 2 else n
+    head = "".join(f'<th class="ch" scope="col"><a href="#{col_lib}/{e(c)}" title="{e(c)}: {e(names.get(c, c))}">'
+                   f'<span>{e(col_name(c))}</span></a></th>' for c in mz["cols"])
+    rows = []
+    for r in mz["rows"]:
+        tds, n_direct = [], 0
+        for c in mz["cols"]:
+            d, via = cells.get((r, c), (0, []))
+            if not d and not via:
+                tds.append('<td class="e"></td>')
+                continue
+            n_direct += d
+            tip = f"{names.get(r, r)} × {col_name(c)}: " + ("named by the record" if d else "not named by the record")
+            if via:
+                tip += f"; {len(via)} linked record{'s' if len(via) > 1 else ''} name it: {', '.join(via)}"
+            if d:
+                heat = 28 + round(52 * min(len(via), 4) / 4)
+                tds.append(f'<td><a class="mc{" dk" if len(via) >= 3 else ""}" style="--h:{heat}%" '
+                           f'href="#{row_lib}/{e(r)}?{facet}={e(c)}" title="{e(tip)}">{len(via) or ""}</a></td>')
+            else:
+                tds.append(f'<td><a class="mc via" href="#{row_lib}/{e(r)}" title="{e(tip)}">{len(via)}</a></td>')
+        rows.append(f'<tr><th class="rh" scope="row"><a href="#{row_lib}/{e(r)}" title="{e(r)}">{e(short(names.get(r, r)))}</a></th>'
+                    f'{"".join(tds)}<td class="tot">{n_direct or "—"}</td></tr>')
+    foot = "".join(f'<td class="tot">{flink(data, row_lib, facet, c, str(n)) if n else "—"}</td>'
+                   for c in mz["cols"] for n in [sum(d for (r, cc), (d, _) in cells.items() if cc == c)])
+    return (f'<div class="mxs"><table class="mx" aria-label="{e(noun)} by {col_lib}"><thead><tr><th class="rh corner"></th>{head}'
+            f'<th class="tot">named</th></tr></thead><tbody>{"".join(rows)}</tbody>'
+            f'<tfoot><tr><th class="rh" scope="row">{e(noun)} naming it</th>{foot}<td></td></tr></tfoot></table></div>')
+
+
+def timeline_html(data: dict) -> str:
+    """Incidents on a year axis: one marker each, placed by the date its sources give, coloured
+    and shaped by the band of its physical consequence. Inline SVG, nothing external."""
+    tl, names = data["viz"]["timeline"], data["names"]
+    if not tl:
+        return '<p class="empty">No incident carries a date.</p>'
+    lo, hi = int(min(x["t"] for x in tl)), int(max(x["t"] for x in tl)) + 1
+    W, H, pl, pr, ay, lanes = 960, 172, 30, 30, 132, (40, 70, 100)
+
+    def X(t):
+        return round(pl + (t - lo) / (hi - lo) * (W - pl - pr), 1)
+    placed: list[tuple[int, float]] = []
+    marks = []
+    for i, it in enumerate(tl):
+        x = X(it["t"])
+        lane = next((ln for ln in range(len(lanes)) if all(abs(x - px) >= 34 for pl_, px in placed if pl_ == ln)), i % len(lanes))
+        placed.append((lane, x))
+        y = lanes[lane]
+        b = it["band"]
+        shape = {"outage": f'<rect class="mk mk-{b}" x="{x - 7}" y="{y - 7}" width="14" height="14" rx="2"/>',
+                 "control": f'<rect class="mk mk-{b}" x="{x - 7}" y="{y - 7}" width="14" height="14" rx="2" transform="rotate(45 {x} {y})"/>',
+                 "manip": f'<circle class="mk mk-{b}" cx="{x}" cy="{y}" r="7"/>',
+                 "none": f'<circle class="mk mk-{b}" cx="{x}" cy="{y}" r="6.5"/>'}[b]
+        tip = f"{it['id']} · {it['date']} · {names.get(it['id'], it['id'])} · {it['consequence'].replace('-', ' ')}"
+        marks.append(f'<a href="#incidents/{e(it["id"])}" class="tm" aria-label="{e(tip)}"><title>{e(tip)}</title>'
+                     f'<line class="stem" x1="{x}" y1="{y + 9}" x2="{x}" y2="{ay}"/>{shape}<circle class="hit" cx="{x}" cy="{y}" r="13"/></a>')
+    ticks = "".join(f'<line class="tk" x1="{X(y)}" y1="{ay}" x2="{X(y)}" y2="{ay + 5}"/>'
+                    f'<text x="{X(y)}" y="{ay + 20}" text-anchor="middle">{y}</text>' for y in range(lo, hi + 1))
+    svg = (f'<div class="tlw"><svg class="tlx" viewBox="0 0 {W} {H}" role="img" aria-label="{len(tl)} incidents on a year '
+           f'axis from {lo} to {hi}"><line class="ax" x1="{pl}" y1="{ay}" x2="{W - pr}" y2="{ay}"/>{ticks}{"".join(marks)}</svg></div>')
+    by_band: dict[str, dict[str, int]] = {}
+    for it in tl:
+        by_band.setdefault(it["band"], {}).setdefault(it["consequence"], 0)
+        by_band[it["band"]][it["consequence"]] += 1
+    sw = {"outage": '<rect class="mk mk-outage" x="2" y="2" width="12" height="12" rx="2"/>',
+          "control": '<rect class="mk mk-control" x="3.5" y="3.5" width="9" height="9" rx="1.5" transform="rotate(45 8 8)"/>',
+          "manip": '<circle class="mk mk-manip" cx="8" cy="8" r="6"/>', "none": '<circle class="mk mk-none" cx="8" cy="8" r="5.5"/>'}
+    legend = "".join(
+        f'<span class="tll"><svg class="tlx lgm" viewBox="0 0 16 16" aria-hidden="true">{sw[b]}</svg>{e(BAND_LABEL[b])}: '
+        + ", ".join(flink(data, "incidents", "consequence", c, f"{e(c.replace('-', ' '))} ({n})") for c, n in sorted(by_band[b].items()))
+        + "</span>" for b in ("outage", "control", "manip", "none") if b in by_band)
+    return svg + f'<div class="tlg">{legend}</div>'
+
+
+def render_viz(data: dict) -> str:
+    """The correlation block the Threat intel tab carries above whichever of its libraries is open."""
+    return ('<details class="viz" id="viz-intel" open><summary>Correlations: actors × platforms, malware × platforms '
+            'and protocols, incidents by year</summary><div class="vizb">'
+            '<p class="small muted">Computed from the id fields the records carry, never from prose, so a cell is only as good '
+            'as the record it comes from and an empty one means no record says so. Row headers open the record, column headers '
+            'the platform or protocol, a cell the record with its library filtered to that column, and the totals the filtered library.</p>'
+            '<section class="vizs"><h4>Actors × platforms</h4><p class="small muted">A filled cell: the actor record names '
+            'the platform; its number counts the actor\'s malware and incident records that name it too. A ring: only linked '
+            'records name it, the actor record does not.</p>'
+            + matrix_html(data, "actors_platforms", "actors", "platform", "platforms", "actors") + "</section>"
+            '<section class="vizs"><h4>Malware × platforms</h4><p class="small muted">The platforms each malware record '
+            'names; the number counts its incidents that name the platform too.</p>'
+            + matrix_html(data, "malware_platforms", "malware", "platform", "platforms", "malware families") + "</section>"
+            '<section class="vizs"><h4>Malware × protocols</h4><p class="small muted">The protocols each malware record '
+            'says the family speaks: the operations a passive sensor would have to parse to see it.</p>'
+            + matrix_html(data, "malware_protocols", "malware", "protocol", "protocols", "malware families") + "</section>"
+            '<section class="vizs"><h4>Incidents by year</h4><p class="small muted">One marker per incident, placed by the '
+            'date its sources give (a year alone sits at the start of that year) and coloured by the physical consequence a '
+            'primary source states; the shape repeats the band. Hover or focus a marker for the name; click it for the record.</p>'
+            + timeline_html(data) + "</section></div></details>")
+
+
+def lib_panel(lib: str, data: dict, extra: str = "", after: str = "") -> str:
     sub = ""
     for members in GROUPS.values():
         if lib in members:
@@ -517,7 +778,7 @@ def lib_panel(lib: str, data: dict, extra: str = "") -> str:
     unv = ('<button type="button" class="btn unvT" aria-pressed="false" title="Only records that are unverified '
            'or hold unverified entries">Unverified only</button>') if any(r["_unv"] or r["_nunv"] for r in data["libs"][lib]) else ""
     return (f'<section class="panel" id="tab-{lib}" role="tabpanel" hidden>{sub}'
-            f'<header class="lhead"><h2>{LIB_LABEL[lib]}</h2><p class="lede">{e(LEDE[lib])}</p>{extra}</header>'
+            f'<header class="lhead"><h2>{LIB_LABEL[lib]}</h2><p class="lede">{e(LEDE[lib])}</p>{extra}</header>{after}'
             f'<div class="tools"><input type="search" class="q" placeholder="Search {noun}" aria-label="Search {noun}" '
             f'autocomplete="off" spellcheck="false">{unv}<button type="button" class="btn railT" aria-expanded="false">Filters</button>'
             '<span class="count" aria-live="polite"></span></div><div class="active"></div><div class="results"></div></section>')
@@ -534,7 +795,8 @@ def page(d: dict) -> tuple[str, dict]:
     panels = f'<section class="panel" id="tab-start" role="tabpanel" hidden>{render_start(data)}</section>'
     for lib in LIBS:
         extra = render_kev_head(d) if lib == "kev" else render_cov_head(data) if lib == "coverage" else ""
-        panels += lib_panel(lib, data, extra)
+        # the correlation block starts in the first intel library; the JS moves it to whichever is open
+        panels += lib_panel(lib, data, extra, render_viz(data) if lib == GROUPS["intel"][0] else "")
     panels += ('<section class="panel" id="tab-response" role="tabpanel" hidden><header class="lhead"><h2>Response</h2>'
                '<p class="lede">Guidance, not automation. The order is fixed: safety first (agree the safe state and the '
                'manual fallback with operations), preserve, contain, rotate credentials, eradicate, recover, verify. '
@@ -545,20 +807,32 @@ def page(d: dict) -> tuple[str, dict]:
     icon = ("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' "
             "height='32' rx='7' fill='%230b6b64'/%3E%3Cpath d='M7 22h4v-6h4v6h4V10h4v12h2' stroke='%23fff' "
             "stroke-width='2.4' fill='none' stroke-linejoin='round'/%3E%3C/svg%3E")
+    li = linkedin()
+    name, publisher = credit_parts()
+
+    def who(key: str, text: str) -> str:
+        url = li.get(key)
+        return (f'<a href="{e(url)}" rel="noopener noreferrer" target="_blank" title="{e(text)} on LinkedIn">{e(text)}</a>'
+                if url else e(text))
     doc = f"""<!doctype html>
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>ICS DFIR Toolkit</title>
 <meta name="description" content="A sourced DFIR knowledge base for industrial control systems and operational technology: platforms, protocols, data sources, threat intel, hunts, detections, hardening and response.">
-<meta name="color-scheme" content="light dark">
+<meta name="color-scheme" content="light">
 <link rel="icon" href="{icon}">
-<style>{css()}</style></head>
+<style>{css()}</style>
+<script>try{{if(localStorage.getItem('icsdfir-theme')==='dark')document.documentElement.setAttribute('data-theme','dark')}}catch(e){{}}</script></head>
 <body>
 <a class="skip" href="#main">Skip to content</a>
 <header class="hdr"><div class="hdr-in">
   <div class="brandrow"><a class="brand" href="#start" data-go="start"><span class="mark" aria-hidden="true"></span><h1>ICS DFIR Toolkit</h1></a>
     <span class="tagline">every claim quoted from its source &#183; safety before evidence</span>
+    <div class="gs"><svg class="gsi" viewBox="0 0 16 16" aria-hidden="true"><circle cx="6.5" cy="6.5" r="4.5" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="M10 10l4 4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
+      <input type="search" id="gq" placeholder="Search everything" aria-label="Search every library: title, id, summary, aliases, tags" role="combobox" aria-expanded="false" aria-controls="gres" aria-autocomplete="list" autocomplete="off" spellcheck="false">
+      <kbd class="gsk" aria-hidden="true">/</kbd>
+      <div class="gres" id="gres" role="listbox" aria-label="Search results" hidden></div></div>
     <span class="hright"><a class="btn" href="{REPO_URL}" rel="noopener noreferrer" target="_blank">GitHub</a>
-    <button type="button" class="btn" id="themeBtn" title="Switch between light and dark">Theme</button></span></div>
+    <button type="button" class="btn" id="themeBtn" aria-pressed="false" title="Switch between light and dark; your choice is remembered in this browser">Dark mode</button></span></div>
   <nav class="tabs" aria-label="Sections">{tabbar}</nav>
 </div></header>
 <div class="shell" id="shell">
@@ -577,8 +851,9 @@ def page(d: dict) -> tuple[str, dict]:
   {len(libs['iocs'])} indicator sets &#183; {len(libs['hunts'])} hunts &#183; {len(libs['packs'])} packs &#183; {n_rules} rule files &#183;
   {len(libs['hardening'])} hardening controls. Built from the repository on {built}; never edited by hand.
   Detections are Sigma, YARA and Suricata only.</p>
-  <p>{e(credit())} &#183; <a href="{REPO_URL}" rel="noopener noreferrer" target="_blank">source on GitHub</a> &#183; Apache-2.0.
-  Keyboard: <kbd>/</kbd> search, <kbd>Esc</kbd> close.</p></footer>
+  <p class="credit">{who("profile", name)} · {who("company", publisher)} <span class="muted">(LinkedIn)</span> &#183;
+  <a href="{REPO_URL}" rel="noopener noreferrer" target="_blank">source on GitHub</a> &#183; Apache-2.0.
+  Keyboard: <kbd>/</kbd> or <kbd>Ctrl</kbd>+<kbd>K</kbd> search everything, <kbd>Esc</kbd> clear or close.</p></footer>
 <script type="application/json" id="data">{js_data(data)}</script>
 <script>{JS}</script>
 </body></html>
@@ -672,10 +947,36 @@ def check(doc: str, data: dict) -> list[str]:
     elif json.loads(block.group(1)) != data:
         problems.append("embedded data does not round-trip")
     cr = credit()
+    footer = static.split("<footer>", 1)[-1]
+    plain = re.sub(r"<[^>]+>", "", static)
     if not cr:
         problems.append("no 'Copyright <year> <name> and <publisher>' line in NOTICE for the credit")
-    elif doc.count(e(cr)) != 1 or e(cr) not in doc.split("<footer>", 1)[-1]:
+    elif plain.count(e(cr)) != 1 or e(cr) not in re.sub(r"<[^>]+>", "", footer):
         problems.append("the credit line must appear once, in the footer")
+    li = linkedin()
+    for key, what in (("profile", "the maintainer's linkedin.com/in/ profile"), ("company", "the company's linkedin.com/company/ page")):
+        if key not in li:
+            problems.append(f"README.md's byline has no link to {what}; the footer reads both from there")
+        elif f'href="{e(li[key])}"' not in footer:
+            problems.append(f"the footer does not link {li[key]}")
+    # correlations and the relationship map name only ids a library holds
+    for rid, groups in data["rel"].items():
+        bad = [x for lib, xs in groups.items() for x in xs if data["where"].get(x) != lib] + ([] if rid in data["where"] else [rid])
+        if bad:
+            problems.append(f"relationships of {rid} name unknown or misfiled ids: {bad}")
+    for key, mz in data["viz"].items():
+        if key == "timeline":
+            bad = sorted({x["id"] for x in mz if data["where"].get(x["id"]) != "incidents"})
+        else:
+            bad = sorted({x for x in mz["rows"] + mz["cols"] if x not in data["where"]}
+                         | {x for c in mz["cells"] for x in [c[0], c[1], *c[3]] if x not in data["where"]})
+        if bad:
+            problems.append(f"matrix {key} names unknown ids: {bad}")
+    if 'id="viz-intel"' not in doc or doc.count('class="tm"') != len(data["viz"]["timeline"]) \
+            or 'id="viz-cov"' not in doc or doc.count('class="cc cc-') != len(data["libs"]["coverage"]):
+        problems.append("the correlation block, the timeline markers or the technique grid do not match the data")
+    if any("_s" not in r or r["_title"] not in r["_s"] or str(r["id"]) not in r["_s"] for lib in LIBS for r in data["libs"][lib]):
+        problems.append("a record is missing its global-search text (_s with title and id)")
     return problems
 
 
@@ -683,14 +984,17 @@ def check(doc: str, data: dict) -> list[str]:
 DARK = ("--bg:#0f141a;--panel:#18202a;--panel2:#212b37;--ink:#e5eaf0;--muted:#a7b1be;--line:#3d4959;--line2:#2c3644;"
         "--accent:#45c4b5;--accent-bg:#133631;--on-accent:#06201d;--link:#8cc2f5;--ok:#7ad796;--ok-bg:#14301d;"
         "--info:#95c3f7;--info-bg:#152a44;--warn:#f2c46a;--warn-bg:#35290d;--bad:#ff9d92;--bad-bg:#3d1917;"
+        "--v-manip:#199e70;--v-control:#3987e5;--v-outage:#d95926;"
         "--shadow:0 10px 30px rgba(0,0,0,.55);color-scheme:dark")
 BASE_CSS = r"""
 :root{--bg:#f5f6f8;--panel:#fff;--panel2:#eef1f4;--ink:#17202b;--muted:#525e6d;--line:#cfd6de;--line2:#e2e6eb;
 --accent:#0b6b64;--accent-bg:#e0f1ef;--on-accent:#fff;--link:#0a5aa0;--ok:#1b6a35;--ok-bg:#e0f2e5;--info:#1a5aa1;
 --info-bg:#e2ecf8;--warn:#7a5000;--warn-bg:#fbeecf;--bad:#9e1d15;--bad-bg:#fae3e1;--shadow:0 10px 30px rgba(15,25,40,.18);
+--v-manip:#1baf7a;--v-control:#2a78d6;--v-outage:#eb6834;
 --mono:ui-monospace,SFMono-Regular,Menlo,Consolas,"Liberation Mono",monospace;
---sans:system-ui,-apple-system,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;color-scheme:light}
-*{box-sizing:border-box}html{-webkit-text-size-adjust:100%}
+--sans:system-ui,-apple-system,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;
+--fs-xs:11.5px;--fs-sm:12.5px;--fs-md:13.5px;--fs-base:15px;--fkw:150px;color-scheme:light}
+*{box-sizing:border-box}html{-webkit-text-size-adjust:100%;scroll-padding-top:116px}
 body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.5 var(--sans)}
 a{color:var(--link)}code,pre,kbd{font-family:var(--mono);font-size:.88em}
 kbd{border:1px solid var(--line);border-radius:4px;padding:0 4px;background:var(--panel2)}
@@ -702,11 +1006,29 @@ h1,h2,h3,h4{line-height:1.25}.small{font-size:13px}.muted{color:var(--muted)}
 .brand{display:flex;align-items:center;gap:10px;color:var(--ink);text-decoration:none;flex-shrink:0}
 .brand h1{font-size:18px;margin:0}.mark{width:22px;height:22px;border-radius:6px;background:var(--accent);
 box-shadow:inset 0 -7px 0 rgba(0,0,0,.18)}
-.tagline{color:var(--muted);font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0}
+.tagline{color:var(--muted);font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0;flex:0 1 auto}
 .hright{margin-left:auto;display:flex;gap:8px;flex-shrink:0}
 .btn{font:inherit;font-size:13px;line-height:1.4;padding:5px 10px;border:1px solid var(--line);border-radius:6px;
 background:var(--panel);color:var(--ink);cursor:pointer;text-decoration:none;white-space:nowrap}
 .btn:hover,.btn:focus-visible{border-color:var(--accent)}.btn[aria-pressed=true]{background:var(--warn-bg);border-color:var(--warn)}
+#themeBtn[aria-pressed=true]{background:var(--accent-bg);border-color:var(--accent)}
+.gs{position:relative;flex:1 1 200px;max-width:440px;min-width:0;margin-left:auto}
+.gs input{width:100%;font:inherit;font-size:14px;padding:6px 30px 6px 30px;border:1px solid var(--line);border-radius:8px;background:var(--bg);color:var(--ink)}
+.gs input:focus{outline:2px solid var(--accent);outline-offset:-1px;background:var(--panel)}
+.gsi{position:absolute;left:9px;top:50%;width:15px;height:15px;transform:translateY(-50%);color:var(--muted);pointer-events:none}
+.gsk{position:absolute;right:8px;top:50%;transform:translateY(-50%);font-size:11px;color:var(--muted);pointer-events:none;line-height:1.3}
+.gs input:focus~.gsk{display:none}
+.gres{position:absolute;top:calc(100% + 6px);right:0;width:min(560px,calc(100vw - 24px));max-height:min(72vh,620px);overflow:auto;
+background:var(--panel);border:1px solid var(--line);border-radius:10px;box-shadow:var(--shadow);z-index:50;padding:6px;text-align:left}
+.gres[hidden]{display:none}.gsn{padding:8px 10px;color:var(--muted);font-size:var(--fs-sm);display:flex;justify-content:space-between;gap:8px;flex-wrap:wrap}
+.gsg+.gsg{border-top:1px solid var(--line2);margin-top:4px;padding-top:4px}
+.gsh{display:flex;justify-content:space-between;padding:6px 10px 2px;font-size:var(--fs-xs);font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--muted)}
+.gsr{display:grid;grid-template-columns:fit-content(38%) minmax(0,1fr);gap:2px 10px;padding:6px 10px;border-radius:7px;text-decoration:none;color:var(--ink);align-items:baseline}
+.gsr .cid{margin:0;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.gsr .gst{font-size:14px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.gsr .gss{grid-column:2;font-size:var(--fs-sm);color:var(--muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.gsr:hover,.gsr.on{background:var(--panel2)}.gsr.on{outline:2px solid var(--accent);outline-offset:-2px}
+.gsr mark{background:var(--warn-bg);color:inherit;border-radius:2px;padding:0 1px}
+.gsall{display:block;padding:4px 10px 6px;font-size:var(--fs-sm)}
 .tabs{display:flex;gap:2px;overflow-x:auto;margin-top:6px;scrollbar-width:thin}
 .tabs a{white-space:nowrap;padding:8px 11px 7px;color:var(--muted);text-decoration:none;border-bottom:3px solid transparent;
 font-weight:600;font-size:14px}.tabs a:hover{color:var(--ink)}
@@ -716,14 +1038,16 @@ font-weight:600;font-size:14px}.tabs a:hover{color:var(--ink)}
 .shell.norail{grid-template-columns:minmax(0,1fr)}.shell.norail .rail{display:none}
 .rail{position:sticky;top:104px;max-height:calc(100vh - 120px);overflow:auto;padding:2px 4px 12px 0}
 main{min-width:0}main:focus{outline:none}
-.fg{border:0;margin:0 0 16px;padding:0;min-width:0}
-.fg legend{font-size:11.5px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);padding:0;margin-bottom:3px}
-.fv{display:flex;align-items:center;gap:8px;padding:3px 6px;border-radius:5px;cursor:pointer;font-size:13.5px}
+/* facet rail: one type scale per level (group header, option label, count), one left edge, one group gap */
+.fg{border:0;margin:0 0 18px;padding:0;min-width:0}.fg:last-child{margin-bottom:0}
+.fg legend{font-size:var(--fs-xs);line-height:1.4;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);padding:0;margin:0 0 4px 6px}
+.fv{display:flex;align-items:center;gap:8px;padding:3px 6px;border-radius:5px;cursor:pointer;font-size:var(--fs-md);line-height:1.4;min-height:26px}
 .fv:hover{background:var(--panel2)}.fv.on{background:var(--accent-bg)}.fv.zero{opacity:.55}
-.fv input{margin:0;accent-color:var(--accent);flex-shrink:0}
-.fl{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.fc{color:var(--muted);font-size:12px;font-variant-numeric:tabular-nums}
-.lnk{font:inherit;font-size:12.5px;background:none;border:0;padding:2px 6px;color:var(--link);cursor:pointer;text-decoration:underline}
+.fv input{margin:0;width:14px;height:14px;accent-color:var(--accent);flex-shrink:0}
+.fl{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:var(--fs-md);text-align:left}
+.fc{color:var(--muted);font-size:var(--fs-sm);font-variant-numeric:tabular-nums;min-width:2.5ch;text-align:right;flex-shrink:0}
+.lnk{font:inherit;font-size:var(--fs-sm);line-height:1.4;background:none;border:0;padding:3px 6px;color:var(--link);cursor:pointer;text-decoration:underline}
+.fg .lnk{padding-left:28px}
 .lhead h2{margin:0 0 4px;font-size:22px}.lede{margin:0 0 12px;color:var(--muted);max-width:85ch}
 .subnav{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:14px}
 .subnav a{padding:4px 12px;border:1px solid var(--line);border-radius:999px;text-decoration:none;color:var(--ink);
@@ -771,15 +1095,17 @@ box-shadow:var(--shadow);z-index:40;display:flex;flex-direction:column}.drawer[h
 .dacts{margin-left:auto;display:flex;gap:6px;flex-shrink:0}
 .dbody{overflow:auto;padding:12px 18px 48px;overflow-wrap:anywhere;flex:1}
 .dbadges{display:flex;gap:6px;flex-wrap:wrap;align-items:center}
+/* drawer fields: one label column width at every depth, label and value on one baseline grid */
 .fields{display:flex;flex-direction:column;gap:10px;margin:14px 0}
-.fld{display:grid;grid-template-columns:minmax(110px,170px) minmax(0,1fr);gap:16px}
-.fkey{font-size:12.5px;font-weight:650;color:var(--muted);padding-top:1px}.fval{min-width:0}
+.fld{display:grid;grid-template-columns:var(--fkw) minmax(0,1fr);gap:16px;align-items:start}
+.fkey{font-size:var(--fs-sm);line-height:22.5px;font-weight:650;color:var(--muted);overflow-wrap:anywhere}.fval{min-width:0;line-height:22.5px}
+.fval .chips,.fval .idl{padding-top:2px}
 .txt{margin:0;white-space:pre-line}.fval code.blk{display:inline-block;white-space:pre-wrap;background:var(--panel2);padding:1px 6px;border-radius:4px}
 .f-suspicious>.fkey,.f-gap>.fkey{color:var(--bad)}.f-normal>.fkey{color:var(--ok)}.f-safety_note>.fkey{color:var(--warn)}
 .callout{margin:0;padding:8px 11px;border-radius:6px;border:1px solid var(--warn);background:var(--warn-bg)}
 .subs{display:flex;flex-direction:column;gap:8px}.sub{border:1px solid var(--line2);border-radius:7px;padding:9px 11px;background:var(--panel2)}
 .subh{display:flex;gap:6px;flex-wrap:wrap;align-items:baseline}.subh>b{margin-right:4px}
-.sub .fields{gap:5px;margin:7px 0 0}.sub .fld{grid-template-columns:minmax(90px,130px) minmax(0,1fr);gap:12px}
+.sub .fields{gap:5px;margin:7px 0 0}.sub .fld{grid-template-columns:calc(var(--fkw) - 12px) minmax(0,1fr)}
 blockquote{margin:6px 0 0;padding:6px 10px;border-left:3px solid var(--accent);background:var(--panel2);font-size:13.5px;white-space:pre-line}
 .sub blockquote{background:var(--panel)}
 .srcs{margin:0;padding-left:20px;display:flex;flex-direction:column;gap:10px}.srch{display:flex;gap:6px;flex-wrap:wrap;align-items:baseline}
@@ -820,18 +1146,67 @@ ol.steps{margin:0;padding-left:22px}ol.steps p,ul.steps p{margin:2px 0 4px}.dono
 .toast{position:fixed;left:50%;bottom:22px;transform:translateX(-50%);background:var(--ink);color:var(--bg);padding:8px 14px;
 border-radius:6px;z-index:60;font-size:13px;max-width:calc(100% - 32px);overflow-wrap:anywhere}
 footer{max-width:1440px;margin:12px auto 0;padding:14px 16px 28px;border-top:1px solid var(--line);color:var(--muted);font-size:12.5px}
-footer p{margin:4px 0}
+footer p{margin:4px 0}footer .credit a{color:var(--ink);font-weight:600}
+/* correlations: matrices scroll inside their box, never the page */
+.viz{margin:0 0 14px;border:1px solid var(--line);border-radius:10px;background:var(--panel)}
+.viz>summary{cursor:pointer;padding:10px 14px;font-weight:600;font-size:14px;list-style-position:inside}
+.vizb{padding:2px 14px 14px;display:flex;flex-direction:column;gap:18px}.vizb>p{margin:0}
+.vizs h4{margin:0 0 2px;font-size:15px}.vizs>p{margin:0 0 8px;max-width:95ch}
+.mxs{overflow-x:auto;border:1px solid var(--line2);border-radius:8px;max-width:100%}
+table.mx{border-collapse:separate;border-spacing:0;font-size:var(--fs-sm);width:auto;min-width:100%;background:var(--panel)}
+.mx th,.mx td{padding:2px;border-bottom:1px solid var(--line2);text-align:center;vertical-align:middle;background:var(--panel);
+text-transform:none;letter-spacing:0;white-space:nowrap}
+.mx thead th{vertical-align:bottom;padding:8px 2px 4px;color:var(--muted);font-size:var(--fs-xs);font-weight:500;background:var(--panel)}
+.mx th.ch{width:30px;min-width:30px;max-width:30px}
+.mx th.ch span{display:inline-block;writing-mode:vertical-rl;transform:rotate(180deg);max-height:190px;overflow:hidden;text-overflow:ellipsis;line-height:1.15}
+.mx th.ch a{color:var(--ink);text-decoration:none}.mx th.ch a:hover span,.mx th.ch a:focus-visible span{color:var(--link);text-decoration:underline}
+.mx th.rh{text-align:left;position:sticky;left:0;z-index:1;font-weight:500;font-size:var(--fs-md);padding:2px 10px 2px 8px;color:var(--ink);
+max-width:190px;overflow:hidden;text-overflow:ellipsis;box-shadow:1px 0 0 var(--line2)}
+.mx th.rh a{color:inherit;text-decoration:none}.mx th.rh a:hover{color:var(--link);text-decoration:underline}
+.mx tfoot th.rh{font-size:var(--fs-xs);color:var(--muted);font-weight:500}
+.mx tbody tr:hover>*{background:var(--panel2)}
+.mx td.e{background:var(--panel)}.mx td.e::after{content:"";display:inline-block;width:4px;height:4px;border-radius:50%;background:var(--line)}
+.mx tbody tr:hover td.e{background:var(--panel2)}
+.mx td.tot,.mx th.tot{font-variant-numeric:tabular-nums;color:var(--muted);font-size:var(--fs-sm);padding:2px 10px;font-weight:500}
+.mc{display:inline-grid;place-items:center;width:26px;height:26px;border-radius:5px;text-decoration:none;color:var(--ink);font-size:var(--fs-xs);
+font-weight:700;font-variant-numeric:tabular-nums;background:color-mix(in srgb,var(--accent) var(--h,30%),var(--panel))}
+.mc.dk{color:var(--on-accent)}.mc.via{background:transparent;box-shadow:inset 0 0 0 2px color-mix(in srgb,var(--accent) 60%,var(--panel));color:var(--muted)}
+a.mc:hover,a.mc:focus-visible{box-shadow:inset 0 0 0 2px var(--ink);outline:none}
+.tlw{overflow-x:auto}.tlx{display:block;width:100%;min-width:720px;height:auto}
+.tlx text{fill:var(--muted);font-size:12px;font-family:var(--sans)}.tlx .ax{stroke:var(--line);stroke-width:1.2}.tlx .tk{stroke:var(--line)}
+.tlx .stem{stroke:var(--line);stroke-width:1;stroke-dasharray:2 3;pointer-events:none}.tlx .hit{fill:transparent;stroke:none}
+.tlx .mk{stroke:var(--ink);stroke-width:1}.tlx a.tm:hover .mk,.tlx a.tm:focus .mk{stroke-width:3}.tlx a.tm:focus{outline:none}
+.mk-outage{fill:var(--v-outage)}.mk-control{fill:var(--v-control)}.mk-manip{fill:var(--v-manip)}.mk-none{fill:var(--panel);stroke:var(--muted);stroke-width:2}
+.tlg{display:flex;flex-direction:column;gap:4px;margin-top:6px;font-size:var(--fs-sm);color:var(--muted)}
+.tll{display:flex;gap:6px;align-items:baseline;flex-wrap:wrap}.tlx.lgm{width:16px;height:16px;min-width:0;flex-shrink:0;align-self:center;display:inline-block}
+/* ATT&CK grid */
+.cglg{display:flex;gap:6px 16px;flex-wrap:wrap;font-size:var(--fs-sm);color:var(--muted);align-items:center}
+.cglg .lg{display:inline-flex;align-items:center;gap:6px;text-decoration:none;color:var(--muted)}.cglg a.lg:hover{color:var(--link);text-decoration:underline}
+.cglg i{display:inline-block;width:13px;height:13px;border-radius:3px;border:1px solid transparent}.cglg b{color:var(--ink)}
+.covgrid{display:flex;flex-direction:column;gap:12px}
+.cg h4{margin:0 0 6px;font-size:var(--fs-xs);font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.06em}
+.cells{display:grid;grid-template-columns:repeat(auto-fill,minmax(82px,1fr));gap:4px}
+.cc{display:block;padding:4px 4px;border-radius:5px;font-family:var(--mono);font-size:var(--fs-xs);font-weight:700;text-decoration:none;text-align:center;
+border:1px solid transparent;color:var(--ink);background:var(--panel2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.cc-gap{background:var(--bad-bg);color:var(--bad);border-color:var(--bad)}
+.cc-blind{background:var(--warn-bg);color:var(--warn);border-color:var(--warn);border-style:dashed}
+.cc-detected{background:var(--ok-bg);color:var(--ok)}.cc-hunted{background:var(--info-bg);color:var(--info)}
+.cc-seen{background:var(--accent-bg);color:var(--accent)}.cc.bl{border-style:dashed;border-color:currentColor}
+a.cc:hover,a.cc:focus-visible{border-color:var(--ink);outline:none}.cc.sel{outline:2px solid var(--ink);outline-offset:1px}
+@media (max-width:1100px){.tagline{display:none}}
 @media (max-width:900px){.shell{grid-template-columns:minmax(0,1fr);padding:12px}
-.rail{position:static;max-height:none;display:none;border:1px solid var(--line);border-radius:8px;padding:10px 10px 0;background:var(--panel)}
-.shell.railopen:not(.norail) .rail{display:block}.railT{display:inline-block}.tagline{display:none}.cols.wide{grid-template-columns:minmax(0,1fr)}}
-@media (max-width:600px){.fld,.sub .fld{grid-template-columns:minmax(0,1fr);gap:1px}
-.hdr-in{padding:8px 12px 0}.dhead,.dbody{padding-left:12px;padding-right:12px}.lgrid{grid-template-columns:minmax(0,1fr)}}
+.rail{position:static;max-height:none;display:none;border:1px solid var(--line);border-radius:8px;padding:10px 10px 12px;background:var(--panel)}
+.shell.railopen:not(.norail) .rail{display:block}.railT{display:inline-block}.cols.wide{grid-template-columns:minmax(0,1fr)}}
+@media (max-width:600px){.fld,.sub .fld{grid-template-columns:minmax(0,1fr);gap:1px}.fkey,.fval{line-height:1.5}
+.hdr-in{padding:8px 12px 0;position:relative}.dhead,.dbody{padding-left:12px;padding-right:12px}.lgrid{grid-template-columns:minmax(0,1fr)}
+.brandrow{flex-wrap:wrap;gap:8px 10px}.gs{order:3;flex:1 1 100%;max-width:none;position:static}.hright{margin-left:auto}
+.gres{left:12px;right:12px;width:auto;top:calc(100% - 44px)}.gs .gsk{display:none}.vizb{padding:2px 10px 12px}.viz>summary{padding:9px 10px}}
 """
 
 
 def css() -> str:
-    return (BASE_CSS + ":root[data-theme=dark]{" + DARK + "}"
-            "@media (prefers-color-scheme:dark){:root:not([data-theme=light]){" + DARK + "}}")
+    """Light by default; dark only when the viewer chose it (the head script restores the choice)."""
+    return BASE_CSS + ":root[data-theme=dark]{" + DARK + "}"
 
 
 # --------------------------------------------------------------------------- JS
@@ -1031,9 +1406,21 @@ function ruleRef(p){
     h('pre', {class:'code'}, h('code', null, r.text))]);
 }
 function wide(k, v){ return k === 'indicators' || k === 'text' || (Array.isArray(v) && v.some(function(o){ return o && typeof o === 'object'; })); }
+/* the relationship panel: every record this one is tied to by an id field, in either direction, grouped by library */
+var RELORD = ['actors', 'malware', 'incidents', 'iocs', 'platforms', 'protocols', 'hunts', 'packs'];
+function relPanel(r){
+  var rel = D.rel[r.id]; if (!rel) return null;
+  var rows = RELORD.filter(function(l){ return rel[l] && rel[l].length; }).map(function(l){
+    return field(D.libLabel[l] || l, h('div', {class:'chips'}, rel[l].map(xchip))); });
+  if (!rows.length) return null;
+  return h('section', {class:'sec rel'}, [h('h3', null, 'Linked records'),
+    h('p', {class:'small muted', style:'margin:0 0 8px'}, 'From the id fields of this record and of every record that names it, in both directions. A link is a reporter’s statement in one of the two records, not an inference.'),
+    h('div', {class:'fields'}, rows)]);
+}
 function detail(n, r){
   var L = LIB[n], frag = document.createDocumentFragment();
   frag.appendChild(h('div', {class:'dbadges'}, [confB(r._conf), r._unv ? unvB() : null, nunvB(r)].concat(L.chips ? L.chips(r) : [])));
+  var rp = relPanel(r); if (rp) frag.appendChild(rp);
   var keys = Object.keys(r).filter(function(k){ return k.charAt(0) !== '_' && k !== 'id' && r[k] !== r._title; });
   var src = keys.filter(function(k){ return k === 'sources' || k === 'references'; }), box = null;
   keys.forEach(function(k){   /* record order; lists of entries, indicators and rule text get the full width */
@@ -1087,12 +1474,13 @@ lib('datasources', {noun:'data sources',
   chips:function(r){ return r._f.impact.map(impB).concat([chipT(plural((r.gaps || []).length, 'stated gap'))]); }});
 lib('actors', {noun:'actors',
   facets:[facet('motivation', 'Motivation', nice), facet('reporter', 'Reported by'), facet('stage', 'ICS kill chain stage', nice, ['stage-1', 'stage-2', 'unknown']),
-    facet('confidence', 'Link confidence', null, ORD.conf)],
+    facet('platform', 'Platform named', pshort), facet('confidence', 'Link confidence', null, ORD.conf)],
   meta:function(r){ return [(r.reported_by || []).join(', '), nice(r.motivation)]; },
   blurb:function(r){ return r.summary; },
   chips:function(r){ return (r.aliases || []).slice(0, 3).map(function(a){ return chipT((a.equated ? '= ' : '\u2248 ') + a.name, (a.equated ? 'Equated: ' : 'Alias, not equated: ') + a.by); }); }});
 lib('malware', {noun:'malware families',
-  facets:[facet('type', 'Type', nice), facet('runs', 'Runs on', nice), facet('effect', 'ICS effect', nice),
+  facets:[facet('type', 'Type', nice), facet('runs', 'Runs on', nice), facet('effect', 'ICS effect', nice), facet('platform', 'Platform', pshort),
+    facet('protocol', 'Protocol', nm),
     facet('detection', 'Detection', function(v){ return v === 'yes' ? 'has a detection' : 'none, gap stated'; }), facet('confidence', 'Confidence', null, ORD.conf)],
   meta:function(r){ return [nice(r.type), r.first_reported ? 'first reported ' + r.first_reported : '']; },
   blurb:function(r){ return r.summary; },
@@ -1259,9 +1647,11 @@ function openDrawer(n, id){
   clear($('dBody')).appendChild(detail(n, r));
   $('dBody').scrollTop = 0;
   $('drawer').hidden = false; $('scrim').hidden = false;
-  document.querySelectorAll('.item.sel').forEach(function(x){ x.classList.remove('sel'); });
+  document.querySelectorAll('.item.sel, .cc.sel').forEach(function(x){ x.classList.remove('sel'); });
   var c = $('tab-' + n).querySelector('.item[data-id="' + CSS.escape(id) + '"]');
-  if (c) c.classList.add('sel');
+  if (c){ c.classList.add('sel'); if (c.tagName === 'TR') c.scrollIntoView({block:'nearest'}); }   /* the technique's row, from the grid */
+  var cell = n === 'coverage' && $('viz-cov').querySelector('.cc[href="#coverage/' + CSS.escape(id) + '"]');
+  if (cell) cell.classList.add('sel');
   $('dTitle').focus({preventScroll:true});
 }
 function closeDrawer(silent){
@@ -1269,7 +1659,7 @@ function closeDrawer(silent){
   var n = openLib, id = openId;
   $('drawer').hidden = true; $('scrim').hidden = true;
   openId = null; openLib = null;
-  document.querySelectorAll('.item.sel').forEach(function(x){ x.classList.remove('sel'); });
+  document.querySelectorAll('.item.sel, .cc.sel').forEach(function(x){ x.classList.remove('sel'); });
   if (!silent){
     writeHash();
     var c = n && id && $('tab-' + n) && $('tab-' + n).querySelector('.item[data-id="' + CSS.escape(id) + '"]');
@@ -1345,6 +1735,9 @@ function show(tab, anchor){
   document.querySelectorAll('.tabs a').forEach(function(a){ if (a.dataset.tab === top) a.setAttribute('aria-current', 'page'); else a.removeAttribute('aria-current'); });
   document.querySelectorAll('.panel').forEach(function(p){ p.hidden = p.id !== 'tab-' + tab; });
   $('shell').classList.toggle('norail', !LIB[tab]);
+  var vz = $('viz-intel');   /* one correlation block, carried into whichever intel library is open */
+  if (TABOF[tab] === 'intel'){ var P = $('tab-' + tab); if (vz.parentNode !== P) P.insertBefore(vz, P.querySelector('.tools')); vz.hidden = false; }
+  else vz.hidden = true;
   if (changed) window.scrollTo(0, 0);
   if (LIB[tab]){
     if (anchor && BYID[tab][anchor] && !pass(tab, BYID[tab][anchor], null)) S[tab] = fresh();   // a deep link is never hidden by a filter
@@ -1399,20 +1792,87 @@ $('rail').addEventListener('change', function(ev){
   renderLib(cur);
 });
 document.addEventListener('input', function(ev){ if (ev.target.classList.contains('q') && LIB[cur]){ S[cur].q = ev.target.value; renderLib(cur); } });
+
+/* ---------------------------------------------------------------- global search: every library at once, grouped, from _s */
+var GS = [], gsFlat = [], gsI = 0, GSMAX = 5;
+Object.keys(LIB).forEach(function(n){ LIB[n].items.forEach(function(it){ GS.push({n:n, it:it, s:String(it._s || '').toLowerCase(), t:it._title.toLowerCase(), i:String(it.id).toLowerCase()}); }); });
+function gsToks(q){ return refang(q).toLowerCase().split(/\s+/).filter(Boolean); }
+function gsearch(toks){
+  var by = {};
+  if (!toks.length) return [];
+  GS.forEach(function(x){
+    for (var i = 0; i < toks.length; i++) if (x.s.indexOf(toks[i]) < 0) return;
+    var sc = toks.every(function(t){ return x.t.indexOf(t) >= 0; }) ? 3 : toks.some(function(t){ return x.i.indexOf(t) >= 0; }) ? 2 : 1;
+    (by[x.n] = by[x.n] || []).push({x:x, sc:sc});
+  });
+  return Object.keys(LIB).filter(function(n){ return by[n]; }).map(function(n){
+    var a = by[n].sort(function(p, q){ return q.sc - p.sc; });
+    return {n:n, total:a.length, items:a.slice(0, GSMAX).map(function(o){ return o.x.it; })}; });
+}
+function hilite(text, toks){   /* text nodes and <mark>, never markup from the record */
+  text = String(text); var low = text.toLowerCase(), cuts = [];
+  toks.forEach(function(t){ var i = 0; while (t && (i = low.indexOf(t, i)) >= 0){ cuts.push([i, i + t.length]); i += t.length; } });
+  cuts.sort(function(a, b){ return a[0] - b[0]; });
+  var out = [], pos = 0;
+  cuts.forEach(function(c){ if (c[0] < pos) return; if (c[0] > pos) out.push(text.slice(pos, c[0])); out.push(h('mark', null, text.slice(c[0], c[1]))); pos = c[1]; });
+  if (pos < text.length) out.push(text.slice(pos));
+  return out;
+}
+function gsClose(){ var box = $('gres'); box.hidden = true; clear(box); gsFlat = []; $('gq').setAttribute('aria-expanded', 'false'); $('gq').removeAttribute('aria-activedescendant'); }
+function gsMark(){
+  gsFlat.forEach(function(a, i){ var on = i === gsI; a.classList.toggle('on', on); a.setAttribute('aria-selected', String(on)); if (on) a.scrollIntoView({block:'nearest'}); });
+  if (gsFlat[gsI]) $('gq').setAttribute('aria-activedescendant', gsFlat[gsI].id); else $('gq').removeAttribute('aria-activedescendant');
+}
+function gsRender(){
+  var q = $('gq').value, toks = gsToks(q), box = clear($('gres'));
+  gsFlat = []; gsI = 0;
+  if (!toks.length){ gsClose(); return; }
+  var groups = gsearch(toks), total = groups.reduce(function(s, g){ return s + g.total; }, 0);
+  if (!groups.length) box.appendChild(h('div', {class:'gsn'}, 'Nothing matches every word. Try fewer words, an id, or a defanged indicator.'));
+  else box.appendChild(h('div', {class:'gsn'}, [plural(total, 'record') + ' in ' + plural(groups.length, 'library').replace('librarys', 'libraries'), h('span', null, '↑↓ move · Enter opens · Esc clears')]));
+  groups.forEach(function(g){
+    var sec = h('div', {class:'gsg', role:'group', 'aria-label':D.libLabel[g.n]}, h('div', {class:'gsh'}, [D.libLabel[g.n], h('span', null, String(g.total))]));
+    g.items.forEach(function(it){
+      var meta = LIB[g.n].meta ? LIB[g.n].meta(it).filter(Boolean).join(' · ') : '';
+      var a = h('a', {class:'gsr', role:'option', 'aria-selected':'false', id:'gsr' + gsFlat.length, href:'#' + g.n + '/' + it.id},
+        [h('span', {class:'cid'}, it.id), h('span', {class:'gst', title:it._title}, hilite(it._title, toks)), meta ? h('span', {class:'gss'}, meta) : null]);
+      gsFlat.push(a); sec.appendChild(a);
+    });
+    if (g.total > GSMAX) sec.appendChild(h('a', {class:'gsall', href:'#' + g.n + '?q=' + encodeURIComponent(refang(q).trim())}, 'All ' + g.total + ' in ' + D.libLabel[g.n] + ' →'));
+    box.appendChild(sec);
+  });
+  box.hidden = false; $('gq').setAttribute('aria-expanded', 'true'); gsMark();
+}
+function gsGo(href){ gsClose(); $('gq').blur(); go(href.slice(1)); }
+$('gq').addEventListener('input', gsRender);
+$('gq').addEventListener('focus', function(){ if ($('gq').value.trim()) gsRender(); });
+$('gq').addEventListener('keydown', function(ev){
+  if (ev.key === 'ArrowDown' || ev.key === 'ArrowUp'){ if (!gsFlat.length) return; ev.preventDefault(); gsI = (gsI + (ev.key === 'ArrowDown' ? 1 : gsFlat.length - 1)) % gsFlat.length; gsMark(); }
+  else if (ev.key === 'Enter'){ if (gsFlat[gsI]){ ev.preventDefault(); gsGo(gsFlat[gsI].getAttribute('href')); } }
+  else if (ev.key === 'Escape'){ ev.preventDefault(); ev.stopPropagation(); if ($('gq').value){ $('gq').value = ''; gsClose(); } else $('gq').blur(); }
+});
+$('gres').addEventListener('click', function(ev){
+  var a = ev.target.closest('a'); if (a && !ev.ctrlKey && !ev.metaKey && !ev.shiftKey){ ev.preventDefault(); gsGo(a.getAttribute('href')); }
+});
+document.addEventListener('click', function(ev){ if (!ev.target.closest('.gs')) gsClose(); });
+
 document.addEventListener('keydown', function(ev){
   if (ev.key === 'Escape' && !$('drawer').hidden){ closeDrawer(false); return; }
-  if (ev.key === '/' && LIB[cur] && !/INPUT|TEXTAREA|SELECT/.test((document.activeElement || {}).tagName || '')){ ev.preventDefault(); $('tab-' + cur).querySelector('.q').focus(); }
+  var typing = /INPUT|TEXTAREA|SELECT/.test((document.activeElement || {}).tagName || '');
+  if ((ev.key === '/' && !typing && !ev.ctrlKey && !ev.metaKey) || ((ev.key === 'k' || ev.key === 'K') && (ev.ctrlKey || ev.metaKey))){ ev.preventDefault(); $('gq').focus(); $('gq').select(); }
 });
 $('dClose').addEventListener('click', function(){ closeDrawer(false); });
 $('scrim').addEventListener('click', function(){ closeDrawer(false); });
 $('dLink').addEventListener('click', function(){ copy(location.href, 'Link copied'); });
+/* theme: light unless this viewer chose dark (restored by the head script); the button shows the state */
+function themeSync(){ $('themeBtn').setAttribute('aria-pressed', String(document.documentElement.getAttribute('data-theme') === 'dark')); }
 $('themeBtn').addEventListener('click', function(){
-  var root = document.documentElement, now = root.getAttribute('data-theme') || (matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
-  var next = now === 'dark' ? 'light' : 'dark';
-  root.setAttribute('data-theme', next);
+  var root = document.documentElement, next = root.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';
+  root.setAttribute('data-theme', next); themeSync();
   try { localStorage.setItem('icsdfir-theme', next); } catch (_){ /* private mode */ }
 });
-try { var th = localStorage.getItem('icsdfir-theme'); if (th === 'dark' || th === 'light') document.documentElement.setAttribute('data-theme', th); } catch (_){ /* private mode */ }
+themeSync();
+if (window.innerWidth < 900) $('viz-intel').open = false;   /* phones start with the matrices folded */
 window.addEventListener('hashchange', route);
 renderResponse();
 route();

@@ -32,7 +32,7 @@ parsers:
     url: https://docs.zeek.org/en/stable/scripts/base/protocols/dce-rpc/main.zeek.html
     license: BSD-style (Zeek COPYING)
 platforms: [ICS-0011]
-malware: [ICS-MAL-0002]
+malware: [ICS-MAL-0002, ICS-MAL-0004]
 notes: >-
   CISA AA22-083A reports that Havex used the OPC standard to gather
   information about connected control systems and enumerated OPC servers and

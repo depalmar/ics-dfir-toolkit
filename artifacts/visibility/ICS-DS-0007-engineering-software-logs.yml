@@ -6,7 +6,7 @@ id: ICS-DS-0007
 name: Engineering software logs and project files (TIA Portal, Studio 5000, EcoStruxure)
 category: application-audit
 purdue_levels: ["2", "3"]
-platforms: [ICS-0010, ICS-0001, ICS-0003, ICS-0005, ICS-0009]
+platforms: [ICS-0010, ICS-0001, ICS-0003, ICS-0005, ICS-0009, ICS-0004, ICS-0006, ICS-0007, ICS-0008, ICS-0014]
 protocols: [ICS-PROTO-0003, ICS-PROTO-0004, ICS-PROTO-0012, ICS-PROTO-0015]
 location: >-
   On engineering workstations and in change-management systems: the project

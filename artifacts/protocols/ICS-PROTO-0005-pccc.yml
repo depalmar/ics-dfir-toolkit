@@ -32,11 +32,12 @@ parsers:
     url: https://github.com/cisagov/icsnpp-enip
     logs: [cip.log]
     license: BSD-3-Clause
-platforms: [ICS-0001]
+platforms: [ICS-0001, ICS-0002]
 notes: >-
   No open-source parser that decodes PCCC payloads was verified in this round.
-  MicroLogix (ICS-0002) is not listed because no source read here ties it to
-  PCCC; add it once a Rockwell MicroLogix manual is read. Both Rockwell quotes
+  MicroLogix (ICS-0002) is listed because the MicroLogix 1400 user manual read
+  for that record lists "ST file type for all PCCC commands" in its firmware
+  history (see ICS-0002 notes; added at the 2026-11-08 consistency audit). Both Rockwell quotes
   were re-read directly on 2026-11-08; the record stays low and unverified
   because the authentication value is a placeholder, not because of the reads.
 confidence: low

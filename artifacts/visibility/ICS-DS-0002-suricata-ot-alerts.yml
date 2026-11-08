@@ -94,7 +94,7 @@ gaps:
 confidence: high
 sources:
   - title: Suricata default configuration (OISF/suricata suricata.yaml.in)
-    url: https://github.com/OISF/suricata/blob/main/suricata.yaml.in
+    url: https://raw.githubusercontent.com/OISF/suricata/main/suricata.yaml.in
     accessed: "2026-11-08"
     kind: vendor
     quote: |-
@@ -103,7 +103,7 @@ sources:
         enabled: no
     read: direct
   - title: Suricata default configuration (OISF/suricata suricata.yaml.in), DNP3
-    url: https://github.com/OISF/suricata/blob/main/suricata.yaml.in
+    url: https://raw.githubusercontent.com/OISF/suricata/main/suricata.yaml.in
     accessed: "2026-11-08"
     kind: vendor
     quote: |-

@@ -1,0 +1,3 @@
+# Every path is reviewed by the maintainer. A branch ruleset that requires
+# review from code owners uses this file.
+* @depalmar

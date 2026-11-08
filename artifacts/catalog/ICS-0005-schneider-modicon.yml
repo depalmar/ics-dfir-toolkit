@@ -11,7 +11,7 @@ products:
   - Modicon M221 / M241 / M251 / M258 (not researched in this pass)
 asset_class: plc
 purdue_levels: ["1"]
-protocols: [ICS-PROTO-0012, ICS-PROTO-0001, ICS-PROTO-0004]
+protocols: [ICS-PROTO-0012, ICS-PROTO-0001, ICS-PROTO-0004, ICS-PROTO-0010]
 os_base: Proprietary controller firmware; Schneider does not publish its internals
 customer_shell: "no"
 memory_acquisition: not-available
@@ -179,7 +179,7 @@ artifacts:
         url: https://docs.rs-online.com/7a9a/A700000012779990.pdf
         accessed: "2026-11-08"
         kind: vendor
-        quote: Program Operating Mode change (Run, Stop, Init, halt) Mode Maintenance / SafeRun / Stop SAFE Task
+        quote: Program Operating Mode change (Run, Stop, Init, halt) ... Mode Maintenance / SafeRun / Stop SAFE Task
         read: direct
   - locator: M580 FIRMWARE_UPDATE and invalid-firmware syslog events
     class: firmware

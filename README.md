@@ -2,7 +2,7 @@
 
 **A sourced DFIR knowledge base for industrial control systems and operational technology.**
 
-By [Raymond DePalma](https://www.linkedin.com/in/raymond-depalma/) · published by [DePalma Research LLC](https://www.linkedin.com/company/depalma-research)
+By [Raymond DePalma](https://www.linkedin.com/in/raymond-depalma/) · published by [DePalma Research LLC](https://www.linkedin.com/company/depalma-research) · **site: [depalmar.github.io/ics-dfir-toolkit](https://depalmar.github.io/ics-dfir-toolkit/)**
 
 > [!WARNING]
 > **Early stage: knowledge base first, tooling later.** This release is the
@@ -129,7 +129,8 @@ project; firmware or memory-only changes are invisible). It never connects to a
 controller and refuses XML with DOCTYPE or ENTITY declarations. Exit 0 / 10 / 1.
 See [docs/logic-compare.md](docs/logic-compare.md).
 
-**Browse it:** `python artifacts/scripts/build_site.py` writes one
+**Browse it at [depalmar.github.io/ics-dfir-toolkit](https://depalmar.github.io/ics-dfir-toolkit/)**
+(rebuilt from `main` on every push). Locally, `python artifacts/scripts/build_site.py` writes the same
 self-contained page, `docs/site/index.html` - every library with search,
 facet filters, a detail drawer per record with its quoted sources, cross-links
 between ids, the ATT&CK coverage map and the KEV ledger. No framework, no CDN,

@@ -115,7 +115,9 @@ ranges (192.0.2.0/24, 198.51.100.0/24, 203.0.113.0/24) and placeholder names.
 
 **Do not name the maintainer's former employers anywhere in the repository.**
 The publisher is DePalma Research LLC; credit it and Raymond DePalma only in
-the README, NOTICE and CITATION. Citing a vendor's or research team's
+the README, NOTICE, CITATION and the generated site's footer, which reads the
+credit from NOTICE and the two LinkedIn links from the README at build time
+(the generator never hardcodes them). Citing a vendor's or research team's
 publication as a source is not naming an employer.
 
 ## Threat intel rules

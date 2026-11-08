@@ -48,6 +48,7 @@ events:
     basis: government
   - event: Administrative logins (web UI, SSH) and configuration changes on the gateway, with source address
     value: Who managed the gateway and what they changed; logins from unexpected or foreign addresses are the first thing to look for (this project's inference from AA26-097A's emphasis on modem access).
+    attack: [T0812, T1078.001, T1694]
     basis: toolkit
   - event: Port-forwarding or firewall rule changes exposing a PLC or HMI behind the gateway
     value: An exposed controller behind a cellular router is how internet-facing PLCs typically arise; compare against the approved configuration (this project's inference).
@@ -94,4 +95,33 @@ sources:
     quote: >-
       To configure what you want to include in the logs: 1. In ACEmanager, go to
       Admin > Log.
+    read: direct
+  - title: MITRE ATT&CK Enterprise T1078.001 Valid Accounts - Default Accounts, Detection Strategy DET0465, analytic AN1287
+    url: https://attack.mitre.org/techniques/T1078/001/
+    accessed: "2026-11-08"
+    kind: standard
+    quote: >-
+      Login activity from default admin credentials (e.g., 'admin', 'cisco') on
+      routers, firewalls, and switches.
+    read: direct
+  - title: MITRE ATT&CK ICS T1694.001 Insecure Credentials - Default Credentials (T0812 redirects here), Detection Strategy DET0756, analytic AN2193
+    url: https://attack.mitre.org/techniques/T1694/001/
+    accessed: "2026-11-08"
+    kind: standard
+    quote: >-
+      Real-time monitoring identifies authentication attempts against Industrial
+      Control System (ICS) network device management interfaces using well-known
+      default vendor credentials from source Internet Protocol (IP) addresses not
+      in the approved Network Management System (NMS) Classless Inter-Domain
+      Routing (CIDR) subnet range.
+    read: direct
+  - title: MITRE ATT&CK ICS T1694 Insecure Credentials, Detection Strategy DET0905, analytic AN2203
+    url: https://attack.mitre.org/techniques/T1694/
+    accessed: "2026-11-08"
+    kind: standard
+    quote: >-
+      Real-time monitoring identifies authentication attempts against Industrial
+      Control System (ICS) network device management interfaces using default or
+      hardcoded vendor credentials from sources not in the approved Network
+      Management System (NMS) Classless Inter-Domain Routing (CIDR) subnet.
     read: direct

@@ -53,6 +53,17 @@ def test_check_matches_reports_missing_and_rendered():
     assert "can become `read: direct`" in text
 
 
+def test_report_groups_quotes_by_page_and_caps_each_page():
+    rows = [{"file": "f", "record": f"r{i}", "url": "https://example.org/a", "quote": "q", "read": "direct",
+             "status": "missing", "closest": 0.1} for i in range(12)]
+    rows.append({"file": "g", "record": "x", "url": "https://example.org/b", "quote": "q", "read": "direct",
+                 "status": "unfetched: HTTPError: 403"})
+    text = cq.report(rows)
+    assert text.count("https://example.org/a") == 1          # the page once, its quotes beneath it
+    assert "and 4 more from this page" in text                # 12 quotes, 8 shown
+    assert "https://example.org/b (1 quote; HTTPError: 403)" in text
+
+
 def test_collect_finds_every_quoted_source_in_the_repository():
     found = cq.collect(ROOT)
     assert len(found) > 500

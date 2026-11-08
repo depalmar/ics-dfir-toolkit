@@ -68,6 +68,25 @@ Ordered by value. The knowledge base comes first because every later layer
    only in protocol reads (deferred), Stuxnet (no primary source read yet), and
    adversary-side reconnaissance an owner's data never shows.
 
+## Round 5 (2026-11-08)
+
+- **Quote check, run 2** (issue #7): 317 of 764 quotes verified word for
+  word from GitHub's runners; 42 need a rendered check (Siemens TIA, AVEVA);
+  368 could not be fetched because cisa.gov, rockwellautomation.com,
+  media.defense.gov and Sierra Wireless answer GitHub's runners with 403 and
+  cyber.gov.au times out; 37 flagged as no longer on the page. Of the 37,
+  the justice.gov and cert.gov.ua groups were bot-wall shells (now in
+  `RENDERED_HOSTS`); the other ~29 (CODESYS whitepaper, Schneider and
+  Hitachi PDFs, cert.pl, Talos, Claroty, GTIG, Dragos, Microsoft, ESET,
+  Europol) need a re-read against the rendered page - pending Firecrawl
+  credits. Options for the unfetchable half: run `check_quotes.py` monthly
+  from a machine with ordinary egress, or add a rendering-fetch fallback
+  behind a repository secret.
+- **ATT&CK v20 renumbering** (decision pending): T0812 → T1694.001, T0855 →
+  T1692.001, T0857 → T1693.001; T0807 and T0853 deprecated. Records keep the
+  old ids (they still resolve); migrating needs `mappings.py` to learn the
+  cross-domain ids before the ICS/Enterprise split stays correct.
+
 ## Round 4 (2026-11-08)
 
 - ~~Static site~~ - `build_site.py` and the Pages workflow. Next: technique

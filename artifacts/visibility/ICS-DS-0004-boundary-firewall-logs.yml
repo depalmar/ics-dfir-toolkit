@@ -43,7 +43,7 @@ collection:
 events:
   - event: Inbound sessions to 44818/tcp+udp, 2222/udp, 102/tcp or 502/tcp from internet addresses, especially foreign hosting providers
     value: CISA AA26-097A reports these ports targeted on internet-facing PLCs and asks owners to search logs for them.
-    attack: [T0883, T0885]
+    attack: [T0883, T0885, T1595.002]
     basis: government
   - event: Inbound sessions to 22/tcp on modems or gateways
     value: AA26-097A reports actors deploying Dropbear SSH on victim modems for remote access through port 22.
@@ -51,10 +51,11 @@ events:
     basis: government
   - event: Inbound sessions to VNC ports 5900-5910
     value: AA25-343A reports hacktivists searching for VNC on 5900 or nearby ports (5901-5910) to reach HMIs connected to live control networks.
-    attack: [T0886, T1021.005]
+    attack: [T0886, T1021.005, T0823]
     basis: government
   - event: Outbound sessions from OT to the internet (beaconing, unexpected protocols)
     value: AA25-343A asks owners to monitor outbound traffic patterns for anomalies such as beaconing or unexpected protocol usage.
+    attack: [T0869, T1041]
     basis: government
   - event: Firewall rule or policy change entries
     value: >-
@@ -128,4 +129,42 @@ sources:
     quote: >-
       Timesharing should be unidirectional. The OT environment should sychronise
       time sync with the IT environment and not the other way around.
+    read: direct
+  - title: MITRE ATT&CK Enterprise T1595.002 Active Scanning - Vulnerability Scanning, Detection Strategy DET0867, analytic AN1999
+    url: https://attack.mitre.org/techniques/T1595/002/
+    accessed: "2026-11-08"
+    kind: standard
+    quote: >-
+      Monitor network data for uncommon data flows.
+    read: direct
+  - title: MITRE ATT&CK ICS T0823 Graphical User Interface, Detection Strategy DET0772, analytic AN2251
+    url: https://attack.mitre.org/techniques/T0823/
+    accessed: "2026-11-08"
+    kind: standard
+    quote: >-
+      Real-time monitoring identifies Virtual Network Computing (VNC) or
+      proprietary remote console sessions to embedded Human-Machine Interface
+      (HMI) panels or operator terminals from IP addresses outside the approved
+      Network Management System (NMS) Classless Inter-Domain Routing (CIDR)
+      subnet, where the sessions access Industrial Control System (ICS) control
+      interfaces with physical-plant impact.
+    read: direct
+  - title: MITRE ATT&CK ICS T0869 Standard Application Layer Protocol, Detection Strategy DET0799, analytic AN2223
+    url: https://attack.mitre.org/techniques/T0869/
+    accessed: "2026-11-08"
+    kind: standard
+    quote: >-
+      Near-real-time connection monitoring identifies an embedded field device or
+      gateway initiating outbound connections on standard application-layer
+      protocol ports to destinations outside the expected Industrial Control
+      System (ICS) communication baseline.
+    read: direct
+  - title: MITRE ATT&CK Enterprise T1041 Exfiltration Over C2 Channel, Detection Strategy DET0348, analytic AN0988
+    url: https://attack.mitre.org/techniques/T1041/
+    accessed: "2026-11-08"
+    kind: standard
+    quote: >-
+      Identifies suspicious outbound traffic volume mismatches from processes that
+      typically do not generate network activity, particularly over C2 protocols
+      like HTTPS, DNS, or custom TCP/UDP ports, following file or data access.
     read: direct

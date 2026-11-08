@@ -67,21 +67,26 @@ events:
     basis: vendor
   - event: '"Project download"'
     value: A project was downloaded. AA26-097A reports actors downloading a malicious project with configuration software; such a download should leave this entry (this project's inference - CISA does not say it was found here).
+    attack: [T0843]
     basis: vendor
   - event: '"Online edits modified controller program"'
     value: Logic changed while online - check against approved change records and known workstation names.
+    attack: [T0889]
     basis: vendor
   - event: '"Remote mode change" (Extended Information: Old mode, New mode) and "Keyswitch mode change" (UserName Local)'
     value: Mode changes from software (with Windows user and workstation) versus the physical key switch.
+    attack: [T0858]
     basis: vendor
   - event: I/O forces enabled, disabled, removed, or modified; SFC forces enabled, disabled, removed, or modified
     value: Forces override logic and I/O; unexpected forces are a direct process-manipulation indicator.
     basis: vendor
   - event: Firmware update
     value: Firmware changed on the controller.
+    attack: [T0857]
     basis: vendor
   - event: '"Log Collected Data Cleared"'
     value: Logged data was cleared - treat as possible anti-forensics until explained.
+    attack: [T0872]
     basis: vendor
   - event: The Changes To Detect value has changed
     value: The change-detection mask was altered, which can stop later changes from moving the AuditValue.
@@ -91,9 +96,11 @@ events:
     basis: vendor
   - event: Audit-log entries (Logix Designer v30+) - changes to component properties, edits in a routine, changes to tag values
     value: Finer-grained record of what was changed, used by FactoryTalk AssetCentre.
+    attack: [T0836, T0889]
     basis: vendor
   - event: AuditValue (GSV attribute; Controller Properties online)
     value: A single value regenerated whenever a monitored change occurs; differs from the recorded baseline if anything monitored changed.
+    attack: [T0889]
     basis: vendor
 tooling:
   - name: Studio 5000 Logix Designer and FactoryTalk AssetCentre (Rockwell Automation)
@@ -182,4 +189,57 @@ sources:
     quote: >-
       For more robust logging and to help prevent rollover, use FactoryTalk®
       AssetCentre or a syslog collector.
+    read: direct
+  - title: MITRE ATT&CK ICS T0843 Program Download, Detection Strategy DET0752, analytic AN1884
+    url: https://attack.mitre.org/techniques/T0843/
+    accessed: "2026-11-08"
+    kind: standard
+    quote: >-
+      Real-time monitoring identifies an Industrial Control System (ICS) protocol
+      session consistent with a program download to a field device from a source
+      not in the approved engineering workstation list, correlated with a device
+      mode-change alarm transitioning to PROGRAM/STOP immediately preceding the
+      transfer.
+    read: direct
+  - title: MITRE ATT&CK ICS T0889 Modify Program, Detection Strategy DET0783, analytic AN1915
+    url: https://attack.mitre.org/techniques/T0889/
+    accessed: "2026-11-08"
+    kind: standard
+    quote: >-
+      Real-time monitoring identifies an Industrial Control System (ICS) protocol
+      write to an existing program block from a source not in the approved
+      engineering workstation list, outside a scheduled change-control window,
+      correlated against post-modification program hash comparison and measurable
+      change in controller Input/Output (I/O) behavior.
+    read: direct
+  - title: MITRE ATT&CK ICS T0858 Change Operating Mode, Detection Strategy DET0755, analytic AN1887
+    url: https://attack.mitre.org/techniques/T0858/
+    accessed: "2026-11-08"
+    kind: standard
+    quote: >-
+      Real-time monitoring identifies an Industrial Control System (ICS) protocol
+      mode-change command targeting a field device from a source not in the
+      approved engineering workstation list, where the transition is not
+      immediately followed by a corresponding operator acknowledgment.
+    read: direct
+  - title: MITRE ATT&CK ICS T1693.001 Modify Firmware - System Firmware (T0857 redirects here), Detection Strategy DET0731, analytic AN1864
+    url: https://attack.mitre.org/techniques/T1693/001/
+    accessed: "2026-11-08"
+    kind: standard
+    quote: >-
+      Real-time monitoring identifies a field device entering firmware update mode
+      and receiving a large data transfer on its firmware-capable protocol port
+      from a source not in the approved engineering workstation list, followed by
+      a device reboot, with post-reboot firmware hash not matching the authorized
+      inventory.
+    read: direct
+  - title: MITRE ATT&CK ICS T0872 Indicator Removal on Host, Detection Strategy DET0750, analytic AN2245
+    url: https://attack.mitre.org/techniques/T0872/
+    accessed: "2026-11-08"
+    kind: standard
+    quote: >-
+      Real-time monitoring identifies Industrial Control System (ICS) field device
+      event logs being cleared via ICS protocol commands from a source not in the
+      approved engineering workstation list, occurring immediately following other
+      suspicious ICS activity on the same device.
     read: direct

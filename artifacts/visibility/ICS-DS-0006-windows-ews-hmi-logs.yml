@@ -55,30 +55,43 @@ events:
       Every program started on the EWS/HMI, by which account and parent;
       with command-line auditing on, the arguments too. Reveals engineering
       tools started at odd hours, scripts and LOTL binaries.
+    attack: [T0807, T0840, T0847]
     basis: vendor
   - event: Security 4624 - An account was successfully logged on (correlate by Logon ID with 4688)
     value: Logons to the EWS/HMI; the Logon ID links a session to the processes it started.
+    attack: [T0859, T1078.001, T1563]
+    basis: vendor
+  - event: Security 4778 - A session was reconnected to a Window Station (Account Name, Logon ID, Session Name, Client Name, Client Address; needs the "Audit Other Logon/Logoff Events" subcategory)
+    value: >-
+      Reconnections to an existing Remote Desktop (RDP-Tcp#N) or console session, with the client name and address; the Logon ID ties the session back to its 4624. A reconnect to an operator's session from a client with no matching logon is the session takeover MITRE's analytic for remote service session hijacking looks for.
+    attack: [T1563]
     basis: vendor
   - event: Sysmon Event ID 1 - Process creation (full command line, parent process, file hash per HashType, ProcessGUID)
     value: Process start with full command line, parent and file hash; ProcessGuid survives PID reuse for correlation.
+    attack: [T0807, T0819, T0840, T0847, T1560]
     basis: vendor
   - event: Sysmon Event ID 3 - Network connection (disabled by default)
     value: Which process on the EWS/HMI opened each TCP/UDP connection - ties a session to a PLC (for example to 44818, 102 or 502) to the program that made it.
+    attack: [T0869, T1041]
     basis: vendor
   - event: Sysmon Event ID 11 - FileCreate
     value: Files created or overwritten, including dropped tools and new or modified project files.
+    attack: [T0873, T0873.001, T1491.001, T1560]
     basis: vendor
   - event: Sysmon Event ID 22 - DNSEvent (DNS query)
     value: Per-process DNS lookups, showing which programs on an OT host looked up external infrastructure.
+    attack: [T0869]
     basis: vendor
   - event: PowerShell 4104 (script block logging) in PowerShellCore/Operational or Microsoft-Windows-PowerShell/Operational
     value: The content of PowerShell scriptblocks processed on the host, whether interactive or automated.
+    attack: [T0853]
     basis: vendor
   - event: Use of event-log enumeration such as Get-EventLog security -instanceid 4624 or wevtutil
     value: The joint ASD/CISA guidance reports Volt Typhoon enumerating logons this way; seeing it on an EWS suggests an intruder mapping accounts.
     basis: government
   - event: Unexpected clearing of logs
     value: Listed by the joint ASD/CISA guidance as anomalous behaviour; on an OT host it should be treated as an incident until explained.
+    attack: [T0872]
     basis: government
   - event: Security 4698 - A scheduled task was created (SubjectUserName, TaskName, TaskContent; needs the "Audit Other Object Access Events" subcategory)
     value: >-
@@ -88,7 +101,7 @@ events:
   - event: System 7034 (Service Control Manager) - The <service> service terminated unexpectedly; 7036 - The <service> service entered the stopped state
     value: >-
       Which services stopped, and whether they stopped in order (7036) or died (7034). Several HMI, SCADA, historian or licensing services terminating within minutes is the pattern of ICS-aware process killing such as EKANS (ICS-HUNT-0013).
-    attack: [T0881]
+    attack: [T0881, T0814, T1499]
     basis: vendor
   - event: System 1074 (User32) - The process <Process Name> has initiated the restart of computer <Computer Name> on behalf of user <Domain User> (reason, reason code, shutdown type)
     value: >-
@@ -103,12 +116,17 @@ events:
   - event: Sysmon Event ID 6 - Driver loaded (hashes and signature information)
     value: >-
       Every driver load with its hash and signer. AA22-103A asks owners to watch for unusual drivers, especially the ASRock AsrDrv103.sys driver INCONTROLLER's tool exploits.
-    attack: [T0866]
+    attack: [T0866, T0851, T1014, T1553.002, T1561.001]
     basis: vendor
   - event: Sysmon Event ID 7 - Image loaded (disabled by default; must be configured)
     value: >-
       Which process loaded which DLL. Configured narrowly, it shows snap7.dll loaded by scripts that AA26-231A reports masquerading as OT monitoring tools.
-    attack: [T0834, T0849]
+    attack: [T0834, T0849, T0874, T1014]
+    basis: vendor
+  - event: Sysmon Event ID 10 - ProcessAccess (Microsoft advises enabling it only with filters that remove expected accesses)
+    value: >-
+      Which process opened another process. Microsoft states it enables detection of tools that read Lsass.exe memory to steal credentials; it exists only where the Sysmon configuration selected it before the incident.
+    attack: [T1003.001]
     basis: vendor
   - event: Sysmon Event ID 23 (FileDelete, file archived) and 26 (FileDeleteDetected)
     value: >-
@@ -263,4 +281,253 @@ sources:
     quote: >-
       This event is generated when Sysmon detects and blocks file shredding
       from tools such as SDelete.
+    read: direct
+  - title: Sysmon v15.22 (Microsoft Sysinternals), Event ID 10
+    url: https://learn.microsoft.com/en-us/sysinternals/downloads/sysmon
+    accessed: "2026-11-08"
+    kind: vendor
+    quote: >-
+      This enables detection of hacking tools that read the memory contents of
+      processes like Local Security Authority (Lsass.exe) in order to steal
+      credentials for use in Pass-the-Hash attacks.
+    read: direct
+  - title: Sysmon v15.22 (Microsoft Sysinternals), Event ID 10 filtering
+    url: https://learn.microsoft.com/en-us/sysinternals/downloads/sysmon
+    accessed: "2026-11-08"
+    kind: vendor
+    quote: >-
+      Enabling it can generate significant amounts of logging if there are
+      diagnostic utilities active that repeatedly open processes to query their
+      state, so it generally should only be done so with filters that remove
+      expected accesses.
+    read: direct
+  - title: 4778(S) A session was reconnected to a Window Station (Microsoft Learn)
+    url: https://learn.microsoft.com/en-us/previous-versions/windows/it-pro/windows-10/security/threat-protection/auditing/event-4778
+    accessed: "2026-11-08"
+    kind: vendor
+    quote: >-
+      This event is generated when a user reconnects to an existing Terminal
+      Services session, or when a user switches to an existing desktop using Fast
+      User Switching.
+    read: direct
+  - title: 4778(S) A session was reconnected to a Window Station (Microsoft Learn), subcategory
+    url: https://learn.microsoft.com/en-us/previous-versions/windows/it-pro/windows-10/security/threat-protection/auditing/event-4778
+    accessed: "2026-11-08"
+    kind: vendor
+    quote: >-
+      Audit Other Logon/Logoff Events
+    read: direct
+  - title: MITRE ATT&CK ICS T0840 Network Connection Enumeration, Detection Strategy DET0770, analytic AN1902
+    url: https://attack.mitre.org/techniques/T0840/
+    accessed: "2026-11-08"
+    kind: standard
+    quote: >-
+      Real-time monitoring identifies execution of network enumeration commands
+      (netstat, arp -a, Get-NetTCPConnection) on an Industrial Control System
+      (ICS) host from an account not associated with documented network
+      administration, where multiple such commands execute in sequence within a
+      short window.
+    read: direct
+  - title: MITRE ATT&CK ICS T0847 Replication Through Removable Media, Detection Strategy DET0733, analytic AN1866
+    url: https://attack.mitre.org/techniques/T0847/
+    accessed: "2026-11-08"
+    kind: standard
+    quote: >-
+      Real-time monitoring identifies a Universal Serial Bus (USB) storage device
+      insertion event on an Industrial Control System (ICS) engineering or
+      Human-Machine Interface (HMI) workstation where the device's hardware
+      identifier (ID) is not in the authorized USB allowlist, immediately followed
+      by process execution from the removable drive's path.
+    read: direct
+  - title: MITRE ATT&CK ICS T0819 Exploit Public-Facing Application, Detection Strategy DET0740, analytic AN1873
+    url: https://attack.mitre.org/techniques/T0819/
+    accessed: "2026-11-08"
+    kind: standard
+    quote: >-
+      Real-time monitoring identifies an internet-facing Industrial Control System
+      (ICS) application server, web Human-Machine Interface (HMI), historian web
+      interface, vendor remote access portal) process spawning an unexpected child
+      process immediately following an inbound web request containing
+      exploit-pattern content.
+    read: direct
+  - title: MITRE ATT&CK Enterprise T1560 Archive Collected Data, Detection Strategy DET0526, analytic AN1458
+    url: https://attack.mitre.org/techniques/T1560/
+    accessed: "2026-11-08"
+    kind: standard
+    quote: >-
+      Detects adversarial archiving of files prior to exfiltration by correlating
+      execution of compression/encryption utilities (e.g., makecab.exe, rar.exe,
+      7z.exe, powershell Compress-Archive) with subsequent creation of large
+      compressed or encrypted files.
+    read: direct
+  - title: MITRE ATT&CK ICS T0859 Valid Accounts, Detection Strategy DET0724, analytic AN1857
+    url: https://attack.mitre.org/techniques/T0859/
+    accessed: "2026-11-08"
+    kind: standard
+    quote: >-
+      Real-time monitoring identifies an Industrial Control System (ICS)-role
+      account authenticating via interactive or remote logon from a workstation
+      not in the approved host inventory, or outside the account's established
+      usage pattern, immediately followed within a short window by that session
+      connecting to the field device network or ICS application.
+    read: direct
+  - title: MITRE ATT&CK Enterprise T1078.001 Valid Accounts - Default Accounts, Detection Strategy DET0465, analytic AN1283
+    url: https://attack.mitre.org/techniques/T1078/001/
+    accessed: "2026-11-08"
+    kind: standard
+    quote: >-
+      Detection of default account usage such as Guest or Administrator performing
+      interactive or remote logons on systems outside of installation or
+      maintenance windows.
+    read: direct
+  - title: MITRE ATT&CK Enterprise T1563 Remote Service Session Hijacking, Detection Strategy DET0079, analytic AN0216
+    url: https://attack.mitre.org/techniques/T1563/
+    accessed: "2026-11-08"
+    kind: standard
+    quote: >-
+      Indicators include mismatched user credentials vs. active session tokens,
+      service session takeovers without corresponding successful logon events, or
+      RDP shadowing activity without user consent.
+    read: direct
+  - title: MITRE ATT&CK ICS T0869 Standard Application Layer Protocol, Detection Strategy DET0799, analytic AN2281
+    url: https://attack.mitre.org/techniques/T0869/
+    accessed: "2026-11-08"
+    kind: standard
+    quote: >-
+      Real-time monitoring identifies an Industrial Control System (ICS) Windows
+      host making outbound connections on HTTP/HTTPS/DNS ports to destinations
+      outside the approved Industrial Control System (ICS) communication baseline,
+      from processes that are not recognized Industrial Control System (ICS)
+      vendor applications.
+    read: direct
+  - title: MITRE ATT&CK ICS T0869 Standard Application Layer Protocol, Detection Strategy DET0799, analytic AN1931
+    url: https://attack.mitre.org/techniques/T0869/
+    accessed: "2026-11-08"
+    kind: standard
+    quote: >-
+      Real-time monitoring identifies Domain Name System (DNS) queries from
+      Industrial Control System (ICS) host Internet Protocol (IP) addresses to
+      external resolvers for domains not associated with any approved ICS vendor,
+      particularly domains exhibiting Domain Generation Algorithm (DGA)-like
+      patterns.
+    read: direct
+  - title: MITRE ATT&CK Enterprise T1041 Exfiltration Over C2 Channel, Detection Strategy DET0348, analytic AN0988
+    url: https://attack.mitre.org/techniques/T1041/
+    accessed: "2026-11-08"
+    kind: standard
+    quote: >-
+      Identifies suspicious outbound traffic volume mismatches from processes that
+      typically do not generate network activity, particularly over C2 protocols
+      like HTTPS, DNS, or custom TCP/UDP ports, following file or data access.
+    read: direct
+  - title: MITRE ATT&CK ICS T0873 Project File Infection, Detection Strategy DET0766, analytic AN1898
+    url: https://attack.mitre.org/techniques/T0873/
+    accessed: "2026-11-08"
+    kind: standard
+    quote: >-
+      Collection requirement: use Windows Security Event ID 4663 with Object
+      Access auditing and SACLs on approved project repositories; Sysmon
+      FileCreate events can corroborate writes/overwrites but do not report
+      generic file-open/read activity.
+    read: direct
+  - title: MITRE ATT&CK ICS T0873.001 Project File Infection - Siemens Project File Format, Detection Strategy DET0906, analytic AN2049
+    url: https://attack.mitre.org/techniques/T0873/001/
+    accessed: "2026-11-08"
+    kind: standard
+    quote: >-
+      Configured Windows object-access monitoring identifies a write to a Siemens
+      project file by a process that is not the Siemens Totally Integrated
+      Automation (TIA) Portal or Step7 engineering software, or by the legitimate
+      Siemens tool immediately after loading a project from an untrusted path.
+    read: direct
+  - title: MITRE ATT&CK Enterprise T1491.001 Defacement - Internal Defacement, Detection Strategy DET0082, analytic AN0229
+    url: https://attack.mitre.org/techniques/T1491/001/
+    accessed: "2026-11-08"
+    kind: standard
+    quote: >-
+      Adversary modifies internal UI messages (e.g., login banners, desktop
+      wallpapers) or hosted intranet web pages by creating or altering content
+      files using scripts or unauthorized access.
+    read: direct
+  - title: MITRE ATT&CK ICS T0872 Indicator Removal on Host, Detection Strategy DET0750, analytic AN1882
+    url: https://attack.mitre.org/techniques/T0872/
+    accessed: "2026-11-08"
+    kind: standard
+    quote: >-
+      Real-time monitoring identifies an audit log clearing event or
+      deletion/truncation of an Industrial Control System (ICS) vendor application
+      log file, immediately preceded by other suspicious activity on the same host
+      within a short lookback window.
+    read: direct
+  - title: MITRE ATT&CK ICS T0814 Denial of Service, Detection Strategy DET0723, analytic AN2268
+    url: https://attack.mitre.org/techniques/T0814/
+    accessed: "2026-11-08"
+    kind: standard
+    quote: >-
+      Real-time monitoring identifies an Industrial Control System (ICS) Windows
+      service (Open Platform Communications (OPC) server, historian, Supervisory
+      Control and Data Acquisition (SCADA) polling service) consuming abnormal
+      Central Processing Unit (CPU)/memory resources and becoming unresponsive
+      following receipt of a high volume of connections to its application port,
+      correlated with watchdog timeout or service crash events.
+    read: direct
+  - title: MITRE ATT&CK Enterprise T1499 Endpoint Denial of Service, Detection Strategy DET0208, analytic AN0584
+    url: https://attack.mitre.org/techniques/T1499/
+    accessed: "2026-11-08"
+    kind: standard
+    quote: >-
+      Excessive resource exhaustion or service crash induced by processes launched
+      by users or scripts that rapidly consume CPU/memory or attempt malformed
+      service interactions.
+    read: direct
+  - title: MITRE ATT&CK ICS T0851 Rootkit, Detection Strategy DET0780, analytic AN2167
+    url: https://attack.mitre.org/techniques/T0851/
+    accessed: "2026-11-08"
+    kind: standard
+    quote: >-
+      process lists differing between Windows Management Instrumentation (WMI) and
+      direct enumeration, or unexpected kernel driver loads from unexpected paths
+    read: direct
+  - title: MITRE ATT&CK Enterprise T1014 Rootkit, Detection Strategy DET0377, analytic AN1061
+    url: https://attack.mitre.org/techniques/T1014/
+    accessed: "2026-11-08"
+    kind: standard
+    quote: >-
+      Unauthorized or anomalous loading of kernel-mode drivers or DLLs, concealed
+      services, or abnormal modification of boot components indicative of rootkit
+      activity.
+    read: direct
+  - title: MITRE ATT&CK Enterprise T1553.002 Subvert Trust Controls - Code Signing, Detection Strategy DET0230, analytic AN0643
+    url: https://attack.mitre.org/techniques/T1553/002/
+    accessed: "2026-11-08"
+    kind: standard
+    quote: >-
+      Detects execution of binaries signed with unusual or recently issued
+      certificates, correlation of process execution with abnormal publisher
+      metadata, and mismatched certificate chains.
+    read: direct
+  - title: MITRE ATT&CK Enterprise T1561.001 Disk Wipe - Disk Content Wipe, Detection Strategy DET0316, analytic AN0882
+    url: https://attack.mitre.org/techniques/T1561/001/
+    accessed: "2026-11-08"
+    kind: standard
+    quote: >-
+      abnormal file I/O to MBR/boot sectors, or loading of third-party drivers
+      (e.g., RawDisk) that enable disk overwrite.
+    read: direct
+  - title: MITRE ATT&CK ICS T0874 Hooking, Detection Strategy DET0722, analytic AN1855
+    url: https://attack.mitre.org/techniques/T0874/
+    accessed: "2026-11-08"
+    kind: standard
+    quote: >-
+      immediately followed by that target process loading a Dynamic Link Library
+      (DLL) not present in the vendor's signed module baseline.
+    read: direct
+  - title: MITRE ATT&CK Enterprise T1003.001 OS Credential Dumping - LSASS Memory, Detection Strategy DET0363, analytic AN1030
+    url: https://attack.mitre.org/techniques/T1003/001/
+    accessed: "2026-11-08"
+    kind: standard
+    quote: >-
+      A non-privileged or abnormal process attempts to open a handle with full
+      access (0x1F0FFF) to lsass.exe and subsequently invokes memory dump, file
+      creation, or registry modification indicative of credential scraping.
     read: direct

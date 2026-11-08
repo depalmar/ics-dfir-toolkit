@@ -46,9 +46,11 @@ events:
       timeline against which network and host events are placed. The joint
       ASD/CISA guidance calls historians an additional source of event log
       data for OT networks.
+    attack: [T0836]
     basis: government
   - event: PI Audit Database - editing and deleting time-series data (for example archive values)
     value: Shows after-the-fact changes to historical values, which could hide or fabricate a process record.
+    attack: [T1565, T1565.001]
     basis: vendor
   - event: PI Audit Database - creating, deleting and editing configuration on time-series data (for example PI point configuration and access permissions for secure objects)
     value: Tag reconfiguration or permission changes on the historian.
@@ -111,4 +113,32 @@ sources:
       and store time-series data of industrial processes running on the computer
       system. These can provide an additional source of event log data for OT
       networks.
+    read: direct
+  - title: MITRE ATT&CK ICS T0836 Modify Parameter, Detection Strategy DET0776, analytic AN1908
+    url: https://attack.mitre.org/techniques/T0836/
+    accessed: "2026-11-08"
+    kind: standard
+    quote: >-
+      Real-time monitoring identifies an Industrial Control System (ICS) protocol
+      write to a parameter/setpoint register where the written value falls outside
+      the documented safe operating range, or where the write originates from a
+      source not in the approved write-source list, correlated with subsequent
+      historian tag drift.
+    read: direct
+  - title: MITRE ATT&CK Enterprise T1565 Data Manipulation, Detection Strategy DET0059, analytic AN0162
+    url: https://attack.mitre.org/techniques/T1565/
+    accessed: "2026-11-08"
+    kind: standard
+    quote: >-
+      Detect abnormal changes to structured data (e.g., database files, logs,
+      financial records) outside expected business process activity.
+    read: direct
+  - title: MITRE ATT&CK Enterprise T1565.001 Data Manipulation - Stored Data Manipulation, Detection Strategy DET0193, analytic AN0555
+    url: https://attack.mitre.org/techniques/T1565/001/
+    accessed: "2026-11-08"
+    kind: standard
+    quote: >-
+      Identify unauthorized creation, deletion, or modification of
+      business-critical stored data such as Office documents, database files, and
+      log archives.
     read: direct

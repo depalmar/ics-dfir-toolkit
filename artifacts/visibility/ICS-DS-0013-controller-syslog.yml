@@ -51,18 +51,22 @@ events:
       including Modbus TCP and EtherNet/IP socket connections (no user) and
       Control Expert application-password logins - a per-controller record of
       who connected from where.
+    attack: [T0812, T0859, T1110, T1694]
     basis: vendor
   - event: Modicon M580 "Operating mode change" (Run, Stop, Init, Halt), MSGID OPERATING_MODE_CHANGE
     value: Controller mode changes, from whatever source.
+    attack: [T0858]
     basis: vendor
   - event: Modicon M580 "Backup operation." (Download application from the controller) and "Restore operation." (Upload controller application/configuration inside the controller; Restore controller application inside the controller)
     value: >-
       Application transfers in both directions, in Schneider's wording. AA26-097A
       reports project-file extraction and malicious downloads; these are the
       entries that would show them on an M580 with logging enabled.
+    attack: [T0843, T0845]
     basis: vendor
   - event: Modicon M580 "Firmware update" and "Invalid firmware update"
     value: Firmware installed, or rejected for incompatible version or invalid signature.
+    attack: [T0857]
     basis: vendor
   - event: Modicon M580 "Modification of the time of the device" (MSGID TIME_CHANGE) and "Time signal out of tolerance"
     value: Clock changes that would distort every other timeline, and time-sync anomalies.
@@ -72,6 +76,7 @@ events:
     basis: vendor
   - event: S7-1500 syslog - security events, firmware updates, changes to the user program, changes to the configuration, changes to the operating state
     value: The S7-1500 equivalent - program and configuration changes and mode changes, with message content based on IEC 62443-3-3.
+    attack: [T0857, T0858, T0889]
     basis: vendor
   - event: HART-IP device syslog and audit logs (client identification, connection start/stop times, whether configuration was changed in the session)
     value: Field-device-level record of who connected to a HART-IP instrument and whether they changed it.
@@ -166,4 +171,97 @@ sources:
       Devices are required to capture "Audit Logs" that summarize communications
       activities. Records include: client identification, connection start/stop
       times, whether the device configuration was changed in that session, etc.
+    read: direct
+  - title: MITRE ATT&CK ICS T1694.001 Insecure Credentials - Default Credentials (T0812 redirects here), Detection Strategy DET0756, analytic AN2218
+    url: https://attack.mitre.org/techniques/T1694/001/
+    accessed: "2026-11-08"
+    kind: standard
+    quote: >-
+      Real-time monitoring identifies successful authentication to a field device
+      using credentials matching documented vendor-default values, from a source
+      not in the approved access list.
+    read: direct
+  - title: MITRE ATT&CK ICS T1694 Insecure Credentials, Detection Strategy DET0905, analytic AN2219
+    url: https://attack.mitre.org/techniques/T1694/
+    accessed: "2026-11-08"
+    kind: standard
+    quote: >-
+      Real-time monitoring identifies successful authentication to an Industrial
+      Control System (ICS) device or application using credentials that are either
+      documented vendor defaults (T1694.001) or extracted from configuration
+      files/firmware where stored in cleartext (T1694.002), from a source not in
+      the approved access list.
+    read: direct
+  - title: MITRE ATT&CK ICS T0859 Valid Accounts, Detection Strategy DET0724, analytic AN2217
+    url: https://attack.mitre.org/techniques/T0859/
+    accessed: "2026-11-08"
+    kind: standard
+    quote: >-
+      Real-time monitoring identifies field device access (Industrial Control
+      System (ICS) protocol sessions, management interface authentication) using
+      credentials or authentication tokens associated with a legitimate
+      engineering account, but from a source Internet Protocol (IP) address or
+      Media Access Control (MAC) address not enrolled as an authorized engineering
+      workstation
+    read: direct
+  - title: MITRE ATT&CK Enterprise T1110 Brute Force, Detection Strategy DET0463, analytic AN1276
+    url: https://attack.mitre.org/techniques/T1110/
+    accessed: "2026-11-08"
+    kind: standard
+    quote: >-
+      Multiple authentication failures for valid or invalid users followed by
+      success from same IP/user
+    read: direct
+  - title: MITRE ATT&CK ICS T0858 Change Operating Mode, Detection Strategy DET0755, analytic AN1887
+    url: https://attack.mitre.org/techniques/T0858/
+    accessed: "2026-11-08"
+    kind: standard
+    quote: >-
+      Real-time monitoring identifies an Industrial Control System (ICS) protocol
+      mode-change command targeting a field device from a source not in the
+      approved engineering workstation list, where the transition is not
+      immediately followed by a corresponding operator acknowledgment.
+    read: direct
+  - title: MITRE ATT&CK ICS T0843 Program Download, Detection Strategy DET0752, analytic AN1884
+    url: https://attack.mitre.org/techniques/T0843/
+    accessed: "2026-11-08"
+    kind: standard
+    quote: >-
+      Real-time monitoring identifies an Industrial Control System (ICS) protocol
+      session consistent with a program download to a field device from a source
+      not in the approved engineering workstation list, correlated with a device
+      mode-change alarm transitioning to PROGRAM/STOP immediately preceding the
+      transfer.
+    read: direct
+  - title: MITRE ATT&CK ICS T0845 Program Upload, Detection Strategy DET0761, analytic AN1893
+    url: https://attack.mitre.org/techniques/T0845/
+    accessed: "2026-11-08"
+    kind: standard
+    quote: >-
+      Real-time monitoring identifies an Industrial Control System (ICS) protocol
+      session reading back the user program from a field device to a source not in
+      the approved engineering workstation list, where the session byte count is
+      consistent with a substantial portion of the device's program memory.
+    read: direct
+  - title: MITRE ATT&CK ICS T1693.001 Modify Firmware - System Firmware (T0857 redirects here), Detection Strategy DET0731, analytic AN1864
+    url: https://attack.mitre.org/techniques/T1693/001/
+    accessed: "2026-11-08"
+    kind: standard
+    quote: >-
+      Real-time monitoring identifies a field device entering firmware update mode
+      and receiving a large data transfer on its firmware-capable protocol port
+      from a source not in the approved engineering workstation list, followed by
+      a device reboot, with post-reboot firmware hash not matching the authorized
+      inventory.
+    read: direct
+  - title: MITRE ATT&CK ICS T0889 Modify Program, Detection Strategy DET0783, analytic AN1915
+    url: https://attack.mitre.org/techniques/T0889/
+    accessed: "2026-11-08"
+    kind: standard
+    quote: >-
+      Real-time monitoring identifies an Industrial Control System (ICS) protocol
+      write to an existing program block from a source not in the approved
+      engineering workstation list, outside a scheduled change-control window,
+      correlated against post-modification program hash comparison and measurable
+      change in controller Input/Output (I/O) behavior.
     read: direct

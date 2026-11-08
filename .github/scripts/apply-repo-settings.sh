@@ -51,8 +51,13 @@ step "Outside fork PRs need approval"    -X PUT "repos/$REPO/actions/permissions
 step "Repository options"                -X PATCH "repos/$REPO" \
   -F delete_branch_on_merge=true -F has_wiki=false -F has_projects=false
 
-# 4. Pages: HTTPS only.
-step "Pages HTTPS enforced"              -X PUT "repos/$REPO/pages" -F https_enforced=true
+# 4. Pages: HTTPS only. A github.io site already enforces it (the API then answers
+#    "The certificate does not exist yet" to the update), so read before writing.
+if [ "$(gh api "repos/$REPO/pages" --jq '.https_enforced' 2>/dev/null)" = "true" ]; then
+  printf 'ok    %s\n' "Pages HTTPS enforced (already)"; ok=$((ok + 1))
+else
+  step "Pages HTTPS enforced"            -X PUT "repos/$REPO/pages" -F https_enforced=true
+fi
 
 # 5. The ruleset on the default branch, created or updated from .github/rulesets/main.json:
 #    no deletion, no force push, changes arrive by pull request, the validate and

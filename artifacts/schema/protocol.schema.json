@@ -5,7 +5,7 @@
   "description": "What a protocol carries, which of its operations change a controller or the process, how those operations look on the wire, and which open parsers decode them. The operations list is what network detections are built from.",
   "type": "object",
   "additionalProperties": false,
-  "required": ["id", "name", "slug", "transport", "authentication", "operations", "confidence", "sources"],
+  "required": ["id", "name", "slug", "transport", "authentication", "confidence", "sources"],
   "properties": {
     "id": {"$ref": "common.schema.json#/$defs/protocol_id"},
     "name": {"type": "string"},
@@ -41,7 +41,7 @@
     "platforms": {"type": "array", "items": {"$ref": "common.schema.json#/$defs/platform_id"}},
     "operations": {
       "type": "array",
-      "minItems": 1,
+      "description": "optional; deferred in round 1 - identity records first",
       "items": {
         "type": "object",
         "additionalProperties": false,

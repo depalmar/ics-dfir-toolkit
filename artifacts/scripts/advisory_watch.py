@@ -63,10 +63,21 @@ def ioc_files(root: Path = ROOT) -> dict[str, str]:
     return out
 
 
+# Some publisher CDNs refuse a bare tool name on file downloads (CISA served the KEV
+# feed but refused the AA26-097A STIX file to "ics-dfir-toolkit advisory_watch").
+UA = "Mozilla/5.0 (X11; Linux x86_64) ics-dfir-toolkit advisory watch (+https://github.com/depalmar/ics-dfir-toolkit)"
+
+
 def fetch(url: str, timeout: int = 60) -> bytes:
-    req = urllib.request.Request(url, headers={"User-Agent": "ics-dfir-toolkit advisory_watch"})
+    req = urllib.request.Request(url, headers={"User-Agent": UA, "Accept": "application/json,*/*"})
     with urllib.request.urlopen(req, timeout=timeout) as r:   # noqa: S310 - https URLs from the repo
         return r.read()
+
+
+def why(e: Exception) -> str:
+    """Short reason for an unreachable file, with the HTTP status when there is one."""
+    code = getattr(e, "code", None)
+    return f"{e.__class__.__name__} {code}" if code else e.__class__.__name__
 
 
 def platform_of(entry: dict, platforms: dict) -> str | None:
@@ -135,7 +146,7 @@ def upstream_changes(watch: dict, files: dict[str, str], getter=fetch) -> list[d
             if got != want:
                 out.append({"id": iid, "url": url, "was": want, "now": got or "no file_url"})
         except Exception as e:  # unreachable is reported, not fatal
-            out.append({"id": iid, "url": url, "was": want, "now": f"unreachable: {e.__class__.__name__}"})
+            out.append({"id": iid, "url": url, "was": want, "now": f"unreachable: {why(e)}"})
     return out
 
 

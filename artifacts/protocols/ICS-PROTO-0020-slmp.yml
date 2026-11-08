@@ -13,21 +13,28 @@ spec_owner: Mitsubishi Electric (MC protocol); SLMP is published by the CC-Link 
 transport:
   - layer: tcp
     notes: >-
-      TCP and UDP are listed as unverified placeholders: no source read stated
-      the transport or a default port, so no port is given.
+      Mitsubishi's SLMP Reference Manual describes the communication procedure
+      for both TCP/IP and UDP/IP (chapter 3, read 2026-11-08); no default port
+      was found in the pages read, so no port is given.
   - layer: udp
 authentication:
   native: none
   detail: >-
-    Not verified. The only statement found is a third-party guide (search
-    snippet) saying plain SLMP carries no strong authentication; Mitsubishi's
-    SLMP Reference Manual was located but not read. Treat as unauthenticated.
+    Not verified. The only statement found is a third-party guide (NHI Mgmt
+    Group, read directly) saying plain SLMP carries no strong authentication;
+    only the first 30 of 242 pages of Mitsubishi's SLMP Reference Manual were
+    read, and its authentication content was not. Treat as unauthenticated.
 encryption: None documented in the sources read.
 parsers: []
 platforms: []
 notes: >-
   No registry platform is a Mitsubishi controller. No open-source Zeek or
-  Suricata parser for SLMP was verified in this round.
+  Suricata parser for SLMP was verified in this round. The SLMP manual's table
+  of contents lists a "Remote Password" command section (Lock/Unlock, section
+  5.7); it was not read, and the "none" authentication value has not been
+  reconciled with it. The nhimg.org guide states it was "Researched and
+  written by the NHI Mgmt Group editorial team using AI tools"; it is a lead,
+  not a basis for the authentication value.
 confidence: low
 unverified: true
 sources:
@@ -36,10 +43,11 @@ sources:
     accessed: "2026-11-08"
     kind: vendor
     quote: >-
-      MC protocol. An abbreviation for the MELSEC communication protocol. This
-      protocol is used to access an MC protocol-compatible device or a
-      programmable
-    read: summariser
+      An abbreviation for the MELSEC communication protocol. This protocol is
+      used to access an MC protocol-compatible device or a programmable
+      controller connected to an MC protocol-compatible device from an external
+      device such as a personal computer or HMI (Human Machine Interface).
+    read: direct
   - title: Mitsubishi MELSEC and Omron PLC Security Guide (nhimg.org)
     url: https://nhimg.org/mitsubishi-and-omron-plc-security-guide
     accessed: "2026-11-08"
@@ -48,4 +56,4 @@ sources:
       Legacy protocols such as FINS and plain SLMP carry no strong
       authentication, so anyone who can reach the port can often read or change
       data.
-    read: summariser
+    read: direct

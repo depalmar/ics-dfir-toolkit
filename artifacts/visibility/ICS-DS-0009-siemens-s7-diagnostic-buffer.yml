@@ -26,8 +26,9 @@ retention: >-
   the latest entries survive power failure and a memory reset and are deleted
   only by reset to factory settings; the non-retentive portion is initialised
   at POWER ON. The S7-1500 web server can load the last 250 entries or the
-  whole buffer. For S7-300 CPU 31x, a Siemens manual (search snippet, not read
-  directly) states the buffer can save up to 500 messages.
+  whole buffer. For S7-300 CPU 31x, Siemens' CPU 31xC/31x technical
+  specifications manual (web server section) states the diagnostic buffer can
+  save up to 500 messages, shown in intervals of 100 entries.
 collection:
   - method: Read the diagnostics buffer on the S7-1500 CPU display (Diagnostics menu)
     impact: read-only
@@ -82,7 +83,7 @@ gaps:
   - A ring buffer of limited size; routine diagnostic noise can push security-relevant entries out, and only the retentive portion survives a power cycle on S7-1500.
   - Entries record events, not the logic that was loaded; a download is visible only through its side effects (mode changes, configuration state) - compare logic with a known-good project.
   - The sources read do not show that entries name the client IP address or user responsible; do not assume attribution from the buffer alone.
-  - S7-300/400 buffer size and retention were seen only in a search snippet; read the CPU manual before relying on them.
+  - The S7-300 500-message figure comes from the CPU 31xC/31x manual's web server section; S7-300 retention across power loss and S7-400 buffer size were not read.
   - Reading via TIA Portal is an online session with the controller; the web server and display paths need prior enablement or physical access.
 confidence: high
 sources:
@@ -159,4 +160,4 @@ sources:
       The diagnostic buffer can save up to 500 messages. Select an interval for
       the entries from the drop-down list box. Each interval comprises 100
       entries.
-    read: summariser
+    read: direct

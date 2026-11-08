@@ -15,7 +15,7 @@ countries:
   - United States
 victim: >-
   WWS utility companies in at least seven states (FBI); internet-exposed systems at more than 100 WWS
-  entities (CISA, read through a search summary). No victim is named.
+  entities (CISA). No victim is named.
 platforms:
   - ICS-0002
   - ICS-0013
@@ -103,12 +103,12 @@ sources:
       In July 2026, CISA observed malicious cyber activity targeting internet-exposed systems at more than 100
       Water and Wastewater Systems (WWS) Sector entities, commonly via programmable logic controllers (PLCs)
       connected directly to a cellular modem.
-    read: summariser
+    read: direct
 notes: >-
   Recorded separately from ICS-INC-0009 because neither CISA nor the FBI attributes this campaign or ties it
   to AA26-097A; the FBI calls the actors "malicious cyber actors (MCAs)". Both involve Rockwell PLCs and
   cellular modems and AA26-097A's IOC table runs into July 2026, but no source links them. Start-date
   conflict: FBI says 27 July 2026; an IOActive blog (not a primary source) says 26 July. The FBI has only
   observed the behaviour on MicroLogix 1100/1400. The CISA exposure-reduction figure (more than 100
-  entities) came through a search summary and should be checked against the page. Rockwell SD1790 was not
+  entities) was re-read directly on the page (revision date 21 August 2026) on 2026-11-08. Rockwell SD1790 was not
   read.

@@ -20,8 +20,8 @@ authentication:
   native: none
   detail: >-
     Not verified against OMRON documentation. The only statement found is a
-    third-party guide (search snippet) saying legacy FINS carries no strong
-    authentication. Treat FINS as unauthenticated.
+    third-party guide (NHI Mgmt Group, read directly) saying legacy FINS
+    carries no strong authentication. Treat FINS as unauthenticated.
 encryption: None documented in the sources read.
 parsers:
   - tool: CISA ICSNPP-Omron-FINS (Zeek Spicy plugin)
@@ -38,7 +38,10 @@ platforms: [ICS-0008]
 notes: >-
   ICSNPP states the parser targets FINS commands for CV-Series, C-Series,
   SYSMAC LINK and SYSMAC NET PCs; coverage of FINS as implemented on Sysmac
-  NJ/NX (ICS-0008) was not confirmed.
+  NJ/NX (ICS-0008) was not confirmed. The nhimg.org guide (re-read directly
+  2026-11-08) states it was "Researched and written by the NHI Mgmt Group
+  editorial team using AI tools"; it is a lead, not a basis for the
+  authentication value, which stays unverified.
 confidence: low
 unverified: true
 sources:
@@ -65,4 +68,4 @@ sources:
       Legacy protocols such as FINS and plain SLMP carry no strong
       authentication, so anyone who can reach the port can often read or change
       data.
-    read: summariser
+    read: direct

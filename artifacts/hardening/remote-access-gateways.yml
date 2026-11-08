@@ -212,7 +212,7 @@ controls:
         accessed: "2026-11-08"
         kind: vendor
         quote: "Only use secure protocols ( HTTPS, SSH). Avoid the usage of HTTP, Telnet and other insecure protocols where available."
-        read: summariser
+        read: direct
 
   - id: gw-disable-unused-services
     control: Turn off unused gateway services and interfaces, including Wi-Fi, SMS management and vendor discovery services
@@ -385,7 +385,7 @@ notes: >-
   source.sierrawireless.com require sign-in; Sierra's mitigation wording is taken
   from CISA's republication of it. Digi (named in ICS-0013) was not researched in
   this pass. Forescout's Sierra:21 research restates the vendor and CISA
-  mitigations and was not used as a source. One Teltonika quote (gw-https-ssh-only)
-  is marked summariser because the page wraps "HTTPS, SSH" in bold/italic markup
-  inside parentheses and the exact rendered spacing should be re-checked; it sits
-  beside direct-read sources.
+  mitigations and was not used as a source. The Teltonika quote (gw-https-ssh-only)
+  was re-read directly on 2026-11-08: the page wraps "HTTPS, SSH" in bold/italic
+  markup inside parentheses, and with the markup removed the rendered text
+  matches the quote.

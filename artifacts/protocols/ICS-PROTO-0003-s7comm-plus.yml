@@ -28,9 +28,8 @@ authentication:
     CPUs (firmware V4.5/V2.9 and later) automatically communicate securely
     using TLS. Older ("legacy") PG/HMI communication is still accepted unless
     the CPU option "Only allow secure PG/PC and HMI communication" is enabled.
-    A Siemens support page (search snippet, not read directly) describes the
-    legacy access-level password entered as the CPU password in an HMI
-    connection.
+    A Siemens support FAQ (109955142, read directly) describes the legacy
+    access-level password entered as the CPU password in an HMI connection.
   secure_variant: TLS-based secure PG/HMI communication (TIA Portal V17 and later)
 encryption: >-
   TLS when both the engineering/HMI station and the CPU are at the V17
@@ -78,7 +77,7 @@ sources:
       In the example shown, a password is assigned to the “Full access” access
       level. This password is then entered as the CPU password in the configured
       HMI connection.
-    read: summariser
+    read: direct
   - title: ICSNPP-S7COMM README (cisagov/icsnpp-s7comm)
     url: https://raw.githubusercontent.com/cisagov/icsnpp-s7comm/main/README.md
     accessed: "2026-11-08"

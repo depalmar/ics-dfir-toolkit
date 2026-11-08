@@ -190,8 +190,7 @@ artifacts:
     volatility: stable
     forensic_value: medium
     evidence_type: [configuration]
-    confidence: low
-    unverified: true
+    confidence: medium
     collection_impact: read-only
     description: Determines whether system logs outlive a reboot and whether a copy exists off the device.
     provides: Whether to expect any system log history at all.
@@ -204,7 +203,7 @@ artifacts:
         accessed: "2026-11-08"
         kind: vendor
         quote: Specifies which type of memory to use for storing system logs.
-        read: summariser
+        read: direct
   - locator: SSH service on the modem and inbound TCP 22 from the internet
     class: network
     volatility: off-box

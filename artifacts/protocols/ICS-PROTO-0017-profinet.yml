@@ -22,13 +22,13 @@ transport:
 authentication:
   native: none
   detail: >-
-    Not verified directly. PI describes PROFINET Security Classes; per search
-    snippets of PI pages (not read directly), Security Class 3 ensures
-    integrity, authenticity and confidentiality of all services and Classes 2
-    and 3 require certificate handling. "None" for baseline PROFINET is this
-    project's reading.
+    PI describes PROFINET Security Classes. PI North America's page (which
+    titles them "coming soon" and calls them proposed) says Security Class 3
+    ensures integrity, authenticity and confidentiality of all services; PI's
+    profinet.com security page says certificate handling is required in
+    Classes 2 and 3. "None" for baseline PROFINET is this project's reading.
   secure_variant: PROFINET Security Classes 1-3 (PI)
-encryption: None in baseline PROFINET per the sources read; confidentiality only in Security Class 3 (PI, via snippet).
+encryption: None in baseline PROFINET per the sources read; confidentiality only in Security Class 3 (PI).
 parsers:
   - tool: CISA ICSNPP-PROFINET-IO-CM (Zeek Spicy plugin)
     url: https://github.com/cisagov/icsnpp-profinet-io-cm
@@ -69,10 +69,10 @@ sources:
     quote: >-
       Security Class 3 ensures the integrity, authenticity, and confidentiality
       of all services.
-    read: summariser
+    read: direct
   - title: PROFINET Security - Comprehensive Concept (profinet.com)
     url: https://www.profinet.com/profinet-explained/security
     accessed: "2026-11-08"
     kind: standard
     quote: The handling of certificates is required in Security Class 2 and 3.
-    read: summariser
+    read: direct

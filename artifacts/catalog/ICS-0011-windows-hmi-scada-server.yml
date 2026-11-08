@@ -50,8 +50,7 @@ integrity_features:
       activity log, routed through FactoryTalk Diagnostics to a local log
       and optionally an ODBC database; electronic-signature tag writes record
       old and new values and approver.
-    confidence: low
-    unverified: true
+    confidence: medium
     sources:
       - title: Guidelines for applying FactoryTalk View SE in a 21 CFR Part 11 environment (FTALK-WP003)
         url: https://literature.rockwellautomation.com/idc/groups/literature/documents/wp/ftalk-wp003_-en-e.pdf
@@ -61,7 +60,7 @@ integrity_features:
           FactoryTalk View SE provides an audit trail for actions performed that
           is minimally comprised of a time and date stamp, operator ID and full
           name, and the action taken.
-        read: summariser
+        read: direct
 collection:
   - method: Audit, alarm and Windows logs already centralised (Ignition audit database, FactoryTalk Diagnostics ODBC, SIEM)
     impact: passive
@@ -111,8 +110,9 @@ references:
     accessed: "2026-11-08"
 last_verified: "2026-11-08"
 notes: >-
-  Only Ignition (read directly) and FactoryTalk View SE (read through a
-  summarising fetch) were researched. WinCC, iFIX and InTouch audit trails are
+  Only Ignition (read directly) and FactoryTalk View SE (Rockwell's
+  FTALK-WP003 Part 11 white paper, re-read directly 2026-11-08; one vendor
+  source, so medium) were researched. WinCC, iFIX and InTouch audit trails are
   not evaluated here. FactoryTalk Diagnostics default log paths and file
   formats were not found in a public document.
 response: baseline
@@ -149,8 +149,7 @@ artifacts:
     retention: Local log size and overwrite policy are site-configured
     forensic_value: high
     evidence_type: [impair-process-control, timeline, attribution]
-    confidence: low
-    unverified: true
+    confidence: medium
     collection_impact: passive
     description: >-
       Operator actions with user name; Rockwell's guidance has sites route
@@ -167,7 +166,7 @@ artifacts:
         quote: >-
           Once an operator is logged on to Windows and FactoryTalk View SE client,
           all operations are logged with the user name.
-        read: summariser
+        read: direct
   - locator: HMI alarm and event journal compared with historian process data for the same period
     class: alarms-events
     volatility: rotating

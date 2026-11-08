@@ -15,15 +15,15 @@ transport:
     port: 135
     notes: >-
       DCOM uses the RPC endpoint mapper on 135/tcp, which then directs the
-      client to a dynamically assigned port (third-party explanation via search
-      snippet; not read directly).
+      client to a dynamically assigned port (third-party vendor explanation,
+      read directly; Microsoft's own documentation was not read).
 authentication:
   native: optional
   detail: >-
     Not verified against a primary source. OPC DA inherits Windows DCOM
-    authentication, whose level is configurable; third-party pages (search
-    snippets only) describe Microsoft's KB5004442 DCOM hardening raising the
-    minimum authentication level. Read Microsoft's KB5004442 before relying on
+    authentication, whose level is configurable; third-party vendor pages
+    (Software Toolbox, TDL; read directly) describe Microsoft's KB5004442 DCOM
+    hardening raising the minimum authentication level. Read Microsoft's KB5004442 before relying on
     this.
   secure_variant: None specific to OPC DA; the OPC Foundation's successor is OPC UA (ICS-PROTO-0010)
 encryption: Depends on the DCOM authentication level configured; not verified here.
@@ -57,8 +57,8 @@ sources:
     quote: >-
       Port 135 is the RPC (Remote Procedure Call) Endpoint Mapper, the directory
       service that tells DCOM clients which dynamic port a specific COM server is
-      listening
-    read: summariser
+      listening on.
+    read: direct
   - title: OPC DA DCOM errors after KB5004442 (TDL)
     url: https://www.tdl-ia.com/insights/opc-da-dcom-errors-windows-hardening-path-to-opc-ua.html
     accessed: "2026-11-08"
@@ -66,4 +66,4 @@ sources:
     quote: >-
       When OPC DA works on one computer but fails between two, or stopped
       working after Windows updates, the cause is usually DCOM authentication.
-    read: summariser
+    read: direct

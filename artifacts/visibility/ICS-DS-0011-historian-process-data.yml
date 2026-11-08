@@ -101,7 +101,7 @@ sources:
     quote: >-
       PI AuditViewer is a utility that enables you to search for and view audit
       records in the PI Audit database.
-    read: summariser
+    read: direct
   - title: Best practices for event logging and threat detection (ASD's ACSC with CISA, FBI, NSA and partners, August 2024)
     url: https://www.cyber.gov.au/sites/default/files/2024-08/best-practices-for-event-logging-and-threat-detection.pdf
     accessed: "2026-11-08"

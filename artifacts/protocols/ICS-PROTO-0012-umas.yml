@@ -73,8 +73,9 @@ sources:
     quote: >-
       Modicon chose to extend the Modbus implementation under a reserved Modbus
       function code. The extended protocol is called UMAS, and it adds
-      authentication
-    read: summariser
+      authentication, binary data transfer, firmware updates, and additional
+      features to the basic Modbus protocol.
+    read: direct
   - title: Modicon Platform Cybersecurity User Guide (EIO0000001999, Schneider Electric)
     url: https://download.se.com/files?p_Doc_Ref=EIO0000001999&p_enDocType=User+guide
     accessed: "2026-11-08"

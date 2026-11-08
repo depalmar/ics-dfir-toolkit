@@ -5,7 +5,7 @@ id: ICS-INC-0006
 name: Lviv district heating disruption (FrostyGoop / BUSTLEBERM)
 date: '2024-01'
 date_basis: >-
-  Dragos intelligence brief landing page (read through a search summary): the attack "impacted a municipal
+  Dragos intelligence brief landing page (read directly): the attack "impacted a municipal
   district energy company in Ukraine in January 2024". Dragos's blog, read directly, gives no month.
 disclosed: '2024-07-23'
 sectors:
@@ -76,7 +76,7 @@ sources:
       The Cyber Security Situation Center (CSSC), a part of the Security Service of Ukraine, shared details
       with Dragos about a cyber attack that impacted a municipal district energy company in Ukraine in
       January 2024.
-    read: summariser
+    read: direct
 notes: >-
   Low and unverified because every source is Dragos relaying CSSC; no Ukrainian government statement was
   read. No actor is attributed in the sources read. Possible tension: Dragos says access was possibly via

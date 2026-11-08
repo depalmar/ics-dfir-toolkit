@@ -15,7 +15,7 @@ location: >-
 enable: >-
   CISA AA26-097A tells owners to enable logs for connected modems and review
   them regularly. For Sierra Wireless AirLink devices, the ALEOS configuration
-  guide (seen only as a search snippet, not read directly) places log
+  guide (distributor-hosted copy, read directly) places log
   configuration under ACEmanager Admin > Log > Configure Logging, with
   per-subsystem display filters. Forward logs off the device: the joint
   ASD/CISA guidance notes network devices have limited local storage and lose
@@ -55,7 +55,7 @@ events:
 attack_data_components: [DC0002, DC0067, DC0082]
 gaps:
   - Local logs are small and volatile; anything not forwarded before the incident may already be gone, and a reboot clears more.
-  - Vendor log names and fields were not verified in this round (Sierra Wireless only via a search snippet; Moxa, Teltonika and Digi not read), so no event names are given.
+  - Vendor log names and fields were not verified in this round (for Sierra Wireless only the log configuration screen was read; Moxa, Teltonika and Digi not read), so no event names are given.
   - Carrier-side records (which addresses reached the modem) are held by the mobile operator and need a formal request.
   - The gateway logs its own management plane; traffic it merely routes to PLCs is usually not logged in detail.
   - A gateway compromised at firmware level may suppress its own logging.
@@ -94,4 +94,4 @@ sources:
     quote: >-
       To configure what you want to include in the logs: 1. In ACEmanager, go to
       Admin > Log.
-    read: summariser
+    read: direct

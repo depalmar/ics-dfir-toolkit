@@ -8,8 +8,8 @@ aliases:
 date: '2021-05'
 date_basis: >-
   CISA/FBI AA21-131A was first published 11 May 2021 about a ransomware attack on "a pipeline company"; the
-  company's own statement (read through a search summary) says it learned of the attack on a Friday and
-  halted pipeline operations. No source read gives the exact day.
+  company's own statement says "On May 7, the Colonial Pipeline Company learned it was the victim of a
+  cybersecurity attack" and that taking systems offline halted all pipeline operations.
 disclosed: '2021-05'
 sectors:
   - oil and gas (refined products pipeline)
@@ -25,7 +25,7 @@ summary: >-
   containment decision.
 physical_consequence: service-outage
 consequence_detail: >-
-  Colonial (search summary): taking systems offline "temporarily halted all pipeline operations". CISA:
+  Colonial (media statement, 10 May 2021 update): taking systems offline "temporarily halted all pipeline operations". CISA:
   "the company has reported that they proactively disconnected certain OT systems to ensure the systems’
   safety." The outage was a defensive decision, not malware acting on OT.
 ics_effects:
@@ -75,10 +75,11 @@ sources:
       In response to the cybersecurity attack on our system, we proactively took certain systems offline to
       contain the threat, which temporarily halted all pipeline operations, and affected some of our IT
       systems.
-    read: summariser
+    read: direct
 notes: >-
   The company statement is the victim's own words, recorded as kind press (the enum has no victim
-  category) and read only through a search summary; it should be checked against the page. The exact
-  dates (attack discovered Friday 7 May 2021, announced 8 May) appear only in secondary sources and are
-  not used. Neither DarkSide nor its affiliate has a registry actor id. No OT platform is listed because
+  category); it was re-read directly on 2026-11-08 (the quoted sentence is in the Monday 10 May, 12:25
+  p.m. update). The same page's Saturday 8 May, 12:30 p.m. update says "On May 7, the Colonial Pipeline
+  Company learned it was the victim of a cybersecurity attack"; the date field was left at month
+  precision in this verification pass and can now be narrowed from that quote. Neither DarkSide nor its affiliate has a registry actor id. No OT platform is listed because
   no source says OT assets were affected.

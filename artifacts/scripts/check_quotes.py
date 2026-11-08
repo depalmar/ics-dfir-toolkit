@@ -18,14 +18,26 @@ Some vendor documentation portals build their text in the browser, so a plain
 fetch never sees it. Those hosts are reported as "needs a rendered check" (read
 them with a rendering fetch such as Firecrawl), never as changed.
 
+Some hosts refuse GitHub's runners outright (403, timeouts). A page text fetched
+another way (a rendering service, a browser, curl on a workstation) can be saved
+as `<sha1 of the url>.txt` whose first line is `# <url>` and second line
+`# fetched <ISO time> via <method>`; `--saved DIR` then checks the quotes against
+that copy, with the same normalisation and matching, instead of fetching. Those
+rows are reported in their own section with the copy's fetch time, never under
+"no longer on the page": a saved copy proves what the page said when it was
+saved, not what it says now. The monthly workflow does not use it.
+
+    python artifacts/scripts/check_quotes.py --saved saved-pages/ --out report.md
+
 Ported from edge-dfir-toolkit's checker; the host list is ICS-specific.
 
-Exit status: 0 every readable quote matched, 10 a quote is no longer on its page, 1 error.
+Exit status: 0 every readable quote matched, 10 a quote is not on its page (live or saved copy), 1 error.
 """
 from __future__ import annotations
 
 import argparse
 import difflib
+import hashlib
 import html
 import re
 import shutil
@@ -69,6 +81,7 @@ def norm(t: str) -> str:
     t = re.sub(r"[*_`]+", "", t)                  # markdown emphasis a reader may have kept or dropped
     t = t.replace("|", " ")                       # cell borders of a table row copied from a rendered PDF or HTML page
     t = re.sub(r"(?<=\w)-(?=\w)", "", t)          # "Modbus-Umas" broken at a line end comes out of pdftotext as "ModbusUmas"
+    t = re.sub(r"(?<=\w)-\s+(?=\w)", "", t)       # ...and "relevance" hyphenated at a line end as "rele-\nvance"
     t = " ".join(t.split())
     t = re.sub(r"\s+([),.;:!?])", r"\1", t)       # "(AA26-097A )" from a link boundary
     t = re.sub(r"([(\[])\s+", r"\1", t)
@@ -163,16 +176,47 @@ def missing_fragment(quote: str, text: str) -> str | None:
     return None
 
 
-def check(sources: list[dict], getter=None) -> list[dict]:
-    pages = page_texts([s["url"] for s in sources], getter)
+def markdown_text(md: str) -> str:
+    """Saved copy to text. A rendering fetch writes Markdown: keep a link's text and drop its target,
+    drop images, HTML line breaks and inline tags, and the backslash Markdown puts before its own
+    punctuation. Plain text (pdftotext, a browser's innerText) passes through unchanged."""
+    md = re.sub(r"!\[[^\]]*\]\([^)]*\)", " ", md)
+    md = re.sub(r"\[([^\]]*)\]\([^)]*\)", r"\1", md)
+    md = re.sub(r"(?i)<br\s*/?>|</?(u|sup|sub|b|i|em|strong)>", " ", md)
+    return re.sub(r"\\([\\`*_{}\[\]()#+\-.!|<>])", r"\1", md)
+
+
+def saved_copy(saved: Path, url: str) -> tuple[str, str] | None:
+    """(normalised text, fetch line) of DIR/<sha1(url)>.txt, or None when there is no copy for this url.
+    The first line must name the url (a stale or misfiled copy is not used), the second says when
+    and how it was fetched; the page text follows."""
+    f = saved / f"{hashlib.sha1(url.encode()).hexdigest()}.txt"
+    if not f.is_file():
+        return None
+    head, _, rest = f.read_text("utf-8", "replace").partition("\n")
+    if head.strip() != f"# {url}":
+        return None
+    fetched, _, body = rest.partition("\n")
+    return norm(markdown_text(body)), fetched.removeprefix("#").strip()
+
+
+def check(sources: list[dict], getter=None, saved: Path | None = None) -> list[dict]:
+    copies = {s["url"]: saved_copy(saved, s["url"]) for s in sources} if saved else {}
+    pages = page_texts([s["url"] for s in sources if not copies.get(s["url"])], getter)
     res = []
     for s in sources:
-        text, st = pages[s["url"]]
-        gone = None if text is None else missing_fragment(s["quote"], text)
-        row = {**s, "status": st if text is None else ("missing" if gone else "ok")}
-        if row["status"] == "missing" and urlparse(s["url"]).netloc in RENDERED_HOSTS:
-            row["status"] = "rendered"   # the text may only exist once a browser runs the page
-        if row["status"] == "missing":
+        copy = copies.get(s["url"])
+        if copy:
+            text, fetched = copy
+            gone = missing_fragment(s["quote"], text)
+            row = {**s, "status": "saved-missing" if gone else "saved-ok", "fetched": fetched}
+        else:
+            text, st = pages[s["url"]]
+            gone = None if text is None else missing_fragment(s["quote"], text)
+            row = {**s, "status": st if text is None else ("missing" if gone else "ok")}
+            if row["status"] == "missing" and urlparse(s["url"]).netloc in RENDERED_HOSTS:
+                row["status"] = "rendered"   # the text may only exist once a browser runs the page
+        if gone and row["status"] in ("missing", "saved-missing"):
             m = difflib.SequenceMatcher(None, text, gone, autojunk=False).find_longest_match(0, len(text), 0, len(gone))
             row["closest"] = round(m.size / max(1, len(gone)), 2)
         res.append(row)
@@ -204,10 +248,13 @@ def report(res: list[dict]) -> str:
     miss = [r for r in res if r["status"] == "missing"]
     rendered = [r for r in res if r["status"] == "rendered"]
     unf = [r for r in res if r["status"].startswith("unfetched")]
-    upgrade = [r for r in res if r["status"] == "ok" and r["read"] == "summariser"]
+    saved_ok = [r for r in res if r["status"] == "saved-ok"]
+    saved_miss = [r for r in res if r["status"] == "saved-missing"]
+    upgrade = [r for r in res if r["status"] in ("ok", "saved-ok") and r["read"] == "summariser"]
     ok = sum(r["status"] == "ok" for r in res)
+    also = f" ({len(saved_ok)} more match a saved copy of their page, see below)" if saved_ok else ""
     L = ["# Quote check", "",
-         f"{ok} of {len(res)} quotes are on their page word for word. Nothing here changes the repository: read "
+         f"{ok} of {len(res)} quotes are on their page word for word{also}. Nothing here changes the repository: read "
          "each page, then fix the quote, the record or the claim it supports through a normal pull request, and "
          "record any correction in `docs/VERIFICATION.md`.", "",
          f"## No longer on the page ({len(miss)})", ""]
@@ -223,6 +270,14 @@ def report(res: list[dict]) -> str:
     L += grouped(rendered) or ["None."]
     L += ["", f"## Could not be fetched ({len(unf)})", ""]
     L += grouped(unf, lambda r: f"; {r['status'][11:]}") or ["None."]
+    if saved_ok or saved_miss:
+        L += ["", f"## Checked against a saved copy ({len(saved_ok) + len(saved_miss)})", "",
+              "These pages were not fetched: each quote was looked for in a copy of the page text saved earlier "
+              "(`--saved`). The copy's fetch time is given; a match proves the quote was on the page then, not now.", "",
+              f"### Matched ({len(saved_ok)})", ""]
+        L += grouped(saved_ok, lambda r: f"; {r['fetched']}") or ["None."]
+        L += ["", f"### Not matched ({len(saved_miss)})", ""]
+        L += grouped(saved_miss, lambda r: f"; {r['fetched']}") or ["None."]
     L += ["", f"## Read through a summariser, now matched word for word ({len(upgrade)})", ""]
     L += [f"- {r['file']} {r['record']}: {r['url']} - can become `read: direct`" for r in upgrade] or ["None."]
     return "\n".join(L) + "\n"
@@ -232,18 +287,22 @@ def main(argv: list[str] | None = None) -> int:
     ap = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     ap.add_argument("--only", type=Path, nargs="*", help="check only these YAML files")
     ap.add_argument("--out", type=Path, help="write the Markdown report here")
+    ap.add_argument("--saved", type=Path, help="directory of saved page texts, <sha1(url)>.txt, used instead of fetching")
     a = ap.parse_args(argv)
     only = [p.resolve() for p in a.only] if a.only else None
     sources = collect(ROOT, only)
     if not sources:
         print("no quoted sources found - refusing to report an empty check", file=sys.stderr)
         return 1
-    res = check(sources)
+    if a.saved and not a.saved.is_dir():
+        print(f"--saved {a.saved} is not a directory", file=sys.stderr)
+        return 1
+    res = check(sources, saved=a.saved)
     text = report(res)
     if a.out:
         a.out.write_text(text)
     print(text)
-    return NEEDS_REVIEW if any(r["status"] == "missing" for r in res) else 0
+    return NEEDS_REVIEW if any(r["status"] in ("missing", "saved-missing") for r in res) else 0
 
 
 if __name__ == "__main__":

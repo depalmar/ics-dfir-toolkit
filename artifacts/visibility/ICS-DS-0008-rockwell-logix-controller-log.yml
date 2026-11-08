@@ -120,9 +120,10 @@ sources:
     url: https://literature.rockwellautomation.com/idc/groups/literature/documents/pm/1756-pm015_-en-p.pdf
     accessed: "2026-11-08"
     kind: vendor
+    # "keywitches" is the manual's own spelling (text layer read 2026-11-08); the quote stays verbatim
     quote: >-
       A controller log is a record of interactions that occurred in the
-      controller due to physical conditions such as keyswitches, changes to
+      controller due to physical conditions such as keywitches, changes to
       removable media, fault conditions, and programming changes configured in
       the application.
     read: direct

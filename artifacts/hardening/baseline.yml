@@ -1086,7 +1086,7 @@ controls:
         url: https://www.cisa.gov/sites/default/files/2025-04/Priority-Considerations-for-OT-508c.pdf
         accessed: "2026-11-08"
         kind: government
-        quote: "Has the manufacturer eliminated default passwords? Are older insecure protocols disabled by default?"
+        quote: "Has the manufacturer eliminated default passwords? ... Are older insecure protocols disabled by default?"
         read: direct
       - title: CISA - Key Secure by Demand Elements for Operational Technology (fact sheet, 2025)
         url: https://www.cisa.gov/sites/default/files/2025-04/Priority-Considerations-for-OT-508c.pdf

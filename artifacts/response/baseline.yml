@@ -403,7 +403,7 @@ sources:
     url: https://www.cisa.gov/sites/default/files/2023-01/final-RP_ics_cybersecurity_incident_response_100609.pdf
     accessed: "2026-11-08"
     kind: government
-    quote: "The intention is to isolate the critical control system from the network by removing the networking communication point and then to test and verify isolation without disrupting other critical services."
+    quote: "The intention is to isolate the critical control system from the network ... by removing the networking communication point and then to test and verify isolation without disrupting other critical services."
     read: direct
   - title: CISA - Recommended Practice - Developing an Industrial Control Systems Cybersecurity Incident Response Capability (2009)
     url: https://www.cisa.gov/sites/default/files/2023-01/final-RP_ics_cybersecurity_incident_response_100609.pdf

@@ -71,17 +71,20 @@ Ordered by value. The knowledge base comes first because every later layer
 ## Round 5 (2026-11-08)
 
 - **Quote check, run 2** (issue #7): 317 of 764 quotes verified word for
-  word from GitHub's runners; 42 need a rendered check (Siemens TIA, AVEVA);
-  368 could not be fetched because cisa.gov, rockwellautomation.com,
-  media.defense.gov and Sierra Wireless answer GitHub's runners with 403 and
-  cyber.gov.au times out; 37 flagged as no longer on the page. Of the 37,
-  the justice.gov and cert.gov.ua groups were bot-wall shells (now in
-  `RENDERED_HOSTS`); the other ~29 (CODESYS whitepaper, Schneider and
-  Hitachi PDFs, cert.pl, Talos, Claroty, GTIG, Dragos, Microsoft, ESET,
-  Europol) need a re-read against the rendered page - pending Firecrawl
-  credits. Options for the unfetchable half: run `check_quotes.py` monthly
-  from a machine with ordinary egress, or add a rendering-fetch fallback
-  behind a repository secret.
+  word from GitHub's runners. The 37 flagged as no longer on the page were
+  settled in round 5 (8 were bot-wall shells, now in `RENDERED_HOSTS`; of the
+  29 re-read against rendered pages, 13 were verbatim, 11 corrected, 5 made
+  `unverified`). The 410 on hosts GitHub's runners cannot fetch (cisa.gov,
+  Rockwell, media.defense.gov, cyber.gov.au, Siemens, OMRON and others) or
+  that render in a browser (TIA Portal, AVEVA docs) were verified in round 6
+  against saved page copies - 430 quotes once re-collected: 424 as written,
+  6 corrected, none gone - with `check_quotes.py --saved DIR` (see
+  `docs/VERIFICATION.md`, round 6). Left `unverified`: the Dragos Year in
+  Review sentence (ICS-MAL-0015, page rewritten) and four Hitachi Energy
+  quotes whose document the publisher withdrew (ICS-0014); both need the
+  current document located. The monthly workflow still cannot reach those
+  hosts; the repeatable path is a saved-copy directory kept outside the
+  repository (third-party pages are never committed).
 - **ATT&CK v20 renumbering** (decision pending): T0812 → T1694.001, T0855 →
   T1692.001, T0857 → T1693.001; T0807 and T0853 deprecated. Records keep the
   old ids (they still resolve); migrating needs `mappings.py` to learn the

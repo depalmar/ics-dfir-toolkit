@@ -36,7 +36,7 @@ python artifacts/scripts/mappings.py [--check]     # MAPPINGS.md is generated; C
 python artifacts/scripts/build_site.py [--check]   # docs/site/index.html (Pages builds it; never commit it); --check writes nothing
 python -m icstriage logic-diff --baseline good.L5X --current suspect.L5X [--format md|json] [--out r.md]   # offline; exit 0/10/1
 python -m pytest -q tests/                         # offline tests for the scripts
-python artifacts/scripts/check_quotes.py [--only f.yml] [--out r.md]   # every quote vs its live page; reports, never edits
+python artifacts/scripts/check_quotes.py [--only f.yml] [--saved DIR] [--out r.md]   # every quote vs its live page (or a saved copy); reports, never edits
 python artifacts/scripts/advisory_watch.py [--kev f.json] [--upstream] [--draft]   # KEV vs packs and ledger; reports, never edits
 python artifacts/scripts/parse_iocs.py ...         # publisher indicator files to YAML, run with python3 -I
 python3.11 -m py_compile <changed .py>             # CI runs 3.11

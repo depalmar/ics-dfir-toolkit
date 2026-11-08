@@ -1,6 +1,7 @@
 """Offline tests for the maintenance scripts. No network: fetchers are faked."""
 from __future__ import annotations
 
+import hashlib
 import importlib.util
 import sys
 from pathlib import Path
@@ -84,6 +85,49 @@ def test_collect_finds_every_quoted_source_in_the_repository():
     found = cq.collect(ROOT)
     assert len(found) > 500
     assert all(s["url"].startswith("https://") and s["quote"] for s in found)
+
+
+def _save(d: Path, url: str, body: str) -> None:
+    (d / f"{hashlib.sha1(url.encode()).hexdigest()}.txt").write_text(f"# {url}\n# fetched 2026-11-08T14:00:00Z via firecrawl\n{body}")
+
+
+def never_fetch(u: str) -> bytes:
+    raise AssertionError(f"a page with a saved copy must not be fetched: {u}")
+
+
+def test_saved_copy_is_checked_instead_of_the_live_page(tmp_path):
+    url = "https://example.org/saved"
+    # a rendering fetch leaves Markdown links, emphasis and HTML line breaks around the page's words
+    _save(tmp_path, url, "The [IP address](https://example.org/ip) and **program** are now<br>erased \\[login required\\].")
+    sources = [{"file": "f", "record": "r1", "url": url, "quote": "The IP address and program are now erased [login required].", "read": "summariser"}]
+    res = cq.check(sources, never_fetch, saved=tmp_path)
+    assert res[0]["status"] == "saved-ok"
+    assert res[0]["fetched"] == "fetched 2026-11-08T14:00:00Z via firecrawl"
+    text = cq.report(res)
+    assert "## Checked against a saved copy (1)" in text and "### Matched (1)" in text
+    assert "https://example.org/saved (1 quote; fetched 2026-11-08T14:00:00Z via firecrawl)" in text
+    assert "## No longer on the page (0)" in text
+    assert "can become `read: direct`" in text                     # a saved match is still a verbatim match
+
+
+def test_saved_copy_without_the_quote_is_not_reported_as_gone_from_the_live_page(tmp_path):
+    url, other = "https://example.org/saved", "https://example.org/live"
+    _save(tmp_path, url, "A different sentence altogether.")
+    (tmp_path / f"{hashlib.sha1(other.encode()).hexdigest()}.txt").write_text(
+        "# https://example.org/misfiled\n# fetched 2026-11-08T14:00:00Z via curl\nfetched live")
+    sources = [{"file": "f", "record": "r1", "url": url, "quote": "the sentence that was quoted", "read": "direct"},
+               {"file": "f", "record": "r2", "url": other, "quote": "fetched live", "read": "direct"}]
+    fetched = []
+
+    def getter(u: str) -> bytes:
+        fetched.append(u)
+        return b"<p>fetched live</p>"
+
+    res = {r["record"]: r for r in cq.check(sources, getter, saved=tmp_path)}
+    assert res["r1"]["status"] == "saved-missing" and "closest" in res["r1"]
+    assert fetched == [other] and res["r2"]["status"] == "ok"     # a copy whose first line names another url is ignored
+    text = cq.report(list(res.values()))
+    assert "### Not matched (1)" in text and "## No longer on the page (0)" in text
 
 
 # ---- advisory_watch

@@ -1,0 +1,146 @@
+id: ICS-TA-0001
+name: Sandworm Team / APT44
+aliases:
+  - name: APT44
+    by: "Mandiant ('Mandiant has decided to graduate the group into a named Advanced Persistent Threat: APT44')"
+    equated: true
+  - name: FROZENBARENTS
+    by: "Mandiant ('Sandworm (aka FROZENBARENTS)')"
+    equated: true
+  - name: UNC3810
+    by: "Mandiant ('We initially tracked this activity as UNC3810 before merging the cluster with Sandworm')"
+    equated: true
+  - name: Telebots
+    by: "US DOJ, 2020 indictment ('Cybersecurity researchers have tracked the Conspirators and their malicious activity using the labels “Sandworm Team,” “Telebots,” “Voodoo Bear,” and “Iron Viking.”')"
+    equated: true
+  - name: Voodoo Bear
+    by: US DOJ, same 2020 statement
+    equated: true
+  - name: Iron Viking
+    by: US DOJ, same 2020 statement
+    equated: true
+  - name: Seashell Blizzard
+    by: >-
+      Microsoft's name, equated by ESET ('Seashell Blizzard (aka Sandworm)');
+      AA25-343A Appendix B lists it under GRU military unit 74455 with the caveat
+      that names 'may not be a 1:1 correlation'
+    equated: true
+  - name: ELECTRUM
+    by: "Dragos ('ELECTRUM shares technical overlaps with Sandworm'); its own record, ICS-TA-0002 in this toolkit"
+    equated: false
+  - name: KAMACITE
+    by: "Dragos ('Overlap with SANDWORM activity'); its own record, ICS-TA-0003 in this toolkit"
+    equated: false
+reported_by:
+  - US Department of Justice (2020 indictment of GRU Unit 74455 officers)
+  - Mandiant / Google Threat Intelligence Group
+  - ESET
+  - FBI, CISA, NSA and partners (AA25-343A names GRU military unit 74455 as tracked under Sandworm Team, Voodoo Bear, Seashell Blizzard, APT44)
+link_confidence: high
+stated_confidence: >-
+  ESET (Industroyer2, April 2022): 'We assess with high confidence that the APT
+  group Sandworm is responsible for this new attack'. ESET (DynoWiper, Poland,
+  December 2025): 'We attribute DynoWiper to Sandworm with medium confidence' and
+  'we only attribute the data-wiping component of this activity to Sandworm with
+  medium confidence'. Mandiant (2024): 'Sponsored by Russian military
+  intelligence, APT44 is a dynamic and operationally mature threat actor'. US DOJ
+  (2020) charged six 'officers in Unit 74455 of the Russian Main Intelligence
+  Directorate (GRU)' with, among other acts, 'December 2015 through December 2016
+  destructive malware attacks against Ukraine’s electric power grid, Ministry of
+  Finance, and State Treasury Service, using malware known as BlackEnergy,
+  Industroyer, and KillDisk'.
+state_nexus: >-
+  Russia: GRU Main Center for Special Technologies (GTsST), military unit 74455.
+  This is the unit the 2020 DOJ indictment charges. Mandiant: 'Government
+  indictments have linked the group to the Main Center for Special Technologies
+  (also known as GTsST and Military Unit 74455)'.
+motivation: mixed
+summary: >-
+  Russian military-intelligence group that Mandiant says works across 'the full
+  spectrum of espionage, attack, and influence operations'. DOJ charged its
+  officers over the 2015-2016 attacks on Ukraine's grid (BlackEnergy, Industroyer,
+  KillDisk). ESET attributes, with high confidence, the April 2022 Industroyer2
+  attempt against high-voltage substations in Ukraine: Industroyer2 spoke only
+  IEC-104, and Linux and Solaris wipers and CaddyWiper were scheduled around it.
+  Mandiant describes a 2022 attack in which Sandworm used MicroSCADA's own scilc.exe
+  to run SCIL commands that likely opened substation breakers, followed two days
+  later by CaddyWiper in IT. ESET attributes the December 2025 DynoWiper deployment
+  at a Polish energy company to Sandworm with medium confidence, for the wiper only.
+  It found no OT functionality in DynoWiper, and says another group may have done
+  the initial access. Dragos tracks related activity as its own clusters (ELECTRUM,
+  KAMACITE) and does no political attribution, so those are separate records.
+ics_kill_chain_stage: unknown
+stage_basis: >-
+  None of the reporters cited here places Sandworm on the SANS/Dragos ICS Cyber
+  Kill Chain. Mandiant reports an executed OT effect ('we are aware that the
+  attack resulted in an unscheduled power outage') without a stage label. Dragos
+  stages its own clusters (ELECTRUM, KAMACITE), not Sandworm.
+platforms: [ICS-0011, ICS-0014]
+malware: [ICS-MAL-0003, ICS-MAL-0004, ICS-MAL-0006, ICS-MAL-0013]
+incidents: [ICS-INC-0001, ICS-INC-0002, ICS-INC-0004, ICS-INC-0008]
+tradecraft:
+  - "Malware (ESET): Industroyer2 'only implements the IEC-104 (aka IEC 60870-5-104) protocol to communicate with industrial equipment'. Each build carries a hardcoded configuration (device IP addresses, ASDU address, information object addresses), so it is recompiled per victim."
+  - "Malware (ESET): before connecting to targets, Industroyer2 'terminates a legitimate process that is used in standard daily operations' and renames it with a .MZ suffix so it does not restart."
+  - "Hands-on operator (ESET timeline, 2022-04-08): 'Sandworm operator creates the scheduled task to launch Industroyer2'. CaddyWiper was then scheduled on the same machine to erase traces."
+  - "Malware (ESET): CaddyWiper was deployed alongside Industroyer2, which ESET believes was 'intended to slow down the recovery process and prevent operators of the energy company from regaining control of the ICS consoles'. Bash wipers (ORCSHRED, SOLOSHRED, AWFULSHRED) hit the Linux and Solaris hosts."
+  - "Hands-on operator (Mandiant, 2022): reached OT through a hypervisor hosting a MicroSCADA instance, then mounted an ISO ('a.iso') that ran lun.vbs and n.bat, which likely ran the native scilc.exe with a SCIL program file. Mandiant: 'we believe they were probably commands to open circuit breakers'."
+  - "Hands-on operator (Mandiant): deployed CaddyWiper through Group Policy using TANKTRAP, a PowerShell utility, and removed forensic artifacts from the SCADA system."
+  - "Script / hands-on operator (ESET, 2025): DynoWiper was deployed through an Active Directory Group Policy deployment script resembling the one used for Sandworm's ZOV wiper. DynoWiper samples 'focus solely on the IT environment, with no observed functionality targeting OT'."
+attack: [T0847, T0807, T0871, T0853, T0872, T0809, T0855, T0831, T1561.001, T1053.005]
+sectors:
+  - "electric power: transmission and distribution substations (ESET; Mandiant)"
+  - "energy, government, logistics, transportation, media, grain and telecommunications (ESET list of destructive-attack targets)"
+regions: [Ukraine, Poland, "global (Mandiant: 'operations from the group that are global in scope')"]
+first_seen: "2009 (Mandiant: 'in support of Russia's Main Intelligence Directorate (GRU) since at least 2009')"
+last_seen: "2025-12 (ESET: DynoWiper at a Polish energy company, medium confidence)"
+references:
+  - title: US DOJ - Six Russian GRU Officers Charged in Connection with Worldwide Deployment of Destructive Malware (19 October 2020)
+    url: https://www.justice.gov/archives/opa/pr/six-russian-gru-officers-charged-connection-worldwide-deployment-destructive-malware-and
+    accessed: "2026-11-08"
+    kind: government
+    quote: "Cybersecurity researchers have tracked the Conspirators and their malicious activity using the labels “Sandworm Team,” “Telebots,” “Voodoo Bear,” and “Iron Viking.”"
+    read: direct
+  - title: Mandiant - Unearthing APT44, Russia's Notorious Cyber Sabotage Unit Sandworm (17 April 2024)
+    url: https://cloud.google.com/blog/topics/threat-intelligence/apt44-unearthing-sandworm
+    accessed: "2026-11-08"
+    kind: vendor
+    quote: "Sponsored by Russian military intelligence, APT44 is a dynamic and operationally mature threat actor that is actively engaged in the full spectrum of espionage, attack, and influence operations."
+    read: direct
+  - title: Mandiant - Sandworm Disrupts Power in Ukraine Using a Novel Attack Against Operational Technology (9 November 2023)
+    url: https://cloud.google.com/blog/topics/threat-intelligence/sandworm-disrupts-power-ukraine-operational-technology/
+    accessed: "2026-11-08"
+    kind: vendor
+    quote: "The actor first used OT-level living off the land (LotL) techniques to likely trip the victim’s substation circuit breakers, causing an unplanned power outage that coincided with mass missile strikes on critical infrastructure across Ukraine."
+    read: direct
+  - title: ESET - Industroyer2, Industroyer reloaded (12 April 2022)
+    url: https://www.welivesecurity.com/2022/04/12/industroyer2-industroyer-reloaded/
+    accessed: "2026-11-08"
+    kind: vendor
+    quote: "We assess with high confidence that the APT group Sandworm is responsible for this new attack"
+    read: direct
+  - title: ESET - DynoWiper update, technical analysis and attribution (30 January 2026)
+    url: https://www.welivesecurity.com/en/eset-research/dynowiper-update-technical-analysis-attribution/
+    accessed: "2026-11-08"
+    kind: vendor
+    quote: "We attribute DynoWiper to Sandworm with medium confidence, in contrast to the ZOV wiper, which we attribute to Sandworm with high confidence."
+    read: direct
+  - title: CISA, FBI, NSA et al. - AA25-343A Pro-Russia Hacktivists Conduct Opportunistic Attacks Against US and Global Critical Infrastructure (9 December 2025)
+    url: https://www.cisa.gov/news-events/cybersecurity-advisories/aa25-343a
+    accessed: "2026-11-08"
+    kind: government
+    quote: "Cybersecurity organizations have different methods of tracking and attributing cyber actors, and this may not be a 1:1 correlation to the authoring organizations’ understanding for all activity related to these groupings."
+    read: direct
+notes: >-
+  ELECTRUM and KAMACITE are Dragos clusters with stated overlaps only. They are
+  not merged here (see ICS-TA-0002, ICS-TA-0003). The December 2025 Poland
+  incident has two attributions: ESET says Sandworm (medium, wiper component
+  only); Dragos says ELECTRUM. ESET adds that 'the preparatory stages leading up to
+  the destructive activity may have been conducted by another threat actor group
+  collaborating with Sandworm'. A third reporter, CERT Polska, ties the attack
+  infrastructure to the 'Static Tundra' / 'Berserk Bear' / 'Ghost Blizzard' /
+  'Dragonfly' cluster (ICS-TA-0017). AA25-343A
+  also assesses that GRU unit 74455 'is likely responsible for supporting the
+  creation of CARR'; CARR is its own record (ICS-TA-0010), not an alias. Protocols
+  (IEC 60870-5-104; Industroyer's IEC-101, IEC-104, IEC 61850 and OPC DA per ESET)
+  are named in text only until protocol records exist. Mandiant's full APT44
+  report (PDF) was not read; nothing here rests on it.

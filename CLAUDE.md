@@ -76,8 +76,9 @@ page (Firecrawl renders vendor knowledge bases and CISA advisories).
 
 **Ids are permanent.** `ICS-0003` and `ICS-MAL-0005` never change meaning. New
 entries take the next free id from `docs/ID_REGISTRY.md`. Files are named
-`<id>-<slug>.yml`; the validator enforces it and fails on any id referenced
-anywhere that has no record.
+`<id>-<slug>.yml`; the validator enforces it. A referenced id that is reserved
+in the registry but not written yet is a pending record (a warning that doubles
+as the coverage-gap list); any other unknown id fails.
 
 **Detections are Sigma, YARA and Suricata only.** Suricata is allowed here
 (unlike edge-dfir-toolkit) because passive network capture is the primary

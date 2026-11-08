@@ -1,0 +1,63 @@
+id: ICS-TA-0003
+name: KAMACITE
+aliases:
+  - name: Sandworm
+    by: "Dragos ('Overlap with SANDWORM activity'); its own record, ICS-TA-0001 in this toolkit"
+    equated: false
+reported_by: [Dragos]
+link_confidence: medium
+stated_confidence: >-
+  Dragos gives no confidence language. It states: 'KAMACITE facilitated
+  ICS-specific operations including the BLACKENERGY2 campaign and the 2015 and
+  2016 Ukraine power events' and 'Although KAMACITE has not directly caused an ICS
+  disruptive event according to Dragos analysis, the group is responsible for
+  enabling other entities – such as ELECTRUM – to be in a position to deliver
+  ICS-specific attacks.'
+state_nexus: >-
+  None stated. Dragos 'does not corroborate nor conduct political attribution to
+  threat activity'.
+motivation: unknown
+summary: >-
+  Dragos's access-enabling cluster behind the 2015 and 2016 Ukraine power events.
+  Dragos describes it as 'a long-running set of related behaviors targeting
+  critical infrastructure and industrial verticals since at least 2014' that puts
+  ELECTRUM in position rather than causing disruption itself. The 2026 Year in
+  Review says KAMACITE 'expanded from Ukraine-focused targeting to a European
+  supply chain campaign'. It then reconnoitred US industrial devices from March
+  through July 2025, scanning whole control loops: HMIs, variable frequency
+  drives, metering modules and cellular gateways. Dragos describes the role; it
+  does not state a motivation, so motivation is unknown.
+ics_kill_chain_stage: unknown
+stage_basis: >-
+  The Dragos pages read give no stage label. Dragos says the group 'has not
+  directly caused an ICS disruptive event' and enables others.
+platforms: [ICS-0013]
+malware: []
+incidents: [ICS-INC-0001, ICS-INC-0002]
+tradecraft:
+  - "Hands-on operator (Dragos): 'Phishing & credential replay for initial access'; the page subtitle also cites 'exploiting SOHO routers'."
+  - "Malware (Dragos): 'Custom malware development & deployment; also known to modify 3rd party criminal malware'."
+  - "Reconnaissance (Dragos, 2025): 'sustained reconnaissance of U.S. industrial devices from March through July 2025, systematically scanning entire control loops including HMIs, variable frequency drives, metering modules, and cellular gateways'. Dragos reports scanning, not compromise, of these devices."
+  - "Infrastructure (Dragos): 'Primary focus on compromised infrastructure in Europe'; 'Spoofs legitimate technology & social media services'."
+regions: [Ukraine, Europe, US]
+first_seen: "2014 (Dragos: 'since at least 2014')"
+last_seen: "2025-07 (Dragos: US reconnaissance from March through July 2025)"
+references:
+  - title: Dragos - KAMACITE threat group
+    url: https://www.dragos.com/threat/kamacite
+    accessed: "2026-11-08"
+    kind: vendor
+    quote: "Although KAMACITE has not directly caused an ICS disruptive event according to Dragos analysis, the group is responsible for enabling other entities – such as ELECTRUM – to be in a position to deliver ICS-specific attacks."
+    read: direct
+  - title: Dragos - 2026 OT Cybersecurity Report / Year in Review press release (17 February 2026)
+    url: https://www.dragos.com/resources/press-release/dragos-2026-year-in-review-new-ot-threats-ransomware
+    accessed: "2026-11-08"
+    kind: vendor
+    quote: "Its operations are enabled by KAMACITE, which expanded from Ukraine-focused targeting to a European supply chain campaign before conducting sustained reconnaissance of U.S. industrial devices from March through July 2025, systematically scanning entire control loops including HMIs, variable frequency drives, metering modules, and cellular gateways."
+    read: direct
+notes: >-
+  BlackEnergy (ICS-MAL-0003) is not listed under malware. Dragos says KAMACITE
+  'facilitated' the BLACKENERGY2 campaign, which does not say KAMACITE deployed
+  the malware. ICS-0013 is listed because Dragos names cellular gateways among the
+  devices scanned in 2025; the gateway vendors are not named. KAMACITE is not
+  Sandworm; Dragos states overlap only.

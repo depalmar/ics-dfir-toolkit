@@ -1,0 +1,133 @@
+# TRITON / TRISIS deployment against Triconex safety controllers at a refinery, 2017.
+# Schema: ../../schema/incident.schema.json
+# Research notes: docs/research/2026-11-08/incidents-and-kev.md
+id: ICS-INC-0003
+name: TRITON attack on Triconex safety instrumented systems at a refinery
+aliases:
+  - TRISIS
+  - HatMan
+date: '2017'
+date_basis: >-
+  US DOJ (Gladkikh indictment): "between May and September 2017, the defendant and co-conspirators hacked
+  the systems of a foreign refinery". Mandiant's December 14, 2017 post describes an incident it "recently
+  responded to" without a date.
+disclosed: '2017-12-14'
+sectors:
+  - oil and gas (refinery)
+countries:
+  - unnamed (outside the United States, per DOJ)
+victim: >-
+  "a foreign refinery" (DOJ); "a critical infrastructure organization" (Mandiant). Neither source names it.
+actors:
+  - ICS-TA-0004
+  - ICS-TA-0018
+malware:
+  - ICS-MAL-0005
+platforms:
+  - ICS-0007
+  - ICS-0010
+protocols:
+  - ICS-PROTO-0016
+summary: >-
+  An attacker with a foothold on the plant's DCS reached an SIS engineering workstation and used the TRITON
+  framework to append attacker code to the program memory of Schneider Electric Triconex safety
+  controllers over the TriStation protocol. A failed validation check between redundant processors put
+  some SIS controllers into a failed safe state, shutting the process down; DOJ says the deployment caused
+  two automatic emergency shutdowns. Mandiant assessed with moderate confidence that the attacker was
+  developing the ability to cause physical damage and shut down operations inadvertently.
+physical_consequence: safety-system-trip
+consequence_detail: >-
+  "some SIS controllers entered a failed safe state, which automatically shutdown the industrial process"
+  after "application code between redundant processing units failed a validation check -- resulting in an
+  MP diagnostic failure message" (Mandiant); "two automatic emergency shutdowns of the refinery’s
+  operations" (DOJ).
+chain:
+  - tactic: lateral-movement
+    what: >-
+      "the attacker initially obtained a reliable foothold on the DCS ... but instead proceeded to compromise
+      the SIS system" (Mandiant).
+  - tactic: lateral-movement
+    what: The attacker "gained remote access to an SIS engineering workstation" (Mandiant).
+  - tactic: execution
+    what: >-
+      trilog.exe, a Py2EXE-compiled script named to masquerade as the Triconex Trilog log-review
+      application, was run on the Windows SIS engineering workstation once per target controller IP.
+    evidence: trilog.exe, library.zip, inject.bin, imain.bin recovered by Mandiant
+  - tactic: discovery
+    what: trilog.exe "checked the status of the controller, then read the configuration information exposed by the TriStation protocol".
+  - tactic: inhibit-response-function
+    what: >-
+      inject.bin (malicious function code) and imain.bin (malicious control logic) were appended to the
+      controller's program memory and execution table, leaving legitimate programs in place; the attacker
+      "made several attempts over a period of time to develop and deliver functioning control logic".
+  - tactic: evasion
+    what: >-
+      If a controller did not recover within a defined window the sample overwrote the malicious program
+      with invalid data, which Mandiant assesses as anti-forensics.
+  - tactic: impact
+    what: >-
+      SIS controllers initiated a safe shutdown after the validation failure; DOJ counts two automatic
+      emergency shutdowns.
+  - tactic: attribution
+    what: >-
+      DOJ charges an employee of TsNIIKhM's Applied Developments Center, an institute affiliated with the
+      Russian Ministry of Defense. Mandiant (2017) had not connected the activity to a tracked actor and
+      assessed with moderate confidence that it was nation-state sponsored.
+lessons:
+  - lesson: >-
+      Segregate safety system networks from process control and IT networks; engineering workstations that
+      can program SIS controllers should not be dual-homed.
+    basis: researcher
+  - lesson: >-
+      On Triconex controllers keys should not be left in PROGRAM mode outside scheduled programming events;
+      put key position under change management and audit it regularly.
+    basis: researcher
+  - lesson: >-
+      Use unidirectional gateways for applications that consume SIS data, and application allowlisting on
+      any host that can reach the SIS over TCP/IP.
+    basis: researcher
+  - lesson: >-
+      An unexplained SIS trip or MP diagnostic failure is a potential security event; the asset owner's
+      investigation of the trip is what surfaced TRITON.
+    basis: toolkit
+confidence: high
+sources:
+  - title: Dragos - XENOTIME threat group (added at integration from the actor record's direct read)
+    url: https://www.dragos.com/threat/xenotime
+    accessed: "2026-11-08"
+    kind: vendor
+    quote: "XENOTIME configured TRISIS based on the specifics and functions of the Triconex system within the industrial control (ICS) environment."
+    read: direct
+  - title: Mandiant (FireEye Intelligence) - TRITON Attribution (23 October 2018) (added at integration from the actor record's direct read)
+    url: https://cloud.google.com/blog/topics/threat-intelligence/triton-attribution-russian-government-owned-lab-most-likely-built-tools/
+    accessed: "2026-11-08"
+    kind: vendor
+    quote: "FireEye Intelligence assesses with high confidence that intrusion activity that led to deployment of TRITON was supported by the Central Scientific Research Institute of Chemistry and Mechanics (CNIIHM; a.k.a. ЦНИИХМ), a Russian government-owned technical research institution located in Moscow."
+    read: direct
+  - title: Attackers Deploy New ICS Attack Framework "TRITON" and Cause Operational Disruption to Critical Infrastructure (Mandiant)
+    url: https://cloud.google.com/blog/topics/threat-intelligence/attackers-deploy-new-ics-attack-framework-triton
+    accessed: '2026-11-08'
+    kind: researcher
+    quote: >-
+      The attacker gained remote access to an SIS engineering workstation and deployed the TRITON attack
+      framework to reprogram the SIS controllers. During the incident, some SIS controllers entered a failed
+      safe state, which automatically shutdown the industrial process and prompted the asset owner to
+      initiate an investigation.
+    read: direct
+  - title: Four Russian Government Employees Charged in Two Historical Hacking Campaigns Targeting Critical Infrastructure Worldwide (DOJ)
+    url: https://www.justice.gov/archives/opa/pr/four-russian-government-employees-charged-two-historical-hacking-campaigns-targeting-critical
+    accessed: '2026-11-08'
+    kind: government
+    quote: >-
+      However, when the defendant deployed the Triton malware, it caused a fault that led the refinery’s
+      Schneider Electric safety systems to initiate two automatic emergency shutdowns of the refinery’s
+      operations.
+    read: direct
+notes: >-
+  Two reporters' clusters are listed, neither equated with the other: Dragos's XENOTIME (ICS-TA-0004,
+  "XENOTIME configured TRISIS") and Mandiant's TEMP.Veles (ICS-TA-0018, intrusion activity that led to
+  TRITON's deployment, supported by CNIIHM). Both were added at integration from the actor records' direct
+  reads; the incident pass's own sources (DOJ, Mandiant 2017) name neither cluster, and Mandiant's 2017 post
+  declines to attribute. The country is not named in the sources read; "Middle East" in the registry label
+  comes from reporting not read in this pass (Dragos TRISIS). Gap: neither source describes initial access
+  to the IT network or how the DCS foothold was obtained. CISA's HatMan MAR was not read.

@@ -1,0 +1,417 @@
+# ICS platform catalog entry
+# ICS-0010 - Windows engineering workstation
+# Research notes: docs/research/2026-11-08/platforms.md
+
+id: ICS-0010
+name: Windows engineering workstation (TIA Portal, Studio 5000, EcoStruxure Control Expert, VisiLogic, TriStation)
+vendor: multiple
+products:
+  - Siemens TIA Portal / STEP 7
+  - Rockwell Studio 5000 Logix Designer
+  - Schneider Electric EcoStruxure Control Expert (formerly Unity Pro)
+  - Unitronics VisiLogic
+  - Schneider Electric TriStation 1131 (Triconex)
+asset_class: engineering-workstation
+purdue_levels: ["2", "3"]
+protocols: [ICS-PROTO-0003, ICS-PROTO-0004, ICS-PROTO-0012, ICS-PROTO-0013, ICS-PROTO-0016]
+os_base: Microsoft Windows
+filesystem: NTFS
+customer_shell: "yes"
+memory_acquisition: customer
+program_access: file-copy
+operating_modes: >-
+  Not applicable to the host. What matters is whether the workstation had an
+  online session open to a controller at the time of interest; the
+  controllers' own logs (ICS-0001 controller log, ICS-0003 diagnostics buffer,
+  Control Expert syslog) record the workstation and user names on their side.
+integrity_features:
+  - feature: Control Expert event logging to syslog
+    description: >-
+      When "Event Logging" is selected in Control Expert project settings
+      (cleared by default) and a syslog server is configured, Control Expert
+      sends application actions (open/save project, build online, transfer to
+      or from the controller, start/stop, forces, variable modifications), DTM
+      actions, password actions and file actions. Each message carries the
+      user name and the Control Expert process id.
+    confidence: high
+    sources:
+      - title: Modicon Controller Systems Cybersecurity User Guide (EIO0000001999.12), distributor-hosted copy
+        url: https://docs.rs-online.com/7a9a/A700000012779990.pdf
+        accessed: "2026-11-08"
+        kind: vendor
+        quote: >-
+          Select Event Logging check box (cleared by default).
+        read: direct
+collection:
+  - method: Windows event logs already forwarded to a collector or SIEM (Security, Sysmon, PowerShell)
+    impact: passive
+    description: Copies held off the workstation; no contact with the host.
+    confidence: high
+  - method: Control Expert events already received by the site syslog server
+    impact: passive
+    description: Only where Event Logging was enabled in the project before the incident.
+    confidence: high
+    references:
+      - https://docs.rs-online.com/7a9a/A700000012779990.pdf
+  - method: Offline disk image (workstation shut down by agreement, or a VM snapshot or backup)
+    impact: passive
+    description: >-
+      Full NTFS image for timeline work: project folders, user profiles,
+      registry hives, event logs. Agree first whether the workstation is
+      needed for recovery; it may hold the only current project copies.
+    safety_note: >-
+      Shutting the workstation down ends any online session it has with a
+      controller; confirm with operations that none is open and that no HMI or
+      runtime component runs on it.
+    confidence: medium
+  - method: Live triage collection on the running workstation (for example KAPE with the SiemensTIA target)
+    impact: process-risk
+    description: Collects user-profile files and logs without shutting down.
+    safety_note: >-
+      Rated process-risk by this project because engineering workstations may
+      hold open online sessions to controllers or run HMI/runtime software, and
+      triage tools load the host. On a workstation confirmed idle with no
+      online connection, operations may accept it at lower risk.
+    confidence: medium
+    unverified: true
+    references:
+      - https://blog.nviso.eu/2022/03/30/investigating-an-engineering-workstation-part-2/
+volatility:
+  - TIA Portal Settings.xml is rewritten only on a normal close of TIA Portal (NVISO); a crash or killed process leaves it stale.
+  - Sysmon network-connection events (Event ID 3) are disabled by default; their absence means nothing unless the configuration enabled them.
+anti_forensics:
+  - technique: Attack tool named to masquerade as a legitimate engineering-suite utility
+    seen_in: TRITON
+    detail: >-
+      Mandiant: trilog.exe imitated the Triconex Trilog log-review application
+      on the SIS engineering workstation, with inject.bin and imain.bin payloads
+      beside it.
+  - technique: Replacement of the Step 7 communication library so the workstation shows clean blocks while the PLC runs infected ones
+    seen_in: Stuxnet
+    detail: >-
+      Symantec: Stuxnet renamed s7otbxdx.dll to s7otbxsx.dll and installed its
+      own s7otbxdx.dll that intercepts block read, write and enumerate calls.
+      Block comparisons made from an infected workstation cannot be trusted.
+  - technique: TIA Portal Settings.xml can be deleted or edited by the user with no extra privilege
+    seen_in: NVISO research (no campaign reported)
+    detail: TIA Portal recreates a fresh file on next start.
+datasources: [ICS-DS-0006, ICS-DS-0007, ICS-DS-0005, ICS-DS-0001, ICS-DS-0004]
+confidence: medium
+references:
+  - title: NVISO - Investigating an engineering workstation, Part 1
+    url: https://blog.nviso.eu/2022/03/15/investigating-an-engineering-workstation-part-1/
+    accessed: "2026-11-08"
+  - title: NVISO - Investigating an engineering workstation, Part 2
+    url: https://blog.nviso.eu/2022/03/30/investigating-an-engineering-workstation-part-2/
+    accessed: "2026-11-08"
+  - title: NVISO - Investigating an engineering workstation, Part 3
+    url: https://blog.nviso.eu/2022/04/20/investigating-an-engineering-workstation-part-3/
+    accessed: "2026-11-08"
+  - title: Chan and Chow - Forensic Analysis of a Siemens Programmable Logic Controller (IFIP, HAL archive)
+    url: https://inria.hal.science/hal-01614856/file/434671_1_En_7_Chapter.pdf
+    accessed: "2026-11-08"
+  - title: Modicon Controller Systems Cybersecurity User Guide (EIO0000001999.12), distributor-hosted copy
+    url: https://docs.rs-online.com/7a9a/A700000012779990.pdf
+    accessed: "2026-11-08"
+  - title: Claroty Team82 - From Exploits to Forensics, Unraveling the Unitronics Attack
+    url: https://claroty.com/team82/research/from-exploits-to-forensics-unraveling-the-unitronics-attack
+    accessed: "2026-11-08"
+  - title: Mandiant - Attackers Deploy New ICS Attack Framework TRITON
+    url: https://cloud.google.com/blog/topics/threat-intelligence/attackers-deploy-new-ics-attack-framework-triton
+    accessed: "2026-11-08"
+  - title: Symantec - W32.Stuxnet Dossier v1.4 (National Security Archive copy)
+    url: https://nsarchive2.gwu.edu/NSAEBB/NSAEBB424/docs/Cyber-044.pdf
+    accessed: "2026-11-08"
+  - title: CISA AA26-097A
+    url: https://www.cisa.gov/news-events/cybersecurity-advisories/aa26-097a
+    accessed: "2026-11-08"
+  - title: Microsoft - 4624(S) An account was successfully logged on
+    url: https://learn.microsoft.com/en-us/previous-versions/windows/it-pro/windows-10/security/threat-protection/auditing/event-4624
+    accessed: "2026-11-08"
+  - title: Microsoft Sysinternals - Sysmon
+    url: https://learn.microsoft.com/en-us/sysinternals/downloads/sysmon
+    accessed: "2026-11-08"
+last_verified: "2026-11-08"
+notes: >-
+  Engineering workstations are OT assets. TIA Portal artifacts rest on NVISO's
+  testing of TIA Portal V15.1 only (paths and behaviour are version-dependent)
+  and are rated low until a second source or device test confirms them. No
+  public vendor or researcher source was found for Studio 5000 / RSLinx
+  workstation-side logs or recent-project lists, so none are listed; the ACD
+  project file itself is the documented artifact. TriStation 1131 workstation
+  artifacts beyond the TRITON tool names were not researched.
+response: baseline
+artifacts:
+  - locator: 'TIA Portal project folder: <project root>\System\PEData.plf (opened via the <name>.apNN file in the project root)'
+    class: project-files
+    volatility: stable
+    forensic_value: high
+    evidence_type: [execution, impair-process-control, timeline]
+    confidence: medium
+    collection_impact: passive
+    description: >-
+      The binary file that holds the TIA Portal project data; the .apNN file
+      (extension tracks the TIA version, e.g. .ap15_1) only opens it. NVISO
+      found changes are appended rather than overwritten, ending in
+      $$COMMIT$ / ##CLOSE# markers, and that a clear-text "DownloadLog"
+      structure records DownloadTimeStamp values (Unix epoch, nanoseconds, UTC)
+      - but only for the first four unique download logs.
+    provides: Project change history and, partially, when the project was downloaded to a PLC.
+    normal: DownloadTimeStamp values that match approved downloads; appended changes that match engineering work orders.
+    suspicious: >-
+      Download timestamps outside change windows; appended changes to blocks
+      no work order covers. Four unique DownloadLogs means later downloads may
+      be invisible in this file (NVISO).
+    basis: researcher
+    sources:
+      - title: NVISO - Investigating an engineering workstation, Part 3
+        url: https://blog.nviso.eu/2022/04/20/investigating-an-engineering-workstation-part-3/
+        accessed: "2026-11-08"
+        kind: researcher
+        quote: >-
+          When “DownloadTimeStamp” entries are present in a “PEData.plf” file,
+          they do represent download activity.
+        read: direct
+      - title: Chan and Chow - Forensic Analysis of a Siemens Programmable Logic Controller
+        url: https://inria.hal.science/hal-01614856/file/434671_1_En_7_Chapter.pdf
+        accessed: "2026-11-08"
+        kind: researcher
+        quote: The PEData.plf project file is generated by the Siemens TIA Portal.
+        read: summariser
+  - locator: 'C:\Users\<user>\AppData\Roaming\Siemens\Portal V<version>\Settings\Settings.xml (NVISO tested V15_1)'
+    class: project-files
+    volatility: stable
+    forensic_value: high
+    evidence_type: [execution, discovery, timeline, attribution]
+    confidence: low
+    unverified: true
+    collection_impact: passive
+    description: >-
+      Per-user XML. Nodes LastOpenedProject, LRUProjectStorageLocation,
+      LRUProjectArchiveStorageLocation, LastProjects (chronological list of
+      opened projects, newest first), ConnectionServices (per project, creation
+      time in UTC and, once the user went online or downloaded, each PLC's
+      OamAddress such as IP and subnet mask) and LoadServices. Written on normal
+      close only.
+    provides: Which projects this user opened and which PLC addresses the user connected to.
+    normal: Projects and PLC addresses belonging to the user's assigned work.
+    suspicious: >-
+      Projects from unexpected paths (removable media, temp, other users'
+      folders); ControllerConfiguration entries for PLCs the user does not
+      maintain; a file freshly recreated (deleted) on a workstation used for
+      years.
+    basis: researcher
+    sources:
+      - title: NVISO - Investigating an engineering workstation, Part 2
+        url: https://blog.nviso.eu/2022/03/30/investigating-an-engineering-workstation-part-2/
+        accessed: "2026-11-08"
+        kind: researcher
+        quote: >-
+          The file is written as part of the tasks performed when the TIA Portal
+          is closed normally. If the TIA portal crashes, or the process get killed
+          by other means, the file will not be updated.
+        read: direct
+  - locator: Windows execution and file-use artifacts for TIA Portal - Prefetch (SIEMENS.AUTOMATION.PORTAL.EXE), BAM, UserAssist, RecentDocs and OpenSavePidlMRU (.apNN), Jump List AppID 4c28c7c161e44256
+    class: filesystem
+    volatility: stable
+    forensic_value: medium
+    evidence_type: [execution, timeline]
+    confidence: low
+    unverified: true
+    collection_impact: passive
+    description: >-
+      Standard Windows evidence applied to TIA Portal. NVISO caveat: projects
+      opened from TIA Portal's own "Recently used" list update neither RecentDocs
+      nor the Jump List, and newly created projects do not appear in the Jump
+      List - use Settings.xml for those.
+    provides: When TIA Portal ran and which project files were opened through Windows.
+    normal: Execution by engineering accounts during working hours.
+    suspicious: Execution under accounts that are not engineers, or at times nobody worked.
+    basis: researcher
+    sources:
+      - title: NVISO - Investigating an engineering workstation, Part 1
+        url: https://blog.nviso.eu/2022/03/15/investigating-an-engineering-workstation-part-1/
+        accessed: "2026-11-08"
+        kind: researcher
+        quote: >-
+          Please note, that if a project file is opened via the “Recently used”
+          projects listing, shown on the starting view of the TIA Portal, the
+          RecentDocs key is not updated.
+        read: direct
+  - locator: Studio 5000 Logix Designer project files (*.ACD) wherever the site stores them; no default path is documented in the sources read
+    class: project-files
+    volatility: stable
+    forensic_value: high
+    evidence_type: [impair-process-control, collection, timeline]
+    confidence: high
+    collection_impact: passive
+    description: >-
+      The Rockwell project file containing ladder logic and configuration.
+      The known-good ACD is the baseline every Logix controller comparison
+      depends on, so its own integrity matters.
+    seen_in: [AA26-097A project-file manipulation]
+    provides: The approved logic, and evidence of tampering with it on the workstation.
+    normal: ACD files whose hashes match the site's version-control or AssetCentre copies.
+    suspicious: ACD files modified outside change windows; copies in unusual locations; AOIs that differ from the library version.
+    basis: government
+    sources:
+      - title: CISA AA26-097A
+        url: https://www.cisa.gov/news-events/cybersecurity-advisories/aa26-097a
+        accessed: "2026-11-08"
+        kind: government
+        quote: >-
+          Project file refers to the software file that contains ladder logic and
+          configuration settings. On Rockwell Automation devices, it is referred
+          to as an .ACD file.
+        read: direct
+  - locator: Control Expert syslog messages (application, DTM, password and file actions) on the site syslog server
+    class: audit-trail
+    volatility: off-box
+    forensic_value: high
+    evidence_type: [execution, impair-process-control, collection, timeline, attribution]
+    confidence: high
+    collection_impact: passive
+    description: >-
+      Engineering-software audit trail sent by Control Expert itself, e.g.
+      "transfer project to PAC" (download), "transfer project from PAC"
+      (upload), "start stop or initialize the PAC", "Force outputs", "Modify
+      variable values", and password-verification failures.
+    provides: Who did what with Control Expert, from which workstation process, and when.
+    normal: Transfers and builds matching approved work, by named engineers.
+    suspicious: Transfers to the controller, forces or start/stop with no work order; incorrect-password events; the SYSLOG configuration changed.
+    basis: vendor
+    sources:
+      - title: Modicon Controller Systems Cybersecurity User Guide (EIO0000001999.12), distributor-hosted copy
+        url: https://docs.rs-online.com/7a9a/A700000012779990.pdf
+        accessed: "2026-11-08"
+        kind: vendor
+        quote: >-
+          Event logging is managed in Control Expert for all devices and Device
+          Type Managers (DTMs).
+        read: direct
+  - locator: Unitronics VisiLogic project files (zip containing a Microsoft Access database)
+    class: project-files
+    volatility: stable
+    forensic_value: medium
+    evidence_type: [attribution, timeline]
+    confidence: low
+    unverified: true
+    collection_impact: passive
+    description: >-
+      Claroty found the project database holds the full path the project was
+      created in, the creation date, the keyboard layouts installed on the
+      authoring computer and a log of connections made to the PLC.
+    provides: Authoring-host details and connection history for a Unitronics project.
+    normal: Paths and keyboard layouts consistent with the site's own engineers.
+    suspicious: Unknown usernames in the path, unexpected keyboard layouts, connections at odd times.
+    basis: researcher
+    sources:
+      - title: Claroty Team82 - From Exploits to Forensics, Unraveling the Unitronics Attack
+        url: https://claroty.com/team82/research/from-exploits-to-forensics-unraveling-the-unitronics-attack
+        accessed: "2026-11-08"
+        kind: researcher
+        quote: >-
+          Behind the scenes, to save all of these configurations, as well as
+          functions code, the EWS stores all of this data inside a zip file,
+          containing an Access DB database (in the PLC’s memory, this file is
+          stored in an encrypted format using hardcoded password).
+        read: direct
+  - locator: Executables masquerading as engineering-suite tools, with payload files beside them (TRITON - trilog.exe, inject.bin, imain.bin)
+    class: persistence
+    volatility: stable
+    forensic_value: high
+    evidence_type: [execution, evasion, inhibit-response-function]
+    confidence: low
+    unverified: true
+    collection_impact: passive
+    description: >-
+      TRITON ran on the SIS engineering workstation as a Py2EXE executable
+      named after the legitimate Trilog application.
+    seen_in: [TRITON]
+    provides: Evidence of attack tooling staged on the workstation that programs safety controllers.
+    normal: Engineering-suite binaries in the vendor's install directory, signed and matching the installed version.
+    suspicious: Engineering tool names in unusual paths, Py2EXE-packed binaries, unexplained .bin payloads next to them.
+    basis: researcher
+    sources:
+      - title: Mandiant - Attackers Deploy New ICS Attack Framework TRITON
+        url: https://cloud.google.com/blog/topics/threat-intelligence/attackers-deploy-new-ics-attack-framework-triton
+        accessed: "2026-11-08"
+        kind: researcher
+        quote: >-
+          The malware was named to masquerade as the legitimate Triconex Trilog
+          application. This application is used for reviewing logs and is a part
+          of the TriStation application suite.
+        read: direct
+  - locator: Step 7 (classic) communication library s7otbxdx.dll and any s7otbxsx.dll beside it, in the Step 7 installation directory
+    class: persistence
+    volatility: stable
+    forensic_value: high
+    evidence_type: [evasion, persistence, impair-process-control]
+    confidence: low
+    unverified: true
+    collection_impact: passive
+    description: >-
+      Stuxnet replaced the library Step 7 uses to exchange blocks with S7-300/400
+      PLCs, keeping the original under a new name. The exact installation
+      directory is not given in the source read.
+    seen_in: [Stuxnet]
+    provides: Whether the engineering station itself is lying about PLC contents.
+    normal: A single s7otbxdx.dll, signed and matching the installed Step 7 version; no s7otbxsx.dll.
+    suspicious: An s7otbxsx.dll present, or an s7otbxdx.dll whose hash or signature does not match the vendor's.
+    basis: researcher
+    sources:
+      - title: Symantec - W32.Stuxnet Dossier v1.4 (National Security Archive copy)
+        url: https://nsarchive2.gwu.edu/NSAEBB/NSAEBB424/docs/Cyber-044.pdf
+        accessed: "2026-11-08"
+        kind: researcher
+        quote: >-
+          once Stuxnet executes, it renames the original s7otbxdx.dll file to
+          s7otbxsx.dll. It then replaces the original .dll file with its own
+          version.
+        read: direct
+  - locator: Windows Security log, event 4624 (logon types 3 and 10 in particular)
+    class: auth-logs
+    volatility: rotating
+    retention: Set by the Security log size and overwrite policy
+    forensic_value: high
+    evidence_type: [initial-access, lateral-movement, timeline]
+    confidence: high
+    collection_impact: passive
+    description: Successful logons on the workstation, with logon type, account, source address and workstation name.
+    provides: Who logged on to the engineering workstation, how, and from where.
+    normal: Interactive (type 2) logons by engineers; remote logons only from the site's jump host.
+    suspicious: >-
+      Type 10 (RemoteInteractive) logons from hosts other than the approved
+      jump host; logons by accounts that are not engineers; logons immediately
+      before controller-log or diagnostics-buffer download events.
+    basis: vendor
+    sources:
+      - title: Microsoft - 4624(S) An account was successfully logged on
+        url: https://learn.microsoft.com/en-us/previous-versions/windows/it-pro/windows-10/security/threat-protection/auditing/event-4624
+        accessed: "2026-11-08"
+        kind: vendor
+        quote: A user logged on to this computer remotely using Terminal Services or Remote Desktop.
+        read: direct
+  - locator: Applications and Services Logs/Microsoft/Windows/Sysmon/Operational (where Sysmon is installed)
+    class: process
+    volatility: rotating
+    forensic_value: high
+    evidence_type: [execution, command-and-control, timeline]
+    confidence: high
+    collection_impact: passive
+    description: >-
+      Event ID 1 process creation with full command line and hash; Event ID 3
+      network connections linked to a process (disabled by default).
+    provides: Which process on the workstation opened connections to controllers or the internet.
+    normal: Engineering software connecting to known controller addresses.
+    suspicious: Unknown processes connecting to controller ports; engineering software launched by unusual parents.
+    basis: vendor
+    sources:
+      - title: Microsoft Sysinternals - Sysmon
+        url: https://learn.microsoft.com/en-us/sysinternals/downloads/sysmon
+        accessed: "2026-11-08"
+        kind: vendor
+        quote: >-
+          The network connection event logs TCP/UDP connections on the machine. It
+          is disabled by default.
+        read: direct

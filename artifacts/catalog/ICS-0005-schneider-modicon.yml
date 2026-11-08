@@ -1,0 +1,263 @@
+# ICS platform catalog entry
+# ICS-0005 - Schneider Electric Modicon
+# Research notes: docs/research/2026-11-08/platforms.md
+
+id: ICS-0005
+name: Schneider Electric Modicon (M580, M340; M221, M241, M251, M258)
+vendor: Schneider Electric
+products:
+  - Modicon M580 (BMEP58, BMEH58 Hot Standby, M580 Safety)
+  - Modicon M340 (BMXP34)
+  - Modicon M221 / M241 / M251 / M258 (not researched in this pass)
+asset_class: plc
+purdue_levels: ["1"]
+protocols: [ICS-PROTO-0012, ICS-PROTO-0001, ICS-PROTO-0004]
+os_base: Proprietary controller firmware; Schneider does not publish its internals
+customer_shell: "no"
+memory_acquisition: not-available
+program_access: vendor-software-upload
+operating_modes: >-
+  Run, Stop, Init and Halt (plus maintenance and safe modes on Safety CPUs).
+  The M580 can be configured for RUN/STOP by input only, and memory protection
+  is tied to an input bit on M340 and M580 (a physical key switch on Quantum).
+  On the M580 an operating mode change is a logged cybersecurity event
+  (OPERATING_MODE_CHANGE). The M340 has no event logging service at all.
+integrity_features:
+  - feature: M580 cybersecurity event logging (syslog)
+    description: >-
+      The controller detects and time-stamps cybersecurity events and sends
+      them to a syslog server (RFC 5424 over TCP); configured in Control Expert
+      (Tools > Project Settings > General > PLC diagnostics > Event Logging,
+      cleared by default) and pushed to devices at Build. Events include
+      successful and failed connections (HTTPS web server, firmware upgrade,
+      OPC UA, Modbus-UMAS application password, Modbus TCP, EtherNet/IP),
+      account lockouts, backup (application read from the controller),
+      restore, firmware update and invalid firmware (incompatible version or
+      invalid signature), time changes, port and SD card changes, operating
+      mode changes and invalid configuration.
+    versions: >-
+      Message set as listed for M580 firmware 4.10 and later; events survive a
+      device reset only from firmware 4.0
+    confidence: high
+    sources:
+      - title: Modicon Controller Systems Cybersecurity User Guide (EIO0000001999.12), distributor-hosted copy
+        url: https://docs.rs-online.com/7a9a/A700000012779990.pdf
+        accessed: "2026-11-08"
+        kind: vendor
+        quote: >-
+          On devices, events are not lost in case of transient network breakdown.
+          Events are lost in case of device reset (except for Modicon M580
+          controller firmware ≥ 4.0).
+        read: direct
+  - feature: Controller memory protection
+    description: >-
+      Blocks transfer of a project into the controller and online
+      modification over any channel. Activated by an input bit (M340, M580) or
+      a physical key switch (Quantum). Not available on Hot Standby
+      controllers. Its state is part of the configuration that memory
+      protection itself protects.
+    confidence: high
+    sources:
+      - title: Modicon Controller Systems Cybersecurity User Guide (EIO0000001999.12), distributor-hosted copy
+        url: https://docs.rs-online.com/7a9a/A700000012779990.pdf
+        accessed: "2026-11-08"
+        kind: vendor
+        quote: >-
+          The memory protection prohibits the transfer of a project into the
+          controller and modifications in online mode, regardless of the
+          communication channel.
+        read: direct
+  - feature: Cybersecurity services by controller (M340 has no event logging or integrity checks)
+    description: >-
+      Schneider's per-model table marks event logging and integrity checks as
+      available on all M580 CPUs and not available on any M340 CPU (BMX P34
+      1000 to 20302, firmware 2.60). An M340 investigation therefore has no
+      on-controller security log to collect.
+    confidence: high
+    sources:
+      - title: Modicon Controller Systems Cybersecurity User Guide (EIO0000001999.12), distributor-hosted copy
+        url: https://docs.rs-online.com/7a9a/A700000012779990.pdf
+        accessed: "2026-11-08"
+        kind: vendor
+        quote: "| BMX P34 2020 | 2.60 | X | X | - | - | X | X | - |"
+        read: direct
+collection:
+  - method: M580 and Control Expert syslog messages already on the site syslog server
+    impact: passive
+    description: Only where Event Logging was enabled in the project and a server address configured.
+    confidence: high
+    references:
+      - https://docs.rs-online.com/7a9a/A700000012779990.pdf
+  - method: Passive capture of Modbus TCP / UMAS (TCP 502) and EtherNet/IP traffic (TAP or SPAN)
+    impact: passive
+    description: The only network-side record for M340, which logs nothing itself.
+    confidence: high
+  - method: Control Expert "transfer project from PAC" (upload) into a new application file, then compare with the known-good application
+    impact: online-vendor-tool
+    description: >-
+      Captures the running application. Control Expert logs the transfer, and
+      the M580 logs a BACKUP event ("Download of application from the
+      controller" in Schneider's wording).
+    safety_note: >-
+      The same session can transfer to the controller, force, or start/stop.
+      Operations approval required; check memory protection state first and do
+      not disable it to collect.
+    confidence: high
+    references:
+      - https://docs.rs-online.com/7a9a/A700000012779990.pdf
+volatility:
+  - M580 events are held locally and survive a transient network outage; before firmware 4.0 a device reset loses them.
+  - M340 has no event logging; network capture and the engineering workstation are the only records.
+datasources: [ICS-DS-0013, ICS-DS-0001, ICS-DS-0007, ICS-DS-0004, ICS-DS-0014]
+confidence: high
+references:
+  - title: Modicon Controller Systems Cybersecurity User Guide (EIO0000001999.12), distributor-hosted copy
+    url: https://docs.rs-online.com/7a9a/A700000012779990.pdf
+    accessed: "2026-11-08"
+  - title: CISA AA26-097A
+    url: https://www.cisa.gov/news-events/cybersecurity-advisories/aa26-097a
+    accessed: "2026-11-08"
+  - title: CISA ICSA-23-227-01 - Schneider Electric EcoStruxure Control Expert and Modicon M340, Momentum, MC80, M580 and M580 CPU Safety
+    url: https://www.cisa.gov/news-events/ics-advisories/icsa-23-227-01
+    accessed: "2026-11-08"
+last_verified: "2026-11-08"
+notes: >-
+  The cybersecurity guide was read from a distributor-hosted PDF of Schneider's
+  EIO0000001999.12 because se.com download links resolve to a country selector
+  for an unauthenticated fetch; CISA ICSA-23-227-01 cites the same document
+  number and its "CPU Memory Protection" section. The M580 Hardware Reference
+  Manual (EIO0000001578) appears to describe an "Event Log" file download on the
+  controller web pages, but that was seen only in a search snippet and is not
+  listed as a collection method. M221/M241/M251/M258 were not researched.
+response: baseline
+artifacts:
+  - locator: M580 syslog messages on the site syslog server (RFC 5424 over TCP)
+    class: off-box
+    volatility: off-box
+    forensic_value: high
+    evidence_type: [initial-access, credential-access, impair-process-control, collection, timeline]
+    confidence: high
+    collection_impact: passive
+    description: >-
+      Structured messages with PROCID (HTTPS, OPC-UA, MODBUS-UMAS, MODBUS,
+      EIP, Configuration, Backup, System) and MSGID such as
+      CONNECTION_SUCCESS, CONNECTION_FAILURE, BACKUP, RESTORE,
+      FIRMWARE_UPDATE, TIME_CHANGE, HARDWARE_CHANGE and
+      OPERATING_MODE_CHANGE.
+    provides: Who connected to the controller by which protocol, and what they did to it.
+    normal: >-
+      Modbus and EtherNet/IP connections from known HMIs and peers; UMAS
+      application-password logons from engineering workstations during change
+      windows.
+    suspicious: >-
+      "Login problem (Unity Application password through Modbus-Umas)" in
+      bursts; account lockouts; BACKUP (project read out) or RESTORE events
+      nobody performed; firmware updates; time changes; a controller that
+      stops sending.
+    basis: vendor
+    sources:
+      - title: Modicon Controller Systems Cybersecurity User Guide (EIO0000001999.12), distributor-hosted copy
+        url: https://docs.rs-online.com/7a9a/A700000012779990.pdf
+        accessed: "2026-11-08"
+        kind: vendor
+        quote: Login problem (Unity Application password through Modbus-Umas)
+        read: direct
+  - locator: M580 OPERATING_MODE_CHANGE syslog events
+    class: audit-trail
+    volatility: off-box
+    forensic_value: high
+    evidence_type: [impair-process-control, inhibit-response-function, timeline]
+    confidence: high
+    collection_impact: passive
+    description: Mode changes of the PLC, the safe task (Safety CPUs) or a module, with the new state.
+    provides: When the controller was stopped, initialised or put in maintenance mode.
+    normal: Mode changes matching maintenance records.
+    suspicious: Stop, Init or Halt with no planned work; a safety CPU entering maintenance mode unexpectedly.
+    basis: vendor
+    sources:
+      - title: Modicon Controller Systems Cybersecurity User Guide (EIO0000001999.12), distributor-hosted copy
+        url: https://docs.rs-online.com/7a9a/A700000012779990.pdf
+        accessed: "2026-11-08"
+        kind: vendor
+        quote: Program Operating Mode change (Run, Stop, Init, halt) Mode Maintenance / SafeRun / Stop SAFE Task
+        read: direct
+  - locator: M580 FIRMWARE_UPDATE and invalid-firmware syslog events
+    class: firmware
+    volatility: off-box
+    forensic_value: high
+    evidence_type: [persistence, evasion, timeline]
+    confidence: high
+    collection_impact: passive
+    description: Successful firmware installs (controller, safety coprocessor, web pages) and rejected ones.
+    provides: Evidence of firmware tampering attempts.
+    normal: Updates matching the site's patch records.
+    suspicious: Any update nobody scheduled; rejected firmware for invalid signature.
+    basis: vendor
+    sources:
+      - title: Modicon Controller Systems Cybersecurity User Guide (EIO0000001999.12), distributor-hosted copy
+        url: https://docs.rs-online.com/7a9a/A700000012779990.pdf
+        accessed: "2026-11-08"
+        kind: vendor
+        quote: A new firmware was not installed because of an incompatible version or invalid signature
+        read: direct
+  - locator: Memory protection state (input bit configured in Control Expert; input wiring at the cabinet)
+    class: config
+    volatility: stable
+    forensic_value: medium
+    evidence_type: [configuration, evasion]
+    confidence: high
+    collection_impact: passive
+    description: Whether project transfer and online modification were blocked at the time.
+    provides: Whether a remote download was even possible.
+    normal: Memory protection activated (Schneider calls this good practice) with the input under physical control.
+    suspicious: Protection not configured, or the input in the unprotected state outside planned work.
+    basis: vendor
+    sources:
+      - title: Modicon Controller Systems Cybersecurity User Guide (EIO0000001999.12), distributor-hosted copy
+        url: https://docs.rs-online.com/7a9a/A700000012779990.pdf
+        accessed: "2026-11-08"
+        kind: vendor
+        quote: It is a good practice to activate the controller memory protection whenever possible.
+        read: direct
+  - locator: Application uploaded with Control Expert (sections, DFBs, variables, configuration)
+    class: control-logic
+    volatility: stable
+    forensic_value: high
+    evidence_type: [impair-process-control, inhibit-response-function, impact]
+    confidence: high
+    collection_impact: online-vendor-tool
+    description: >-
+      The logic itself. AA26-097A names Modicon M340 (BMX P34) among targeted
+      devices and Control Expert among the tools used to exfiltrate project
+      files.
+    seen_in: [AA26-097A]
+    provides: The controller's behaviour, for comparison with the approved application.
+    normal: Identical to the approved application.
+    suspicious: Altered DFBs or sections, especially those implementing limits, shutdowns or alarms.
+    basis: government
+    sources:
+      - title: CISA AA26-097A
+        url: https://www.cisa.gov/news-events/cybersecurity-advisories/aa26-097a
+        accessed: "2026-11-08"
+        kind: government
+        quote: >-
+          The authoring agencies observed Iranian-affiliated APT actors using
+          configuration software—such as Rockwell Automation’s Studio 5000 Logix
+          Designer, Schneider Electric’s EcoStruxure Control Expert, and Siemens’
+          Totally Integrated Automation (TIA) Portal—on leased, third-party hosted
+          infrastructure to exfiltrate device project files from PLC devices to
+          threat-actor-controlled infrastructure
+        read: direct
+  - locator: Network traffic on TCP 502 to the controller from outside the control network
+    class: network
+    volatility: off-box
+    forensic_value: high
+    evidence_type: [initial-access, exfiltration]
+    confidence: high
+    collection_impact: passive
+    description: Port 502 is among the ports AA26-097A lists as targeted; Modbus and UMAS share it.
+    seen_in: [AA26-097A]
+    provides: Who reached the controller and when - the only record for an M340.
+    normal: Only HMIs, SCADA servers, engineering workstations and peers.
+    suspicious: Sessions from internet or hosting-provider addresses; UMAS (function code 90) from hosts that are not engineering workstations.
+    basis: government

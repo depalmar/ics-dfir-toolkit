@@ -1,0 +1,143 @@
+id: ICS-TA-0009
+name: CyberAv3ngers
+aliases:
+  - name: CyberAveng3rs
+    by: "FBI, CISA, NSA, EPA, INCD, CCCS and NCSC-UK, AA23-335A ('also known as CyberAveng3rs or Cyber Avengers')"
+    equated: true
+  - name: Cyber Avengers
+    by: AA23-335A, same statement
+    equated: true
+  - name: Shahid Kaveh Group
+    by: "AA26-097A ('CyberAv3ngers (aka Shahid Kaveh Group)')"
+    equated: true
+  - name: Storm-0784
+    by: "Microsoft ('CISA attributed the attack to the Islamic Revolutionary Guard Corps (IRGC)-affiliated actor “CyberAv3ngers”, tracked by Microsoft as Storm-0784'); AA26-097A also lists it"
+    equated: true
+  - name: Hydro Kitten
+    by: "AA26-097A ('Private industry and open sources also refer to this group as Hydro Kitten, Storm-0784, APT Iran, Bauxite, Mr. Soul, Soldiers of Solomon, UNC5691, and the Shahid Kaveh Group'); the naming vendor's own statement was not read"
+    equated: true
+  - name: APT Iran
+    by: AA26-097A, same list
+    equated: true
+  - name: Mr. Soul
+    by: AA26-097A, same list
+    equated: true
+  - name: UNC5691
+    by: AA26-097A, same list; Mandiant's own statement was not read
+    equated: true
+  - name: Soldiers of Solomon
+    by: >-
+      Sources conflict. AA26-097A lists it as another name for this group, while
+      AA23-335A says CyberAv3ngers 'reportedly has connections to another
+      IRGC-linked group known as Soldiers of Solomon'. Microsoft 'tracks both
+      “CyberAv3ngers” and its associated group “Soldiers of Solomon” as
+      Storm-0784'.
+    equated: false
+  - name: BAUXITE
+    by: >-
+      Dragos's cluster, which Dragos says 'shares substantial technical overlaps'
+      with CyberAv3ngers. AA26-097A lists 'Bauxite' as a name private industry
+      uses, but the naming party states overlap only. Its own record, ICS-TA-0008
+      in this toolkit.
+    equated: false
+reported_by:
+  - FBI, CISA, NSA, EPA, Israel National Cyber Directorate, CCCS and NCSC-UK (AA23-335A)
+  - US Department of the Treasury (OFAC)
+  - Microsoft Threat Intelligence
+  - Claroty Team82
+link_confidence: high
+stated_confidence: >-
+  FBI, CISA, NSA, EPA, INCD, CCCS and NCSC-UK (AA23-335A): 'In November 2023,
+  IRGC-affiliated cyber actors using the persona “CyberAv3ngers” began actively
+  targeting and compromising Israeli-made Unitronics Vision Series programmable
+  logic controllers (PLCs) and human machine interfaces (HMIs).' The update gives
+  TTPs 'the authoring agencies assess are likely associated with this
+  IRGC-affiliated APT'. Treasury: action 'in response to IRGC-affiliated cyber
+  actors’ recent cyber operations in which they hacked and posted images on the
+  screens of programmable logic controllers manufactured by Unitronics'. Claroty
+  is hedged on IOCONTROL: the sample came from 'a fuel management system that was
+  allegedly compromised by a threat actor group linked to Iran known as the
+  CyberAv3ngers'.
+state_nexus: >-
+  Iran: IRGC Cyber-Electronic Command (IRGC-CEC). AA26-097A calls CyberAv3ngers 'a
+  cyber threat actor affiliated with Iran’s Islamic Revolutionary Guard Corps
+  (IRGC) Cyber Electronic Command (CEC)'. Treasury sanctioned six IRGC-CEC
+  officials over the Unitronics operations.
+motivation: disruption
+summary: >-
+  IRGC-affiliated persona behind the November 2023 to January 2024 compromise of
+  at least 75 internet-exposed Unitronics Vision Series PLC/HMIs, at least 34 of
+  them in US water and wastewater. The actors got in with default or no
+  passwords on TCP 20256. They replaced the ladder logic with their own, which had
+  no inputs or outputs, renamed devices, rolled back software versions, disabled
+  upload and download, changed the port, and put a defacement splash page on the
+  HMI. AA23-335A notes several of its Israeli claims were false. Claroty attributes
+  IOCONTROL, an MQTT-controlled implant found on Orpak/Gasboy fuel systems, to
+  CyberAv3ngers, hedged as 'allegedly'. The 2026 PLC campaign in AA26-097A is
+  attributed to an unnamed Iranian-affiliated group, not to CyberAv3ngers. It is
+  recorded separately as ICS-TA-0019.
+ics_kill_chain_stage: unknown
+stage_basis: "Neither the US agencies nor Microsoft nor Claroty use the ICS Cyber Kill Chain for this persona."
+platforms: [ICS-0006]
+malware: [ICS-MAL-0011]
+incidents: [ICS-INC-0005]
+cves: [CVE-2023-6448]
+tradecraft:
+  - "Hands-on operator (AA23-335A): compromised Unitronics Vision devices 'by authenticating to internet-connected devices with communications set to the default TCP port 20256'. The devices 'either had a default password in place or no password'."
+  - "Hands-on operator (AA23-335A): 'erased the original ladder logic file on the device and downloaded their own'. The replacement 'contained no inputs or outputs', and the actors 'did not burn their ladder logic file to the device, preventing the retrieval of the ladder logic file from the device'."
+  - "Hands-on operator (AA23-335A): renamed devices; set the ladder logic software version to an older version; disabled upload and download; enabled password protection for upload; changed the remote port 'from 20256 to 20257'; uploaded a defacement splash page to the HMI."
+  - "Hands-on operator (AA23-335A): 'developed custom ladder logic files to download for each of these device types'."
+  - "Claimed (AA23-335A): 'Since 2020, CyberAv3ngers has claimed responsibility for cyberattacks in Israel, although several of these claimed compromises of critical infrastructure organizations in Israel are false.'"
+  - "Malware (Claroty, attribution hedged): IOCONTROL on Orpak/Gasboy fuel management systems; C2 over MQTT on port 8883. CyberAv3ngers claimed on Telegram 'it had attacked 200 gas stations in Israel and the U.S.' (claimed)."
+attack: [T1110, T1078.001, T1565.001, T1531, T1499, T1491.001]
+sectors:
+  - "water and wastewater systems (AA23-335A: at least 34 compromised devices in the WWS Sector)"
+  - "energy (AA23-335A: claimed attacks 'primarily in the water and energy sectors')"
+  - "fuel management systems (Claroty: Orpak and Gasboy)"
+regions: [United States, Israel, United Kingdom]
+victimology:
+  - "At least 75 Unitronics devices compromised, including at least 34 in the US water and wastewater sector (AA23-335A)"
+first_seen: "2020 (AA23-335A: claims in Israel 'Since 2020')"
+last_seen: "2024-01 (AA23-335A: US Unitronics waves November 2023 to January 2024); Claroty reports an IOCONTROL campaign relaunched 'in July and August' 2024"
+references:
+  - title: FBI, CISA, NSA, EPA, INCD, CCCS, NCSC-UK - AA23-335A IRGC-Affiliated Cyber Actors Exploit PLCs in Multiple Sectors (updated 18 December 2024)
+    url: https://www.cisa.gov/news-events/cybersecurity-advisories/aa23-335a
+    accessed: "2026-11-08"
+    kind: government
+    quote: "In November 2023, IRGC-affiliated cyber actors using the persona “CyberAv3ngers” began actively targeting and compromising Israeli-made Unitronics Vision Series programmable logic controllers (PLCs) and human machine interfaces (HMIs)."
+    read: direct
+  - title: FBI, CISA, NSA, EPA, DOE, CNMF, Treasury - AA26-097A Iranian-Affiliated Cyber Actors Exploit PLCs Across US Critical Infrastructure (updated 22 July 2026)
+    url: https://www.cisa.gov/news-events/cybersecurity-advisories/aa26-097a
+    accessed: "2026-11-08"
+    kind: government
+    quote: "Private industry and open sources also refer to this group as Hydro Kitten, Storm-0784, APT Iran, Bauxite, Mr. Soul, Soldiers of Solomon, UNC5691, and the Shahid Kaveh Group."
+    read: direct
+  - title: US Treasury - Sanctions Actors Responsible for Malicious Cyber Activities on Critical Infrastructure (2 February 2024)
+    url: https://home.treasury.gov/news/press-releases/jy2072
+    accessed: "2026-11-08"
+    kind: government
+    quote: "The United States is taking action against these individuals in response to IRGC-affiliated cyber actors’ recent cyber operations in which they hacked and posted images on the screens of programmable logic controllers manufactured by Unitronics, an Israeli company."
+    read: direct
+  - title: Microsoft - Exposed and vulnerable, recent attacks highlight critical need to protect internet-exposed OT devices (30 May 2024)
+    url: https://www.microsoft.com/en-us/security/blog/2024/05/30/exposed-and-vulnerable-recent-attacks-highlight-critical-need-to-protect-internet-exposed-ot-devices/
+    accessed: "2026-11-08"
+    kind: vendor
+    quote: "Microsoft tracks both “CyberAv3ngers” and its associated group “Soldiers of Solomon” as Storm-0784."
+    read: direct
+  - title: Claroty Team82 - Inside a New OT/IoT Cyberweapon, IOCONTROL (10 December 2024)
+    url: https://claroty.com/team82/research/inside-a-new-ot-iot-cyber-weapon-iocontrol
+    accessed: "2026-11-08"
+    kind: researcher
+    quote: "Team82 has analyzed a malware sample extracted from a fuel management system that was allegedly compromised by a threat actor group linked to Iran known as the CyberAv3ngers, which is also believed to be responsible for the Unitronics attack last fall."
+    read: direct
+notes: >-
+  ICS-INC-0009 (AA26-097A) is deliberately not listed. That advisory attributes
+  the 2026 activity to 'a group of Iranian-affiliated APT actors' and cites
+  CyberAv3ngers only as 'similar activity' (see ICS-TA-0019). On aliases, names
+  the US agencies give as other names for this group are equated, as the
+  agencies' statement. Dragos's BAUXITE is not, because the naming party states
+  overlap only. Soldiers of Solomon is not, because AA23-335A and AA26-097A differ.
+  CVE-2023-6448 is listed because Microsoft states a CVE 'was assigned for the
+  Unitronics default password configuration' after these incidents. The IOCONTROL
+  link (ICS-MAL-0011) rests on Claroty alone and is hedged ('allegedly').
+  ATT&CK ids are AA23-335A's own mapping.

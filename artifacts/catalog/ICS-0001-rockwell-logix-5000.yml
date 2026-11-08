@@ -1,0 +1,457 @@
+# ICS platform catalog entry
+# ICS-0001 - Rockwell Automation Logix 5000 controllers
+# Research notes: docs/research/2026-11-08/platforms.md
+
+id: ICS-0001
+name: Rockwell Automation Logix 5000 controllers (ControlLogix, CompactLogix, GuardLogix)
+vendor: Rockwell Automation
+products:
+  - ControlLogix 5570 / 5580 / 5590
+  - CompactLogix 5370 / 5380 / 5480
+  - GuardLogix 5570 / 5580 and Compact GuardLogix 5370 / 5380
+asset_class: plc
+purdue_levels: ["1"]
+protocols: [ICS-PROTO-0004]
+os_base: Proprietary controller firmware; Rockwell does not publish its internals
+filesystem: >-
+  No customer-visible filesystem. Removable media (SD card, CompactFlash on
+  older models) holds controller-log files that the controller writes there:
+  1756-PM015 gives the path \Logix\<8-digit serial>\Logs\V<major_minor>, plain
+  UTF-16 tab-separated .txt files, a new file every 1 MB.
+customer_shell: "no"
+memory_acquisition: not-available
+program_access: vendor-software-upload
+operating_modes: >-
+  Physical mode switch plus remote modes. The controller log records both kinds
+  of change with old and new mode: "Keyswitch mode change" (user Local) and
+  "Remote mode change" (Windows user, workstation and FactoryTalk id); the
+  possible modes listed are Run, Remote Run, Test, Program and Remote Program.
+  CISA (AA26-097A) recommends the physical switch stay in RUN except while a
+  download is in progress, and warns that changing modes "will lock in the
+  current project file downloaded to the device" - so validate the project
+  before switching back to RUN.
+integrity_features:
+  - feature: Change Detection (AuditValue and ChangesToDetect)
+    description: >-
+      A 64-bit audit value generated at download or load from removable media
+      and regenerated whenever a monitored event occurs. ChangesToDetect is a
+      64-bit mask of which events change it (default all bits set). Some events
+      (download, reconfiguring the mask) always change it. Readable online in
+      Controller Properties > Security, by GSV of Controller AuditValue, or by a
+      CIP Generic message. Blank when offline. Not available on Studio 5000
+      Logix Emulate or SoftLogix; not populated on 1769-L3x / L4x CompactLogix.
+      Integrated in FactoryTalk AssetCentre 4.1 and later.
+    versions: Logix Designer v20 and later (not supported in v19 and earlier)
+    confidence: high
+    sources:
+      - title: Change Detection - ControlLogix 5590 Controller User Manual (1756-UM900)
+        url: https://www.rockwellautomation.com/en-pl/docs/technical/logix5000/_online/1756-um900/controllogix-5590-controller-user-manual-ditamap/develop-secure-applications/change-detection.html
+        accessed: "2026-11-08"
+        kind: vendor
+        quote: >-
+          A unique value that is generated when a project is downloaded to the
+          controller or loaded from a storage device. This value is updated when
+          a change to an event occurs. Some events always cause an Audit Value
+          change, while others are selectable in the Configure Changes to Detect
+          dialog box. When the controller is offline, the Audit Value box is blank.
+        read: direct
+      - title: Logix 5000 Controllers Information and Status Programming Manual (1756-PM015)
+        url: https://literature.rockwellautomation.com/idc/groups/literature/documents/pm/1756-pm015_-en-p.pdf
+        accessed: "2026-11-08"
+        kind: vendor
+        quote: >-
+          Change detection is not available on the Studio 5000™ Logix Emulate™
+          Controller and the SoftLogix5860 Controller, and the audit value is not
+          populated.
+        read: direct
+  - feature: Controller log
+    description: >-
+      On-controller record of keyswitch changes, removable-media changes,
+      faults and programming changes (downloads, online edits, forces,
+      firmware updates, mode changes, task/program property changes), each
+      with UTC time, Windows user name, workstation name, FactoryTalk id and,
+      from v20, the Change Detection audit value. From Logix Designer v30 audit
+      log entries (component property changes, routine edits, tag value
+      changes) also appear. Buffered in controller memory and optionally
+      written to removable media.
+    versions: >-
+      Audit value column v20+; audit-log entries v30+; 1769-L3x / L4x cannot
+      store entries to removable media
+    confidence: high
+    sources:
+      - title: Logix 5000 Controllers Information and Status Programming Manual (1756-PM015)
+        url: https://literature.rockwellautomation.com/idc/groups/literature/documents/pm/1756-pm015_-en-p.pdf
+        accessed: "2026-11-08"
+        kind: vendor
+        quote: >-
+          A controller log is a record of interactions that occurred in the
+          controller due to physical conditions such as keywitches, changes to
+          removable media, fault conditions, and programming changes configured
+          in the application.
+        read: direct
+      - title: Logix 5000 Controllers Information and Status Programming Manual (1756-PM015)
+        url: https://literature.rockwellautomation.com/idc/groups/literature/documents/pm/1756-pm015_-en-p.pdf
+        accessed: "2026-11-08"
+        kind: vendor
+        quote: >-
+          In Logix Designer versions 30 and later, audit log entries also appear
+          in the controller log. Audit log entries describe events such as
+          changes to component properties, edits in a routine, and changes to tag
+          values.
+        read: direct
+  - feature: Controller log forwarding (ControlLogix 5590)
+    description: >-
+      The 5590 user manual states the controller log can be written to a memory
+      card or read by FactoryTalk AssetCentre or a third-party syslog collector,
+      and recommends AssetCentre or syslog to avoid rollover. The syslog
+      configuration steps were not found in a public document.
+    versions: ControlLogix 5590 (1756-UM900)
+    confidence: high
+    sources:
+      - title: Controller Logging - ControlLogix 5590 Controller User Manual (1756-UM900)
+        url: https://www.rockwellautomation.com/en-pl/docs/technical/logix5000/_online/1756-um900/controllogix-5590-controller-user-manual-ditamap/develop-secure-applications/controller-logging.html
+        accessed: "2026-11-08"
+        kind: vendor
+        quote: >-
+          For more robust logging and to help prevent rollover, use
+          FactoryTalk® AssetCentre
+          or a syslog collector.
+        read: direct
+  - feature: Controller logging counters
+    description: >-
+      Total Entry Count (entries since the last firmware update, readable by
+      GSV and settable by SSV), Unsaved Entry Count (entries not yet written to
+      the card) and Modify Execution Count (a subset of entries that can change
+      the behaviour of a running controller).
+    confidence: high
+    sources:
+      - title: Logix 5000 Controllers Information and Status Programming Manual (1756-PM015)
+        url: https://literature.rockwellautomation.com/idc/groups/literature/documents/pm/1756-pm015_-en-p.pdf
+        accessed: "2026-11-08"
+        kind: vendor
+        quote: >-
+          Use a Set System Value (SSV) instruction to set it to a known value.
+        read: direct
+collection:
+  - method: Controller log and change-detection data already collected by FactoryTalk AssetCentre
+    impact: passive
+    description: >-
+      AssetCentre 4.1 and later can be configured to detect controller changes
+      and read the controller log. Export what it already holds; this touches
+      no controller.
+    confidence: high
+    references:
+      - https://literature.rockwellautomation.com/idc/groups/literature/documents/pm/1756-pm015_-en-p.pdf
+  - method: Controller log already forwarded to a syslog collector (ControlLogix 5590)
+    impact: passive
+    description: Pull the collector's copy. Only where a 5590 was configured to forward.
+    confidence: high
+    references:
+      - https://www.rockwellautomation.com/en-pl/docs/technical/logix5000/_online/1756-um900/controllogix-5590-controller-user-manual-ditamap/develop-secure-applications/controller-logging.html
+  - method: Passive capture of EtherNet/IP and CIP traffic to and from the controller (TAP or SPAN)
+    impact: passive
+    description: >-
+      Shows which workstations connected, uploads and downloads, and mode
+      changes on the wire, independent of the controller's own log.
+    confidence: medium
+  - method: Read the Audit Value online in Studio 5000 Logix Designer (Controller Properties, Security tab)
+    impact: online-vendor-tool
+    description: >-
+      The value is shown only while online. Compare it with the value recorded
+      after the last approved download.
+    safety_note: >-
+      Going online is read-only in intent, but the same session can download,
+      edit online, force or change mode. Operations must approve the session,
+      the operator should be named, and the session itself will appear in the
+      controller log and in change detection where those events are monitored.
+    confidence: high
+    references:
+      - https://www.rockwellautomation.com/en-pl/docs/technical/logix5000/_online/1756-um900/controllogix-5590-controller-user-manual-ditamap/develop-secure-applications/change-detection.html
+  - method: Upload the running project with Studio 5000 Logix Designer into a new, empty ACD for offline comparison with a known-good copy
+    impact: online-vendor-tool
+    description: >-
+      The project (logic, AOIs, tags, I/O configuration) is the primary
+      artifact. CISA asks owners to compare the running program with known-good
+      logic and to check AOIs for anomalous modification.
+    safety_note: >-
+      Upload into a new file so the investigator's copy cannot be downloaded by
+      mistake. Do not switch the controller to RUN until the project has been
+      validated: CISA warns a mode change locks in the project currently on the
+      device. Operations approval required.
+    confidence: high
+    references:
+      - https://www.cisa.gov/news-events/cybersecurity-advisories/aa26-097a
+  - method: Copy controller-log files from the removable media
+    impact: process-risk
+    description: >-
+      The files are plain UTF-16 TSV and need no special tool once copied.
+      Getting them means removing the card from the controller (or first
+      commanding a write with a CIP Generic "Controller Log Write To Media"
+      message, which needs logic or a messaging tool).
+    safety_note: >-
+      Rated process-risk by this project, not by Rockwell: the manual does not
+      say whether removing the card from a running controller is safe while a
+      write may be in progress, and the removal itself is logged ("Removable
+      media removed"). Do it only in an agreed window, with operations present.
+    confidence: medium
+    references:
+      - https://literature.rockwellautomation.com/idc/groups/literature/documents/pm/1756-pm015_-en-p.pdf
+volatility:
+  - >-
+    Controller-log buffer: up to 100 entries (5370/5570 families) or 500
+    (5380/5480/5580/5590). When the card is absent or full, or auto-write is
+    off, the buffer is circular and the oldest entries are discarded.
+  - The Audit Value is shown only while online; record it with a timestamp each time it is read.
+  - Total Entry Count can be set to any value with an SSV instruction, so a low count is not proof of few events.
+datasources: [ICS-DS-0008, ICS-DS-0001, ICS-DS-0007, ICS-DS-0004, ICS-DS-0014]
+confidence: high
+references:
+  - title: Logix 5000 Controllers Information and Status Programming Manual (1756-PM015)
+    url: https://literature.rockwellautomation.com/idc/groups/literature/documents/pm/1756-pm015_-en-p.pdf
+    accessed: "2026-11-08"
+  - title: Change Detection - ControlLogix 5590 Controller User Manual (1756-UM900)
+    url: https://www.rockwellautomation.com/en-pl/docs/technical/logix5000/_online/1756-um900/controllogix-5590-controller-user-manual-ditamap/develop-secure-applications/change-detection.html
+    accessed: "2026-11-08"
+  - title: Controller Logging - ControlLogix 5590 Controller User Manual (1756-UM900)
+    url: https://www.rockwellautomation.com/en-pl/docs/technical/logix5000/_online/1756-um900/controllogix-5590-controller-user-manual-ditamap/develop-secure-applications/controller-logging.html
+    accessed: "2026-11-08"
+  - title: CISA AA26-097A - Iranian-Affiliated Cyber Actors Exploit Programmable Logic Controllers Across US Critical Infrastructure
+    url: https://www.cisa.gov/news-events/cybersecurity-advisories/aa26-097a
+    accessed: "2026-11-08"
+last_verified: "2026-11-08"
+notes: >-
+  Rockwell's System Security Design Guidelines (SECURE-RM001) are cited by CISA
+  for mode-switch guidance but were not read for this record. Logix Designer's
+  compare tool is mentioned by practitioners but no public Rockwell page for it
+  was read, so it is not listed as an integrity feature. Academic memory
+  forensics of a ControlLogix 1756-L61 (DFRWS EU 2022) exists but is research
+  instrumentation, not a customer acquisition path.
+response: baseline
+hardening: rockwell-logix
+artifacts:
+  - locator: Controller log buffer (controller memory), read via FactoryTalk AssetCentre, syslog (5590) or the removable-media files
+    class: audit-trail
+    volatility: rotating
+    retention: >-
+      100 entries (Compact GuardLogix 5370, CompactLogix 5370, ControlLogix 5570,
+      GuardLogix 5570) or 500 entries (5380, 5480, 5580, 5590 families); circular
+      unless entries are written to the card
+    forensic_value: high
+    evidence_type: [execution, impair-process-control, inhibit-response-function, evasion, timeline, attribution]
+    confidence: high
+    collection_impact: passive
+    description: >-
+      Each entry carries record number, UTC time, description, Windows user
+      name, workstation name, FactoryTalk id, extended information and (v20+)
+      the audit value. Entry descriptions include "Project download", "Online
+      edits modified controller program", "I/O forces enabled", "Firmware update
+      attempted", "Remote mode change", "Keyswitch mode change", "A major fault
+      occurred" and "Change detection mask modified".
+    provides: Who changed the controller, from which workstation, when, and what kind of change.
+    normal: >-
+      Downloads, online edits and forces that match approved change records,
+      made from known engineering workstations by known Windows accounts;
+      keyswitch changes during maintenance windows.
+    suspicious: >-
+      A "Project download" or "Online edits modified controller program" with a
+      workstation or user name that is not one of the site's engineering hosts;
+      "Remote mode change" or forces outside a change window; "Firmware update
+      attempted"; "Change detection mask modified"; a gap in record numbers.
+      AA26-097A reports actors downloading a malicious project with
+      configuration software - by the manual such a download should leave a
+      "Project download" entry (toolkit inference; CISA does not say it was
+      found there).
+    basis: vendor
+    sources:
+      - title: Logix 5000 Controllers Information and Status Programming Manual (1756-PM015)
+        url: https://literature.rockwellautomation.com/idc/groups/literature/documents/pm/1756-pm015_-en-p.pdf
+        accessed: "2026-11-08"
+        kind: vendor
+        quote: >-
+          If the removable media is not present, is full, or if the controller is
+          not configured to automatically write buffered entries to the removable
+          media, and the internal buffer becomes full, entries are saved in the
+          buffer in a circular fashion. As new entries are stored, the oldest
+          entries are discarded.
+        read: direct
+  - locator: '\Logix\<8-digit serial>\Logs\V<major_minor>\ on the controller''s removable media (UTF-16 TSV .txt)'
+    class: audit-trail
+    volatility: stable
+    retention: Appended until a file reaches 1 MB, then a new file; the controller does not write to a full card
+    forensic_value: high
+    evidence_type: [execution, impair-process-control, timeline, attribution]
+    confidence: high
+    collection_impact: process-risk
+    description: >-
+      Persistent copy of controller-log entries once written to the card. The
+      file header records creation date, controller model, serial number and
+      firmware version. Entries leave the controller buffer once written.
+    provides: A longer history than the buffer holds, readable in any text editor or spreadsheet.
+    normal: Header serial and firmware match the asset register; entries match approved changes.
+    suspicious: Same criteria as the buffer; also a missing or truncated log folder on a card that is configured for auto-write.
+    basis: vendor
+    sources:
+      - title: Logix 5000 Controllers Information and Status Programming Manual (1756-PM015)
+        url: https://literature.rockwellautomation.com/idc/groups/literature/documents/pm/1756-pm015_-en-p.pdf
+        accessed: "2026-11-08"
+        kind: vendor
+        quote: >-
+          When written to the removable media, controller logs are stored in
+          plain text files in the Tab Separated Value (TSV) format. Each time the
+          controller writes entries to the CompactFlash card, the entries are
+          appended to the text file until the file reaches 1 MB in size.
+        read: direct
+  - locator: Change Detection Audit Value (Controller Properties > Security, online; GSV Controller AuditValue; CIP Generic Audit Value Get)
+    class: integrity
+    volatility: live
+    forensic_value: high
+    evidence_type: [impair-process-control, inhibit-response-function, evasion, configuration]
+    confidence: high
+    collection_impact: online-vendor-tool
+    description: >-
+      A single value that changes whenever a monitored event occurs. It does
+      not say what changed; the controller log does.
+    provides: A cheap test of whether anything monitored changed since a known point.
+    normal: >-
+      Equal to the value the owner recorded after the last approved download
+      (with the default mask, any monitored event changes it).
+    suspicious: >-
+      A value that differs from the recorded baseline with no approved change;
+      no baseline recorded at all (the test then proves nothing).
+    basis: vendor
+  - locator: ChangesToDetect mask (Controller Properties > Security > Configure; GSV/SSV/MSG ChangesToDetect)
+    class: config
+    volatility: stable
+    forensic_value: medium
+    evidence_type: [evasion, configuration]
+    confidence: high
+    collection_impact: online-vendor-tool
+    description: >-
+      64-bit mask choosing which events change the audit value. Bit 32,
+      "Correlation Affected", covers created, deleted or modified components
+      and logic even when narrower events are masked.
+    provides: Whether change detection was narrowed so that some changes would not move the audit value.
+    normal: >-
+      The site's documented mask; Rockwell's default is all events monitored
+      (0xFFFFFFFFFFFFFFFF).
+    suspicious: >-
+      A mask that differs from the documented one, especially with Correlation
+      Affected or online-edit bits cleared; a "Change detection mask modified"
+      controller-log entry outside a change window.
+    basis: vendor
+    sources:
+      - title: Logix 5000 Controllers Information and Status Programming Manual (1756-PM015)
+        url: https://literature.rockwellautomation.com/idc/groups/literature/documents/pm/1756-pm015_-en-p.pdf
+        accessed: "2026-11-08"
+        kind: vendor
+        quote: >-
+          Including the Correlation Affected event updates the audit value for
+          these types of changes, even if other similar events (such as Online
+          edits modified controller program or Task properties modified) are
+          masked.
+        read: direct
+  - locator: Controller logging counters - Total Entry Count, Unsaved Entry Count, Modify Execution Count (GSV)
+    class: integrity
+    volatility: live
+    forensic_value: medium
+    evidence_type: [evasion, timeline]
+    confidence: high
+    collection_impact: online-vendor-tool
+    description: >-
+      Total Entry Count is written into each entry's record number and can be
+      reset with SSV; Modify Execution Count tracks changes that can alter a
+      running controller.
+    provides: A count to reconcile against the entries actually recovered.
+    normal: Record numbers in recovered entries are contiguous up to the current Total Entry Count.
+    suspicious: >-
+      Missing record numbers, or a Total Entry Count lower than record numbers
+      already seen (it was reset). Interpretation is this project's; Rockwell
+      documents the counters, not these criteria.
+    basis: toolkit
+  - locator: Running project uploaded with Studio 5000 Logix Designer (routines, Add-On Instructions, tags, I/O configuration)
+    class: control-logic
+    volatility: stable
+    forensic_value: high
+    evidence_type: [impair-process-control, inhibit-response-function, impact]
+    confidence: high
+    collection_impact: online-vendor-tool
+    description: >-
+      The logic itself. Only comparison with a trusted known-good ACD shows
+      whether it was changed; an upload with nothing to compare against proves
+      nothing.
+    seen_in: [AA26-097A project-file manipulation]
+    provides: The controller's actual behaviour, for diffing against the approved project.
+    normal: Identical to the approved project apart from documented changes.
+    suspicious: >-
+      Modified or deleted AOIs; added logic that overrides instructions keeping
+      the process within safe limits; disabled shutdown or alarm logic.
+    basis: government
+    sources:
+      - title: CISA AA26-097A
+        url: https://www.cisa.gov/news-events/cybersecurity-advisories/aa26-097a
+        accessed: "2026-11-08"
+        kind: government
+        quote: >-
+          After the actors extracted device project files, the FBI and CISA
+          identified the modification and deletion of project file logic, to
+          include Add-On Instructions (AOIs) and data manipulation on HMI and
+          SCADA displays
+        read: direct
+      - title: CISA AA26-097A
+        url: https://www.cisa.gov/news-events/cybersecurity-advisories/aa26-097a
+        accessed: "2026-11-08"
+        kind: government
+        quote: >-
+          Analysis indicated the project file retained ladder logic for
+          downstream function but added logic that overrode specific instruction
+          sets responsible for maintaining safe operating parameters in the
+          victim’s environment.
+        read: direct
+  - locator: Physical mode switch position (front of controller; also reported online)
+    class: config
+    volatility: live
+    forensic_value: medium
+    evidence_type: [initial-access, configuration]
+    confidence: high
+    collection_impact: passive
+    description: Observed by walking to the cabinet; no network access needed.
+    provides: Whether the controller could be reprogrammed remotely at the time.
+    normal: RUN outside approved programming windows (CISA recommendation).
+    suspicious: REM or PROG with no programming work scheduled.
+    basis: government
+    sources:
+      - title: CISA AA26-097A
+        url: https://www.cisa.gov/news-events/cybersecurity-advisories/aa26-097a
+        accessed: "2026-11-08"
+        kind: government
+        quote: >-
+          Devices should only be in the program or remote position when updating
+          or downloading software online and immediately switched back to the run
+          position when complete.
+        read: direct
+  - locator: Network traffic on TCP 44818 and UDP 2222 to the controller from outside the control network
+    class: network
+    volatility: off-box
+    forensic_value: high
+    evidence_type: [initial-access, exfiltration, command-and-control]
+    confidence: high
+    collection_impact: passive
+    description: >-
+      AA26-097A lists 44818 and 2222 among the ports targeted and reports
+      project files exfiltrated with vendor configuration software from leased
+      hosting infrastructure.
+    seen_in: [AA26-097A]
+    provides: Who reached the controller from where, independent of controller logging.
+    normal: Connections only from the site's engineering workstations, HMIs and peer controllers.
+    suspicious: Sessions from internet addresses, particularly hosting providers, or from any host not in the control-system inventory.
+    basis: government
+    sources:
+      - title: CISA AA26-097A
+        url: https://www.cisa.gov/news-events/cybersecurity-advisories/aa26-097a
+        accessed: "2026-11-08"
+        kind: government
+        quote: >-
+          Inbound malicious traffic has been observed targeting PLC devices on
+          the following ports: `44818`, `2222`, `102`, and `502`, as well as
+          targeting modems on port `22`.
+        read: direct

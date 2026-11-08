@@ -1,0 +1,71 @@
+id: ICS-TA-0012
+name: NoName057(16)
+aliases:
+  - name: NoName057(16) Spain
+    by: "AA25-343A Appendix B, which cautions that names 'may not be a 1:1 correlation'"
+    equated: false
+  - name: NoName057(16) Italy
+    by: AA25-343A Appendix B, same caveat
+    equated: false
+  - name: NoName057(16) France
+    by: AA25-343A Appendix B, same caveat
+    equated: false
+reported_by:
+  - FBI, CISA, NSA, DOE, EPA, DC3, Europol EC3, Eurojust and international partners (AA25-343A)
+  - Europol and Eurojust (Operation Eastwood)
+link_confidence: high
+stated_confidence: >-
+  AA25-343A authoring organizations: 'The authoring organizations assess that the
+  Center for the Study and Network Monitoring of the Youth Environment (CISM),
+  established on behalf of the Kremlin, created NoName057(16) as a covert project
+  within the organization.' Europol: 'Investigations by national authorities
+  identified NoName057(16) as an ideological criminal network that has been seen
+  to profess support to the Russian Federation'.
+state_nexus: >-
+  Russia. AA25-343A: CISM, 'established on behalf of the Kremlin', created the
+  group, and CISM staff 'developed and customized the NoName057(16) proprietary
+  DDoS tool DDoSia, paid for the group’s network infrastructure, served as
+  administrators on NoName057(16) Telegram channels, and selected DDoS targets'.
+  Europol describes an ideological criminal network and does not state state
+  sponsorship.
+motivation: hacktivism
+summary: >-
+  Pro-Russia DDoS network active since March 2022. It targets Ukraine and NATO and
+  European states using its DDoSia tool and volunteers paid in cryptocurrency.
+  Europol says it is made up mainly of 'Russian-speaking sympathisers who use
+  automated tools' who are 'motivated by ideology and rewards'. Its ICS relevance
+  is collaborative: a joint CARR chat by mid-2024, a July 2024 joint claim with
+  CARR of an alleged intrusion against US OT assets, and co-founding Z-Pentest
+  (ICS-TA-0011). Europol's Operation Eastwood took a major part of its central
+  infrastructure offline. That action ran from 14 to 17 July and included arrest
+  warrants and over 100 servers disrupted.
+ics_kill_chain_stage: unknown
+stage_basis: "Neither AA25-343A nor Europol uses the ICS Cyber Kill Chain."
+platforms: []
+malware: []
+incidents: []
+tradecraft:
+  - "Tool (AA25-343A; Europol): DDoS through the proprietary DDoSia tool and a botnet that Europol puts at 'several hundred servers'."
+  - "Claimed (AA25-343A): 'In July 2024, NoName057(16) jointly claimed responsibility with CARR for an alleged intrusion against OT assets in the U.S.'"
+  - "Operations (Europol): recruitment through pro-Russian channels and gamified incentives ('leader boards, or badges'), with participants 'paid in cryptocurrency'."
+sectors: ["government and private sector entities in NATO member states and other European countries (AA25-343A)"]
+regions: [Ukraine, NATO member states, Europe, United States]
+first_seen: "2022-03 (AA25-343A: 'Active since March 2022')"
+references:
+  - title: CISA, FBI, NSA et al. - AA25-343A Pro-Russia Hacktivists Conduct Opportunistic Attacks Against US and Global Critical Infrastructure (9 December 2025)
+    url: https://www.cisa.gov/news-events/cybersecurity-advisories/aa25-343a
+    accessed: "2026-11-08"
+    kind: government
+    quote: "The authoring organizations assess that the Center for the Study and Network Monitoring of the Youth Environment (CISM), established on behalf of the Kremlin, created NoName057(16) as a covert project within the organization."
+    read: direct
+  - title: Europol - Global operation targets NoName057(16) pro-Russian cybercrime network (Operation Eastwood)
+    url: https://www.europol.europa.eu/media-press/newsroom/news/global-operation-targets-noname05716-pro-russian-cybercrime-network
+    accessed: "2026-11-08"
+    kind: government
+    quote: "Between 14 and 17 July, a joint international operation, known as Eastwood and coordinated by Europol and Eurojust, targeted the cybercrime network NoName057(16)."
+    read: direct
+notes: >-
+  The scraped Europol page body does not print the year of Operation Eastwood.
+  AA25-343A (9 December 2025) cites it, so it took place before then; no exact
+  year is asserted here. The group's OT claims are joint claims with CARR and are
+  unconfirmed. No impact is recorded as fact.

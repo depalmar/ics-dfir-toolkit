@@ -1,0 +1,69 @@
+id: ICS-TA-0019
+name: Iranian-affiliated APT actors exploiting internet-facing PLCs (AA26-097A, unnamed group)
+aliases:
+  - name: CyberAv3ngers
+    by: >-
+      AA26-097A compares the activity with CyberAv3ngers' earlier PLC campaign
+      ('The authoring agencies previously reported on similar activity targeting
+      PLCs by CyberAv3ngers (aka Shahid Kaveh Group)') but does not name this group
+      as CyberAv3ngers. Its own record, ICS-TA-0009 in this toolkit.
+    equated: false
+reported_by:
+  - FBI, CISA, NSA, EPA, DOE, US Cyber Command Cyber National Mission Force and Treasury (AA26-097A)
+link_confidence: medium
+stated_confidence: >-
+  The authoring agencies (AA26-097A, 7 April 2026, updated 22 July 2026): 'The
+  authoring agencies assess a group of Iranian-affiliated APT actors is conducting
+  this activity to cause disruptive effects within the United States.' They add:
+  'Iranian-affiliated APT targeting campaigns against U.S. critical infrastructure
+  have recently escalated, likely in response to hostilities between Iran, and the
+  United States and Israel.'
+state_nexus: >-
+  Iran ('Iranian-affiliated', AA26-097A). The advisory names no sponsoring
+  organisation for this group. It names IRGC-CEC only for CyberAv3ngers'
+  2023 campaign.
+motivation: disruption
+summary: >-
+  The unnamed group behind AA26-097A. Since at least March 2026 it has reached
+  internet-exposed PLCs at US government (including municipal), water and
+  wastewater, and energy organisations from leased overseas infrastructure, using
+  the vendors' own programming software. Targets named are Rockwell CompactLogix
+  and Micro850, Schneider Modicon M340 (BMX P34) and Siemens S7-1200. The actors
+  pulled project files and changed or deleted logic, including Rockwell Add-On
+  Instructions, and the changes disabled shutdown and alarm logic. At one victim
+  they downloaded a project that overrode the instructions maintaining safe
+  operating parameters. They also manipulated HMI/SCADA displays. Some victims had
+  operational disruption and financial loss.
+ics_kill_chain_stage: unknown
+stage_basis: "AA26-097A does not use the ICS Cyber Kill Chain."
+platforms: [ICS-0001, ICS-0005, ICS-0003]
+malware: []
+incidents: [ICS-INC-0009]
+tradecraft:
+  - "Hands-on operator (AA26-097A): 'The actors used leased, third-party hosted infrastructure and manufacturers’ PLC programming software to connect to misconfigured victim PLCs.' Inbound traffic on ports 44818, 2222, 102 and 502, and against modems on port 22."
+  - "Hands-on operator (AA26-097A): used 'Rockwell Automation’s Studio 5000 Logix Designer, Schneider Electric’s EcoStruxure Control Expert, and Siemens’ Totally Integrated Automation (TIA) Portal' on leased infrastructure 'to exfiltrate device project files from PLC devices to threat-actor-controlled infrastructure'."
+  - "Hands-on operator (AA26-097A): 'modification and deletion of project file logic, to include Add-On Instructions (AOIs) and data manipulation on HMI and SCADA displays'. 'the changes disabled critical shutdown and alarm logic, allowing systems to enter unsafe conditions without notifying operators of the anomalies'."
+  - "Hands-on operator (AA26-097A, one victim): downloaded a malicious project file that 'retained ladder logic for downstream function but added logic that overrode specific instruction sets responsible for maintaining safe operating parameters'."
+  - "Hands-on operator (AA26-097A): 'utilized Dropbear Secure Shell (SSH) software on victim modems to enable them to gain remote access through port 22'."
+attack: [T0883, T0885, T1219, T1041, T1565]
+sectors: [government services and facilities (including local municipalities), water and wastewater systems, energy]
+regions: [United States]
+first_seen: "2026-03 (AA26-097A: 'Since at least March 2026'); the advisory's IOC tables date some infrastructure association from January 2025"
+last_seen: "2026-07 (AA26-097A IOC table: end of actor association July 2026)"
+references:
+  - title: FBI, CISA, NSA, EPA, DOE, CNMF, Treasury - AA26-097A Iranian-Affiliated Cyber Actors Exploit Programmable Logic Controllers Across US Critical Infrastructure (7 April 2026, updated 22 July 2026)
+    url: https://www.cisa.gov/news-events/cybersecurity-advisories/aa26-097a
+    accessed: "2026-11-08"
+    kind: government
+    quote: "The authoring agencies assess a group of Iranian-affiliated APT actors is conducting this activity to cause disruptive effects within the United States."
+    read: direct
+notes: >-
+  New cluster record (id added by this stream). AA26-097A deliberately leaves the
+  group unnamed and treats CyberAv3ngers as a precedent ('similar activity'), not
+  as the actor. Merging the two would compute attribution the reporter did not
+  make. link_confidence is medium: one publication, though multi-agency.
+  Platform mapping follows the advisory's device list. Micro850 has no catalogue
+  entry; CompactLogix maps to ICS-0001, BMX P34/Modicon M340 to ICS-0005, S7-1200
+  to ICS-0003. The modems are not identified by class or vendor in the
+  technical section, so no gateway platform is listed. Indicators belong in an
+  ICS-IOC set parsed from CISA's STIX file, not here.

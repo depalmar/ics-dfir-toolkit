@@ -1,0 +1,78 @@
+id: ICS-TA-0018
+name: TEMP.Veles
+aliases:
+  - name: XENOTIME
+    by: >-
+      Dragos's cluster for the TRITON/TRISIS intrusion. Dragos and FireEye/Mandiant
+      each tie their own cluster to the 2017 intrusion, and neither equates the two
+      in the pages read. Its own record, ICS-TA-0004 in this toolkit.
+    equated: false
+reported_by: [FireEye Intelligence / Mandiant]
+link_confidence: medium
+stated_confidence: >-
+  FireEye Intelligence (Mandiant, October 2018): 'FireEye Intelligence assesses
+  with high confidence that intrusion activity that led to deployment of TRITON
+  was supported by the Central Scientific Research Institute of Chemistry and
+  Mechanics (CNIIHM; a.k.a. ЦНИИХМ), a Russian government-owned technical research
+  institution located in Moscow.' On TRITON's development: 'we do not have
+  specific evidence to prove that CNIIHM did (or did not) develop the tool.'
+state_nexus: >-
+  Russia: CNIIHM / TsNIIKhM. Mandiant assesses CNIIHM supported the intrusion
+  (high confidence). The US Government independently ties the TRITON attack to
+  the same institute. Treasury (2020) says the attack 'was supported by the State
+  Research Center of the Russian Federation FGUP Central Scientific Research
+  Institute of Chemistry and Mechanics (TsNIIKhM)', and DOJ (2022) indicted an
+  employee of TsNIIKhM's Applied Developments Center. Neither names TEMP.Veles.
+motivation: unknown
+summary: >-
+  FireEye/Mandiant's name for the group that deployed TRITON against Triconex
+  safety controllers at a critical-infrastructure facility in 2017 ('we know that
+  TEMP.Veles deployed the TRITON attack framework'). Mandiant links it, with high
+  confidence, to support from Russia's government-owned CNIIHM. The evidence it
+  gives: a malware-testing environment whose tests track the in-network activity,
+  a PDB handle tied to a CNIIHM professor, a CNIIHM-registered IP address used for
+  reconnaissance and support, and working hours matching Moscow time. Mandiant
+  gives no motivation in the post read. The US Government's TsNIIKhM statements
+  concern the same attack but do not use Mandiant's cluster name.
+ics_kill_chain_stage: unknown
+stage_basis: "Mandiant does not use the ICS Cyber Kill Chain in the post read."
+platforms: [ICS-0007]
+malware: [ICS-MAL-0005]
+incidents: [ICS-INC-0003]
+tradecraft:
+  - "Malware (Mandiant): 'we know that TEMP.Veles deployed the TRITON attack framework'."
+  - "Hands-on operator (Mandiant): 'TEMP.Veles’ lateral movement activities used a publicly-available PowerShell-based tool, WMImplant'. When it failed, a customised version was re-tested in the malware-testing environment and tried again the next day."
+  - "Hands-on operator / tooling (Mandiant): cryptcat builds modified to lower AV detection; 'Custom payloads utilized by TEMP.Veles ... are typically weaponized versions of legitimate open-source software, retrofitted with code used for command and control'."
+  - "Persistence (Mandiant): CATRUNNER installer with a scheduled task masquerading as 'ProgramDataUpdater'."
+  - "Infrastructure (Mandiant): IP address 87.245.143.140, 'registered to CNIIHM', used to monitor open-source coverage of TRITON, for network reconnaissance, and for activity in support of the intrusion."
+first_seen: "2014 (Mandiant: cryptcat files 'tested in 2014', one of which 'was deployed in a TEMP.Veles target’s network')"
+references:
+  - title: Mandiant (FireEye Intelligence) - TRITON Attribution, Russian Government-Owned Lab Most Likely Built Custom Intrusion Tools for TRITON Attackers (23 October 2018)
+    url: https://cloud.google.com/blog/topics/threat-intelligence/triton-attribution-russian-government-owned-lab-most-likely-built-tools/
+    accessed: "2026-11-08"
+    kind: vendor
+    quote: "FireEye Intelligence assesses with high confidence that intrusion activity that led to deployment of TRITON was supported by the Central Scientific Research Institute of Chemistry and Mechanics (CNIIHM; a.k.a. ЦНИИХМ), a Russian government-owned technical research institution located in Moscow."
+    read: direct
+  - title: US Treasury - Sanctions Russian Government Research Institution Connected to the Triton Malware (23 October 2020)
+    url: https://home.treasury.gov/news/press-releases/sm1162
+    accessed: "2026-11-08"
+    kind: government
+    quote: "In August 2017, a petrochemical facility in the Middle East was the target of a cyber-attack involving the Triton malware. This cyber-attack was supported by the** State Research Center of the Russian Federation FGUP Central Scientific Research Institute of Chemistry and Mechanics (TsNIIKhM)**, a Russian government-controlled research institution that is responsible for building customized tools that enabled the attack."
+    read: direct
+  - title: US DOJ - Four Russian Government Employees Charged in Two Historical Hacking Campaigns Targeting Critical Infrastructure Worldwide (24 March 2022)
+    url: https://www.justice.gov/archives/opa/pr/four-russian-government-employees-charged-two-historical-hacking-campaigns-targeting-critical
+    accessed: "2026-11-08"
+    kind: government
+    quote: "According to the indictment, between May and September 2017, the defendant and co-conspirators hacked the systems of a foreign refinery and installed malware, which cyber security researchers have referred to as “Triton” or “Trisis,” on a safety system produced by Schneider Electric, a multinational corporation."
+    read: direct
+notes: >-
+  New cluster record (id added by this stream). The registry allocated
+  ICS-TA-0004 as 'XENOTIME / TEMP.Veles (TRITON)'. The two names belong to
+  different reporters, and neither equates them, so they are kept apart.
+  link_confidence is medium: the TEMP.Veles-to-TRITON link rests on Mandiant
+  alone. The US Government statements corroborate the TsNIIKhM nexus for the
+  attack, not Mandiant's cluster boundary. The Treasury quote keeps the page's
+  stray '**' markup as rendered. The '87.245.143.140' address is quoted from
+  Mandiant as context, not as an indicator; indicators belong in an ICS-IOC set
+  parsed from the publisher's file. 'Mandiant' is FireEye Intelligence's
+  publication, now hosted on Google Cloud.

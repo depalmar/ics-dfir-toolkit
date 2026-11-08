@@ -1,0 +1,366 @@
+# Prevention and hardening - ICS-0006 Unitronics Vision / Samba PLC+HMI
+# Schema: ../schema/hardening.schema.json
+#
+# Sources: CISA's November 2023 alert on exploitation of Unitronics PLCs, joint
+# advisory AA23-335A (updated December 2024), Unitronics Cybersecurity Advisory
+# 2023-001 (CVE-2023-6448) and Unitronics' "Cyber Protection: Vision and Samba
+# Series" page. All were read directly. Baseline controls
+# (artifacts/hardening/baseline.yml) apply in addition.
+
+platform_id: ICS-0006
+name: Unitronics Vision / Samba PLC+HMI
+summary: >-
+  The 2023 CyberAv3ngers campaign compromised at least 75 Unitronics devices,
+  34 of them in US water and wastewater, by logging in over the internet on the
+  default PCOM port with the default password or none. VisiLogic 9.9.00 and OS
+  12.38 force the default password to be changed (CVE-2023-6448); the rest is
+  configuration the owner has to apply in the project.
+
+controls:
+  - id: uni-change-default-password
+    control: Make sure the Unitronics default password "1111" is not in use on any PLC or HMI
+    category: identity
+    priority: critical
+    why: >-
+      CISA's first recommendation after the 2023 water-utility compromise.
+      Unitronics' advisory CVE-2023-6448 describes an unauthenticated attacker
+      with network access taking administrative control of systems that use the
+      default administrative password.
+    how: >-
+      Replace the default password with a strong one on every device; updating to
+      VisiLogic 9.9.00 or later forces the change (see uni-update-visilogic-os).
+    blunts:
+      - CVE-2023-6448
+      - AA23-335A CyberAv3ngers compromise of Unitronics PLCs (2023)
+    frameworks:
+      - CISA CPG 2.A
+    confidence: high
+    sources:
+      - title: CISA - Exploitation of Unitronics PLCs used in Water and Wastewater Systems (alert, November 2023)
+        url: https://www.cisa.gov/news-events/alerts/2023/11/28/exploitation-unitronics-plcs-used-water-and-wastewater-systems
+        accessed: "2026-11-08"
+        kind: government
+        quote: "Ensure the Unitronics PLC default password “1111” is not in use."
+        read: direct
+      - title: Unitronics Cybersecurity Advisory 2023-001 - Default administrative password (CVE-2023-6448)
+        url: https://downloads.unitronicsplc.com/Sites/plc/Technical_Library/Unitronics-Cybersecurity-Advisory-2023-001-CVE-2023-6448.pdf
+        accessed: "2026-11-08"
+        kind: vendor
+        quote: "An unauthenticated attacker with network access can take administrative control of a Unitronics Vision and Samba series systems programmed using VisiLogic version before 9.9.00 and use a default administrative password."
+        read: direct
+      - title: CISA AA23-335A - IRGC-Affiliated Cyber Actors Exploit PLCs in Multiple Sectors (updated December 2024)
+        url: https://www.cisa.gov/news-events/cybersecurity-advisories/aa23-335a
+        accessed: "2026-11-08"
+        kind: government
+        quote: "These devices either had a default password in place or no password"
+        read: direct
+
+  - id: uni-update-visilogic-os
+    control: Upgrade engineering workstations to VisiLogic 9.9.00 or later and every Vision/Samba device to OS 12.38 or the newest firmware for the model
+    category: patching
+    priority: critical
+    why: >-
+      The fixed releases for CVE-2023-6448 force changing the default
+      administrative password, setting a password on PCOM-enabled sockets and
+      controlling remote PCOM operations by role. AA23-335A lists the upgrade as
+      the first immediate step.
+    how: >-
+      Install VisiLogic 9.9.00 or later on the engineering workstation; update
+      each PLC/HMI to OS 12.38 or later (newest firmware for the model) and set a
+      strong password during the update. Downloads are on unitronicsplc.com.
+    operational_impact: >-
+      A firmware and project update on a running PLC/HMI needs a maintenance
+      window; AA23-335A notes a mismatch between workstation and project software
+      versions can stop the workstation communicating with the PLC.
+    blunts:
+      - CVE-2023-6448
+    confidence: high
+    sources:
+      - title: Unitronics Cybersecurity Advisory 2023-001 - Default administrative password (CVE-2023-6448)
+        url: https://downloads.unitronicsplc.com/Sites/plc/Technical_Library/Unitronics-Cybersecurity-Advisory-2023-001-CVE-2023-6448.pdf
+        accessed: "2026-11-08"
+        kind: vendor
+        quote: "Please update VisiLogic to the latest version (VisiLogic 9.9.00 and above, OS 12.38 and above) from the following link."
+        read: direct
+      - title: CISA AA23-335A - IRGC-Affiliated Cyber Actors Exploit PLCs in Multiple Sectors (updated December 2024)
+        url: https://www.cisa.gov/news-events/cybersecurity-advisories/aa23-335a
+        accessed: "2026-11-08"
+        kind: government
+        quote: "Upgrade engineering workstations to 9.9.00 VisiLogic software and upgrade the firmware of all Vision series PLC/HMI devices"
+        read: direct
+
+  - id: uni-project-passwords
+    control: Add the security ladder elements to each project - TCP/IP, upload, INFO mode and SD card passwords - and password-protect PCOM sockets
+    category: controller-protection
+    priority: high
+    why: >-
+      In 2023 the actors erased and replaced ladder logic, disabled upload and
+      download, and set their own upload password. The project-level passwords
+      AA23-335A lists are what stand between network access and those actions.
+    how: >-
+      In VisiLogic, apply the security-related ladder logic elements for TCP/IP
+      passwords, upload project file passwords, INFO mode passwords and SD card
+      passwords; set a password on every PCOM-enabled socket (forced by VisiLogic
+      9.9.00+). Unitronics' software help gives the element details.
+    blunts:
+      - AA23-335A CyberAv3ngers compromise of Unitronics PLCs (2023)
+    confidence: high
+    sources:
+      - title: CISA AA23-335A - IRGC-Affiliated Cyber Actors Exploit PLCs in Multiple Sectors (updated December 2024)
+        url: https://www.cisa.gov/news-events/cybersecurity-advisories/aa23-335a
+        accessed: "2026-11-08"
+        kind: government
+        quote: "Apply new security-related ladder logic elements to the project files on these devices, to include TCP/IP passwords, upload project files passwords, INFO mode passwords, and SD card passwords."
+        read: direct
+      - title: Unitronics Cybersecurity Advisory 2023-001 - Default administrative password (CVE-2023-6448)
+        url: https://downloads.unitronicsplc.com/Sites/plc/Technical_Library/Unitronics-Cybersecurity-Advisory-2023-001-CVE-2023-6448.pdf
+        accessed: "2026-11-08"
+        kind: vendor
+        quote: "Setting a password on PCOM-enabled sockets."
+        read: direct
+
+  - id: uni-pcom-roles-and-mfa
+    control: Restrict remote PCOM operations by role with SDW 10, block PCOM until needed, and configure MFA with SB 314
+    category: identity
+    priority: high
+    why: >-
+      PCOM is the built-in development and management protocol the 2023 actors
+      used on TCP 20256. Unitronics provides access levels and an MFA mechanism
+      for it.
+    how: >-
+      Unitronics' PCOM levels: Blocked Access (no PCOM connection until needed,
+      view-only otherwise), Operator (view and update data), Technician
+      (troubleshooting, settings, version updates). Control remotely allowed PCOM
+      operations with SDW 10 roles. For multifactor authentication use SB 314 and
+      SDW 10 as described in the software help; Unitronics publishes an example
+      application (V570_PCOM_MFA.vlp).
+    blunts:
+      - CVE-2023-6448
+    confidence: high
+    sources:
+      - title: Unitronics - Cyber Protection - Vision and Samba Series
+        url: https://www.unitronicsplc.com/cyber_security_vision-samba/
+        accessed: "2026-11-08"
+        kind: vendor
+        quote: "Use SB 314 and SDW 10 to configure multifactor authentication to your Vision / Samba device."
+        read: direct
+      - title: Unitronics - Cyber Protection - Vision and Samba Series
+        url: https://www.unitronicsplc.com/cyber_security_vision-samba/
+        accessed: "2026-11-08"
+        kind: vendor
+        quote: "Blocked Access: Ensure that controllers do not allow connection to this protocol until there is a need for viewing only."
+        read: direct
+      - title: Unitronics Cybersecurity Advisory 2023-001 - Default administrative password (CVE-2023-6448)
+        url: https://downloads.unitronicsplc.com/Sites/plc/Technical_Library/Unitronics-Cybersecurity-Advisory-2023-001-CVE-2023-6448.pdf
+        accessed: "2026-11-08"
+        kind: vendor
+        quote: "Controlling remote allowed PCOM operations using SDW10 roles."
+        read: direct
+
+  - id: uni-off-internet
+    control: Disconnect Unitronics PLCs from the open internet and disable remote programming or require a strong password for it
+    category: exposure
+    priority: critical
+    why: >-
+      Every 2023 compromise CISA describes was an internet-connected device on
+      the default port. Unitronics' own mitigation for CVE-2023-6448 starts with
+      disconnecting the PLC from open internet access.
+    how: >-
+      Disconnect from the public internet; either disable remote programming or
+      require a strong password for it; change the default PLC device name and
+      port; place the PLC behind a firewall that can detect remote password
+      brute-forcing. Unitronics adds: no firewall rules exposing the LAN to the
+      WAN and no port forwarding to automation equipment, whether the router is
+      cellular or wired.
+    blunts:
+      - CVE-2023-6448
+      - AA23-335A CyberAv3ngers compromise of Unitronics PLCs (2023)
+    frameworks:
+      - CISA CPG 2.X
+    confidence: high
+    sources:
+      - title: CISA AA23-335A - IRGC-Affiliated Cyber Actors Exploit PLCs in Multiple Sectors (updated December 2024)
+        url: https://www.cisa.gov/news-events/cybersecurity-advisories/aa23-335a
+        accessed: "2026-11-08"
+        kind: government
+        quote: "Either disable the capability for remotely programming PLCs or require a strong password for remotely programming the PLC. Also change the default port, default PLC device name, and place behind a firewall that can detect attempted remote brute-forcing for the device password."
+        read: direct
+      - title: Unitronics Cybersecurity Advisory 2023-001 - Default administrative password (CVE-2023-6448)
+        url: https://downloads.unitronicsplc.com/Sites/plc/Technical_Library/Unitronics-Cybersecurity-Advisory-2023-001-CVE-2023-6448.pdf
+        accessed: "2026-11-08"
+        kind: vendor
+        quote: "Disconnect the PLC from the open, unauthorized, internet access."
+        read: direct
+      - title: Unitronics - Cyber Protection - Vision and Samba Series
+        url: https://www.unitronicsplc.com/cyber_security_vision-samba/
+        accessed: "2026-11-08"
+        kind: vendor
+        quote: "Verify that there are no Port Forwarding settings exposing automation equipment directly to the public network."
+        read: direct
+
+  - id: uni-firewall-vpn-allowlist
+    control: If remote access is necessary, put a firewall/VPN in front of the PLC and allow only listed IP addresses
+    category: remote-access
+    priority: high
+    why: >-
+      CISA and Unitronics give the same wording: a VPN or gateway adds MFA the PLC
+      itself may lack, and an IP allowlist stops anonymous internet logins.
+    how: >-
+      Firewall/VPN in front of the remote PLC and an IP allowlist. Unitronics
+      offers its UCR industrial routers (built-in firewall and VPN) and the
+      UniCloud platform, which connects without fixed or public IP addresses;
+      CISA mentions Unitronics' secure cellular long-haul transport device.
+    blunts:
+      - AA23-335A CyberAv3ngers compromise of Unitronics PLCs (2023)
+    confidence: high
+    sources:
+      - title: Unitronics Cybersecurity Advisory 2023-001 - Default administrative password (CVE-2023-6448)
+        url: https://downloads.unitronicsplc.com/Sites/plc/Technical_Library/Unitronics-Cybersecurity-Advisory-2023-001-CVE-2023-6448.pdf
+        accessed: "2026-11-08"
+        kind: vendor
+        quote: "Implement a Firewall/VPN in front of the PLC to control network access to the remote PLC."
+        read: direct
+      - title: CISA - Exploitation of Unitronics PLCs used in Water and Wastewater Systems (alert, November 2023)
+        url: https://www.cisa.gov/news-events/alerts/2023/11/28/exploitation-unitronics-plcs-used-water-and-wastewater-systems
+        accessed: "2026-11-08"
+        kind: government
+        quote: "A VPN or gateway device can enable multifactor authentication for remote access even if the PLC does not support multifactor authentication."
+        read: direct
+      - title: CISA - Exploitation of Unitronics PLCs used in Water and Wastewater Systems (alert, November 2023)
+        url: https://www.cisa.gov/news-events/alerts/2023/11/28/exploitation-unitronics-plcs-used-water-and-wastewater-systems
+        accessed: "2026-11-08"
+        kind: government
+        quote: "Use an allowlist of IPs for access."
+        read: direct
+
+  - id: uni-non-default-port
+    control: Move PCOM off the default TCP 20256 where possible, alongside (not instead of) firewalling, and filter PCOM/TCP
+    category: exposure
+    priority: medium
+    why: >-
+      CISA reported actors probing TCP 20256 to find Unitronics PLCs and then
+      using PCOM/TCP scripts to validate them. A non-default port removes the
+      device from that probe; it is not a substitute for a firewall.
+    how: >-
+      Configure a port other than 20256 for PCOM; use PCOM/TCP filters where
+      available to parse out the packets. Note AA23-335A records the actors
+      themselves moving compromised devices to 20257, so a port change is also a
+      thing to check for.
+    confidence: high
+    sources:
+      - title: CISA - Exploitation of Unitronics PLCs used in Water and Wastewater Systems (alert, November 2023)
+        url: https://www.cisa.gov/news-events/alerts/2023/11/28/exploitation-unitronics-plcs-used-water-and-wastewater-systems
+        accessed: "2026-11-08"
+        kind: government
+        quote: "If possible, utilize a TCP port that is different than the default port TCP 20256."
+        read: direct
+      - title: CISA - Exploitation of Unitronics PLCs used in Water and Wastewater Systems (alert, November 2023)
+        url: https://www.cisa.gov/news-events/alerts/2023/11/28/exploitation-unitronics-plcs-used-water-and-wastewater-systems
+        accessed: "2026-11-08"
+        kind: government
+        quote: "If available, use PCOM/TCP filters to parse out the packets."
+        read: direct
+
+  - id: uni-modbus-address-limit
+    control: Limit the Modbus master's accessible address space with SB 305 and SI 165-168
+    category: controller-protection
+    priority: medium
+    why: Unitronics' own network-level protection for Modbus on Vision/Samba controllers; it bounds what a Modbus client can read or write.
+    how: >-
+      Enable SB 305 and set SI 165-168 to the required address space, as the
+      VisiLogic help describes.
+    operational_impact: Too narrow a range breaks legitimate SCADA polling; set it from the SCADA tag list.
+    confidence: high
+    sources:
+      - title: Unitronics - Cyber Protection - Vision and Samba Series
+        url: https://www.unitronicsplc.com/cyber_security_vision-samba/
+        accessed: "2026-11-08"
+        kind: vendor
+        quote: "Limit the Modbus master accessible address space by enabling SB 305 and setting SI 165-168 values according to the required address space."
+        read: direct
+
+  - id: uni-controller-as-client
+    control: Make the controller the client for any internet communication and minimise server-mode sockets
+    category: segmentation
+    priority: medium
+    why: A controller that only initiates outbound connections presents no listening service to the internet.
+    how: >-
+      Design communication to reduce sockets configured in SERVER mode, configure
+      unused sockets in Client mode, and where the controller must talk to
+      internet servers make it the side that initiates.
+    confidence: high
+    sources:
+      - title: Unitronics - Cyber Protection - Vision and Samba Series
+        url: https://www.unitronicsplc.com/cyber_security_vision-samba/
+        accessed: "2026-11-08"
+        kind: vendor
+        quote: "If the controller must communicate with components or servers on the Internet, ensure that the controller is the client initiating the communication."
+        read: direct
+      - title: Unitronics - Cyber Protection - Vision and Samba Series
+        url: https://www.unitronicsplc.com/cyber_security_vision-samba/
+        accessed: "2026-11-08"
+        kind: vendor
+        quote: "Design the communication to reduce the usage of “SERVER” mode configured sockets"
+        read: direct
+
+  - id: uni-backup-and-reset-drill
+    control: Back up logic and configuration of every Unitronics PLC and rehearse factory reset and redeployment
+    category: backup-recovery
+    priority: high
+    why: >-
+      In 2023 the actors renamed devices, rolled back the software version and
+      locked uploads; AA23-335A says only a matching workstation version or a
+      factory reset restored access. They also did not burn their logic to the
+      device, so it could not be retrieved later.
+    how: >-
+      Keep current offline backups of logic and configuration; practise the
+      factory reset and configuration deployment for each model before you need
+      it.
+    blunts:
+      - AA23-335A CyberAv3ngers compromise of Unitronics PLCs (2023)
+    confidence: high
+    sources:
+      - title: CISA - Exploitation of Unitronics PLCs used in Water and Wastewater Systems (alert, November 2023)
+        url: https://www.cisa.gov/news-events/alerts/2023/11/28/exploitation-unitronics-plcs-used-water-and-wastewater-systems
+        accessed: "2026-11-08"
+        kind: government
+        quote: "Back up the logic and configurations on any Unitronics PLCs to enable fast recovery."
+        read: direct
+      - title: CISA AA23-335A - IRGC-Affiliated Cyber Actors Exploit PLCs in Multiple Sectors (updated December 2024)
+        url: https://www.cisa.gov/news-events/cybersecurity-advisories/aa23-335a
+        accessed: "2026-11-08"
+        kind: government
+        quote: "This could only be resolved if the engineering workstation’s software version changed to match the software version of the new ladder logic file or if the PLC device was factory reset so the ladder logic would be the latest software version."
+        read: direct
+
+  - id: uni-find-rebranded-devices
+    control: Identify rebranded Unitronics devices in the inventory and confirm integrators have applied these settings
+    category: asset-inventory
+    priority: medium
+    why: >-
+      AA23-335A warns the PLCs may carry other manufacturers' names, so an owner
+      may not know an exposed device is a Unitronics; installers and integrators
+      often hold the projects and passwords.
+    how: >-
+      Record model and OEM origin in the asset inventory; ask integrators and
+      OEMs whether devices are Unitronics-based; confirm third-party vendors have
+      applied the countermeasures above.
+    confidence: high
+    sources:
+      - title: CISA AA23-335A - IRGC-Affiliated Cyber Actors Exploit PLCs in Multiple Sectors (updated December 2024)
+        url: https://www.cisa.gov/news-events/cybersecurity-advisories/aa23-335a
+        accessed: "2026-11-08"
+        kind: government
+        quote: "The PLCs may be rebranded and appear as originating from different manufacturers and companies."
+        read: direct
+      - title: CISA AA23-335A - IRGC-Affiliated Cyber Actors Exploit PLCs in Multiple Sectors (updated December 2024)
+        url: https://www.cisa.gov/news-events/cybersecurity-advisories/aa23-335a
+        accessed: "2026-11-08"
+        kind: government
+        quote: "Confirm third-party vendors apply the above recommended countermeasures to mitigate exposure of these devices and all installed equipment."
+        read: direct
+
+notes: >-
+  Unitronics' downloadable "Cyber-Protection-Samba-Vision.pdf" and webinar were
+  not read; the web page they accompany was. UniStream (Unitronics' other line)
+  is out of scope for ICS-0006 and was not researched.

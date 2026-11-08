@@ -1,0 +1,386 @@
+# ICS platform catalog entry
+# ICS-0003 - Siemens SIMATIC S7-1200 / S7-1500
+# Research notes: docs/research/2026-11-08/platforms.md
+
+id: ICS-0003
+name: Siemens SIMATIC S7-1200 / S7-1500
+vendor: Siemens
+products:
+  - SIMATIC S7-1500 (standard, F, T, compact, R/H)
+  - SIMATIC S7-1200
+asset_class: plc
+purdue_levels: ["1"]
+protocols: [ICS-PROTO-0003, ICS-PROTO-0017, ICS-PROTO-0010]
+os_base: Proprietary CPU firmware; Siemens does not publish its internals
+filesystem: >-
+  No customer-visible filesystem. Load memory is on the SIMATIC Memory Card;
+  the card's on-disk format is not publicly documented and is not treated here
+  as an acquisition path.
+customer_shell: "no"
+memory_acquisition: not-available
+program_access: vendor-software-upload
+operating_modes: >-
+  STARTUP, RUN and STOP, selected with the mode selector (switch or keys,
+  depending on article number), the display, STEP 7, an HMI, the web server or
+  an STP instruction. Operating mode transitions are written to the
+  diagnostics buffer. The "Read access" protection level still allows changing
+  the operating state (RUN/STOP) without a password, so a read-protected CPU
+  can still be stopped remotely. CISA (AA26-097A) recommends enabling
+  programming protection in TIA Portal for software key-switched devices.
+integrity_features:
+  - feature: Diagnostics buffer with security events
+    description: >-
+      Chronological ring buffer of diagnostic events, operating mode
+      transitions, user-program errors, module removal/insertion and security
+      events: going online with the correct or incorrect password, manipulated
+      communication data, manipulated data on the memory card, manipulated
+      firmware update file, a changed protection level downloaded, password
+      legitimization changes, too many simultaneous access attempts, idle
+      online-connection timeout, web server logon with correct or incorrect
+      password, CPU backup created, CPU configuration restored. Identical
+      security events can be configured to collapse into one group alarm per
+      interval (Protection > Security event). Contents survive a memory reset.
+    versions: S7-1500 manual collection V20 (S7-1200 buffer size and security-event coverage not read)
+    confidence: high
+    sources:
+      - title: CPU diagnostics buffer - SIMATIC diagnostics function manual (TIA Portal Information System)
+        url: https://docs.tia.siemens.cloud/r/simatic_et_200eco_pn_manual_collection_zhcn_20/function-manuals/diagnostics-function-manuals/diagnostics/configuring-and-determining-system-diagnostics/options-for-displaying-system-diagnostics/diagnostics-information-in-step-7/cpu-diagnostics-buffer?contentId=iRtCUO9d12wi6MtwQSzXWg
+        accessed: "2026-11-08"
+        kind: vendor
+        quote: >-
+          The contents of the diagnostics buffer are stored in the retentive
+          memory in case of a memory reset of the CPU.
+        read: direct
+      - title: CPU diagnostics buffer - SIMATIC diagnostics function manual (TIA Portal Information System)
+        url: https://docs.tia.siemens.cloud/r/simatic_et_200eco_pn_manual_collection_zhcn_20/function-manuals/diagnostics-function-manuals/diagnostics/configuring-and-determining-system-diagnostics/options-for-displaying-system-diagnostics/diagnostics-information-in-step-7/cpu-diagnostics-buffer?contentId=iRtCUO9d12wi6MtwQSzXWg
+        accessed: "2026-11-08"
+        kind: vendor
+        quote: >-
+          The following security events (event types) result in an entry in the
+          diagnostics buffer.
+        read: direct
+  - feature: Online/offline comparison by checksum
+    description: >-
+      STEP 7 decides whether online and offline blocks, PLC data types and tags
+      are equal by comparing checksums for software and text lists. Reading
+      those checksums needs at least the "Read access" level; with only HMI
+      access the comparison column shows question marks.
+    confidence: high
+    sources:
+      - title: What you should know about the access levels (S7-1500) - STEP 7
+        url: https://docs.tia.siemens.cloud/r/en-us/v20/functional-description-of-s7-1500-cpus-s7-1500/setting-the-operating-behavior-s7-1500/protection-security-s7-1500/settings-for-access-levels-s7-1500/what-you-should-know-about-the-access-levels-s7-1500
+        accessed: "2026-11-08"
+        kind: vendor
+        quote: >-
+          The equivalence or non-equivalence of online/offline data is determined
+          by STEP 7 through a comparison of the checksums for software and text
+          lists. Reading these checksums requires the "read access" access level.
+        read: direct
+  - feature: Syslog (local cache and forwarding)
+    description: >-
+      CPUs from firmware V3.1 keep syslog messages in a local cache, readable
+      through the web server's Web API method Syslog.Browse, and from STEP 7 V19
+      can forward them to a syslog server (Properties > Protection & Security >
+      Syslog > Syslog server) over TLS (port 6514) or UDP (port 514). Message
+      content is based on IEC 62443-3-3; Siemens publishes the message overview
+      as support entry 109823696 (not read).
+    versions: S7-1500 CPU firmware V3.1 and later with STEP 7 V19 and later
+    confidence: high
+    sources:
+      - title: Introduction (S7-1500) - Syslog - STEP 7 V21
+        url: https://docs.tia.siemens.cloud/r/en-us/v21/functional-description-of-s7-1500-cpus-s7-1500/setting-the-operating-behavior-s7-1500/protection-security-s7-1500/syslog-s7-1500/introduction-s7-1500
+        accessed: "2026-11-08"
+        kind: vendor
+        quote: >-
+          Each CPU as of FW version V3.1 saves syslog messages in a local cache.
+          By querying this cache, you can view the syslog messages and identify
+          potential security risks. To access the local cache with the syslog
+          messages, use the Web API of the web server (API method
+          `Syslog.Browse`).
+        read: direct
+  - feature: Access protection levels
+    description: >-
+      Full access, Read access, HMI access and No access (complete protection,
+      the default), with a password per level. "No access" disables the
+      PUT/GET server function. A changed protection level downloaded to the CPU
+      is itself a diagnostics-buffer security event.
+    confidence: high
+    sources:
+      - title: What you should know about the access levels (S7-1500) - STEP 7
+        url: https://docs.tia.siemens.cloud/r/en-us/v20/functional-description-of-s7-1500-cpus-s7-1500/setting-the-operating-behavior-s7-1500/protection-security-s7-1500/settings-for-access-levels-s7-1500/what-you-should-know-about-the-access-levels-s7-1500
+        accessed: "2026-11-08"
+        kind: vendor
+        quote: >-
+          In addition, HMI access and access to diagnostics data, display of
+          offline/online comparison results, changing the operating state
+          (RUN/STOP), and setting time-of-day is possible.
+        read: direct
+collection:
+  - method: Syslog messages already received by the site's syslog server or SIEM
+    impact: passive
+    description: Only where forwarding was configured (FW V3.1+, STEP 7 V19+).
+    confidence: high
+    references:
+      - https://docs.tia.siemens.cloud/r/en-us/v21/functional-description-of-s7-1500-cpus-s7-1500/setting-the-operating-behavior-s7-1500/protection-security-s7-1500/syslog-s7-1500/introduction-s7-1500
+  - method: Passive capture of S7comm-plus (TCP 102) and PROFINET traffic (TAP or SPAN)
+    impact: passive
+    description: Downloads, uploads, mode changes and the hosts that made them, independent of the CPU.
+    confidence: medium
+  - method: Read the diagnostics buffer page of the S7-1500 web server
+    impact: read-only
+    description: >-
+      Siemens documents the web server's "Diagnostics buffer" page as a
+      display of the buffer. Requires the web server to have been enabled
+      beforehand; do not enable it during an incident.
+    safety_note: >-
+      Log on with an account that has no operating-mode or write rights. The
+      logon itself is a security event written into the same buffer, so record
+      the time and expect one new entry (or one group alarm).
+    confidence: high
+    references:
+      - https://docs.tia.siemens.cloud/r/simatic_et_200eco_pn_manual_collection_zhcn_20/function-manuals/diagnostics-function-manuals/diagnostics/configuring-and-determining-system-diagnostics/options-for-displaying-system-diagnostics/diagnostics-information-in-step-7/cpu-diagnostics-buffer?contentId=iRtCUO9d12wi6MtwQSzXWg
+  - method: Read the syslog local cache through the web server Web API (Syslog.Browse)
+    impact: read-only
+    description: CPU firmware V3.1 and later; a documented read method of the Web API.
+    safety_note: Needs web server access rights; the authentication is itself logged.
+    confidence: high
+    references:
+      - https://docs.tia.siemens.cloud/r/en-us/v21/functional-description-of-s7-1500-cpus-s7-1500/setting-the-operating-behavior-s7-1500/protection-security-s7-1500/syslog-s7-1500/introduction-s7-1500
+  - method: TIA Portal Online & Diagnostics > Diagnostics buffer
+    impact: online-vendor-tool
+    description: Displays and allows saving the buffer, with filters by event type.
+    safety_note: >-
+      An online session can also download, force, or change operating mode.
+      Going online with a password is a security event that adds an entry.
+      Operations approval required.
+    confidence: high
+    references:
+      - https://docs.tia.siemens.cloud/r/simatic_et_200eco_pn_manual_collection_zhcn_20/function-manuals/diagnostics-function-manuals/diagnostics/configuring-and-determining-system-diagnostics/options-for-displaying-system-diagnostics/diagnostics-information-in-step-7/cpu-diagnostics-buffer?contentId=iRtCUO9d12wi6MtwQSzXWg
+  - method: TIA Portal "Upload from device (software)" into a new project, then online/offline comparison against the known-good project
+    impact: online-vendor-tool
+    description: >-
+      Possible in RUN or STOP. Captures blocks (OB, FC, FB, DB), PLC tags,
+      technology objects and current DB values, but not the hardware
+      configuration or diagnostics buffer.
+    safety_note: Operations approval required; same session risks as any online connection.
+    confidence: high
+    references:
+      - https://docs.tia.siemens.cloud/r/simatic_s7_1500_et_200mp_manual_collection_enus_20/basic-information/automation-system/commissioning/operating-modes/operating-mode-transitions
+  - method: TIA Portal "Backup from online device"
+    impact: process-risk
+    description: >-
+      The most complete image (adds hardware configuration, memory card
+      content, archives and recipes), but Siemens lists it as possible only in
+      STOP. Diagnostics-buffer entries are in none of the backup types.
+    safety_note: Requires stopping the CPU - break-glass only, with the process in an agreed safe state.
+    confidence: high
+    references:
+      - https://docs.tia.siemens.cloud/r/simatic_s7_1500_et_200mp_manual_collection_enus_20/basic-information/automation-system/commissioning/operating-modes/operating-mode-transitions
+volatility:
+  - >-
+    The diagnostics buffer is a ring buffer; on the S7-1500 the 500 newest
+    entries are retained across power-on and STOP-to-STARTUP transitions. The
+    total number of entries per CPU is in each CPU's technical specifications
+    (not read here). Floods of events, including the investigator's own logons,
+    push old entries out.
+  - Diagnostics-buffer entries are not captured by any TIA Portal backup type; save them separately.
+  - A memory reset keeps the diagnostics buffer, time of day and IP address.
+datasources: [ICS-DS-0009, ICS-DS-0013, ICS-DS-0001, ICS-DS-0007, ICS-DS-0004, ICS-DS-0014]
+confidence: high
+references:
+  - title: Operating mode transitions - Manual Collection S7-1500/ET 200MP (TIA Portal Information System)
+    url: https://docs.tia.siemens.cloud/r/simatic_s7_1500_et_200mp_manual_collection_enus_20/basic-information/automation-system/commissioning/operating-modes/operating-mode-transitions
+    accessed: "2026-11-08"
+  - title: CPU diagnostics buffer - SIMATIC diagnostics function manual (TIA Portal Information System)
+    url: https://docs.tia.siemens.cloud/r/simatic_et_200eco_pn_manual_collection_zhcn_20/function-manuals/diagnostics-function-manuals/diagnostics/configuring-and-determining-system-diagnostics/options-for-displaying-system-diagnostics/diagnostics-information-in-step-7/cpu-diagnostics-buffer?contentId=iRtCUO9d12wi6MtwQSzXWg
+    accessed: "2026-11-08"
+  - title: Introduction (S7-1500) - Syslog - STEP 7 V21
+    url: https://docs.tia.siemens.cloud/r/en-us/v21/functional-description-of-s7-1500-cpus-s7-1500/setting-the-operating-behavior-s7-1500/protection-security-s7-1500/syslog-s7-1500/introduction-s7-1500
+    accessed: "2026-11-08"
+  - title: What you should know about the access levels (S7-1500) - STEP 7
+    url: https://docs.tia.siemens.cloud/r/en-us/v20/functional-description-of-s7-1500-cpus-s7-1500/setting-the-operating-behavior-s7-1500/protection-security-s7-1500/settings-for-access-levels-s7-1500/what-you-should-know-about-the-access-levels-s7-1500
+    accessed: "2026-11-08"
+  - title: CISA AA26-097A - Iranian-Affiliated Cyber Actors Exploit Programmable Logic Controllers Across US Critical Infrastructure
+    url: https://www.cisa.gov/news-events/cybersecurity-advisories/aa26-097a
+    accessed: "2026-11-08"
+last_verified: "2026-11-08"
+notes: >-
+  Every Siemens page used is S7-1500 documentation. The S7-1200 shares the
+  diagnostics-buffer concept, but its buffer size, security-event list and
+  syslog support were not read; treat S7-1200 specifics as not evaluated. The
+  CPU diagnostics buffer page sits in the ET 200eco PN manual collection
+  (shared diagnostics function manual) and was read in English. Siemens'
+  syslog message overview (support entry 109823696) and Industrial Security
+  operational guidelines were not read.
+response: baseline
+hardening: siemens-s7
+artifacts:
+  - locator: CPU diagnostics buffer (web server "Diagnostics buffer" page; TIA Portal Online & Diagnostics; CPU display; HMI)
+    class: diagnostics
+    volatility: rotating
+    retention: Ring buffer; S7-1500 retains the 500 newest entries across power-on and STOP-to-STARTUP; capacity per CPU model not read
+    forensic_value: high
+    evidence_type: [impair-process-control, inhibit-response-function, execution, timeline]
+    confidence: high
+    collection_impact: read-only
+    description: >-
+      Time-stamped events in the order they occurred: module errors, CPU
+      system errors, operating mode transitions (with the cause, such as STEP
+      7, HMI, web server or mode selector), user-program errors, module
+      removal/insertion and security events.
+    provides: When the CPU changed mode, why, and what security events accompanied it.
+    normal: >-
+      Mode transitions and restarts that match maintenance records; no
+      security events beyond known engineers going online.
+    suspicious: >-
+      RUN-to-STOP caused by STEP 7 or the web server with no approved work;
+      a STOP followed by STARTUP shortly after an unexpected online session;
+      user-program errors appearing after a download nobody scheduled.
+    basis: vendor
+    sources:
+      - title: Operating mode transitions - Manual Collection S7-1500/ET 200MP
+        url: https://docs.tia.siemens.cloud/r/simatic_s7_1500_et_200mp_manual_collection_enus_20/basic-information/automation-system/commissioning/operating-modes/operating-mode-transitions
+        accessed: "2026-11-08"
+        kind: vendor
+        quote: The 500 newest entries in the diagnostics buffer are retained.
+        read: direct
+      - title: Operating mode transitions - Manual Collection S7-1500/ET 200MP
+        url: https://docs.tia.siemens.cloud/r/simatic_s7_1500_et_200mp_manual_collection_enus_20/basic-information/automation-system/commissioning/operating-modes/operating-mode-transitions
+        accessed: "2026-11-08"
+        kind: vendor
+        quote: Via STP instruction, mode selector switch/button, display, STEP 7, HMI, web server or SAT tool
+        read: direct
+  - locator: Security events within the diagnostics buffer (filterable by event type; group alarms configured under Protection > Security event)
+    class: auth-logs
+    volatility: rotating
+    retention: Shares the diagnostics buffer ring
+    forensic_value: high
+    evidence_type: [credential-access, initial-access, evasion, impair-process-control, timeline]
+    confidence: high
+    collection_impact: read-only
+    description: >-
+      Online and web server logons with correct or incorrect passwords,
+      manipulated communication data, manipulated memory-card data,
+      manipulated firmware update file, changed protection level downloaded,
+      access-attempt limit exceeded, backup created and configuration restored.
+    provides: Authentication history and tamper detections on the CPU itself.
+    normal: Correct-password online logons by known engineers during change windows; occasional mistyped passwords.
+    suspicious: >-
+      Repeated incorrect-password logons (guessing); a changed protection level
+      downloaded; manipulated firmware, memory-card or communication data
+      detected; backup or restore events nobody performed; access-attempt limit
+      exceeded. A group alarm hides how many identical events occurred.
+    basis: vendor
+    sources:
+      - title: CPU diagnostics buffer - SIMATIC diagnostics function manual
+        url: https://docs.tia.siemens.cloud/r/simatic_et_200eco_pn_manual_collection_zhcn_20/function-manuals/diagnostics-function-manuals/diagnostics/configuring-and-determining-system-diagnostics/options-for-displaying-system-diagnostics/diagnostics-information-in-step-7/cpu-diagnostics-buffer?contentId=iRtCUO9d12wi6MtwQSzXWg
+        accessed: "2026-11-08"
+        kind: vendor
+        quote: Changed protection level (access protection) downloaded to the CPU
+        read: direct
+  - locator: Syslog local cache on the CPU (Web API method Syslog.Browse), FW V3.1+
+    class: system-logs
+    volatility: rotating
+    retention: Cache size not documented in the pages read
+    forensic_value: high
+    evidence_type: [credential-access, initial-access, timeline]
+    confidence: high
+    collection_impact: read-only
+    description: Security-relevant messages aligned with IEC 62443-3-3, held on the CPU even when no syslog server is configured.
+    provides: A second on-device record, readable without TIA Portal.
+    normal: Messages consistent with known engineering activity.
+    suspicious: Logons or configuration events from unexpected sources; message types listed in Siemens' overview as security risks.
+    basis: vendor
+  - locator: Syslog messages on the site syslog server or SIEM (TLS 6514 or UDP 514)
+    class: off-box
+    volatility: off-box
+    forensic_value: high
+    evidence_type: [credential-access, initial-access, timeline]
+    confidence: high
+    collection_impact: passive
+    description: Forwarded copy; survives anything done to the CPU after forwarding.
+    provides: Retention set by the owner rather than by the CPU's buffer.
+    normal: Continuous stream from every configured CPU.
+    suspicious: A CPU that stops sending; security messages as above.
+    basis: vendor
+    sources:
+      - title: Introduction (S7-1500) - Syslog - STEP 7 V21
+        url: https://docs.tia.siemens.cloud/r/en-us/v21/functional-description-of-s7-1500-cpus-s7-1500/setting-the-operating-behavior-s7-1500/protection-security-s7-1500/syslog-s7-1500/introduction-s7-1500
+        accessed: "2026-11-08"
+        kind: vendor
+        quote: The content of the messages is based on IEC 62443-3-3.
+        read: direct
+  - locator: TIA Portal online/offline comparison of the uploaded program against the known-good project
+    class: integrity
+    volatility: live
+    forensic_value: high
+    evidence_type: [impair-process-control, inhibit-response-function, impact]
+    confidence: high
+    collection_impact: online-vendor-tool
+    description: >-
+      Checksum-based equality per object. Needs read access; with HMI access
+      only, the comparison shows question marks rather than a result. Not
+      evaluated is not passed.
+    provides: Which blocks differ from the approved project.
+    normal: All objects equal, or differences matching documented changes.
+    suspicious: Differing OBs, FBs, FCs or DBs with no approved change; blocks present online that are not in the project.
+    basis: vendor
+  - locator: Program blocks and PLC tags uploaded with "Upload from device (software)"
+    class: control-logic
+    volatility: stable
+    forensic_value: high
+    evidence_type: [impair-process-control, inhibit-response-function, impact]
+    confidence: high
+    collection_impact: online-vendor-tool
+    description: The logic itself; AA26-097A reports S7-1200 targeting and TIA Portal used to exfiltrate project files.
+    seen_in: [AA26-097A]
+    provides: The CPU's actual behaviour, for diffing.
+    normal: Identical to the approved project.
+    suspicious: >-
+      Added or altered logic, especially in function blocks guarding limits,
+      shutdown or alarms (CISA notes function blocks are the analogue of the
+      Rockwell AOIs that were modified).
+    basis: government
+    sources:
+      - title: CISA AA26-097A
+        url: https://www.cisa.gov/news-events/cybersecurity-advisories/aa26-097a
+        accessed: "2026-11-08"
+        kind: government
+        quote: >-
+          An AOI is analogous to a “Function Block” or “User Defined Function
+          Block” used in other PLC vendor programs.
+        read: direct
+  - locator: Access protection level configured in the CPU properties (Protection & Security)
+    class: config
+    volatility: stable
+    forensic_value: medium
+    evidence_type: [configuration, evasion]
+    confidence: high
+    collection_impact: online-vendor-tool
+    description: >-
+      Default is "No access (complete protection)". "Read access" still allows
+      upload and changing the operating state without a password.
+    provides: What an unauthenticated party could do to the CPU.
+    normal: The level in the site's design documents, with passwords held by named engineers.
+    suspicious: Full access with no password; a level lower than documented; a protection-level change event in the buffer.
+    basis: vendor
+    sources:
+      - title: What you should know about the access levels (S7-1500) - STEP 7
+        url: https://docs.tia.siemens.cloud/r/en-us/v20/functional-description-of-s7-1500-cpus-s7-1500/setting-the-operating-behavior-s7-1500/protection-security-s7-1500/settings-for-access-levels-s7-1500/what-you-should-know-about-the-access-levels-s7-1500
+        accessed: "2026-11-08"
+        kind: vendor
+        quote: The default access level is "No access (complete protection)".
+        read: direct
+  - locator: Network traffic on TCP 102 to the CPU from outside the control network
+    class: network
+    volatility: off-box
+    forensic_value: high
+    evidence_type: [initial-access, exfiltration]
+    confidence: high
+    collection_impact: passive
+    description: AA26-097A lists port 102 among targeted ports and names S7-1200 among targeted devices.
+    seen_in: [AA26-097A]
+    provides: Who reached the CPU and when.
+    normal: Only engineering workstations, HMIs and peer controllers.
+    suspicious: Sessions from internet or hosting-provider addresses.
+    basis: government

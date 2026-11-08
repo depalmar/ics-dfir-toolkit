@@ -1,0 +1,247 @@
+# ICS platform catalog entry
+# ICS-0011 - Windows HMI / SCADA server
+# Research notes: docs/research/2026-11-08/platforms.md
+
+id: ICS-0011
+name: Windows HMI / SCADA server (Ignition, FactoryTalk View SE, WinCC, iFIX, InTouch)
+vendor: multiple
+products:
+  - Inductive Automation Ignition
+  - Rockwell FactoryTalk View SE
+  - Siemens WinCC (not researched in this pass)
+  - GE iFIX (not researched in this pass)
+  - AVEVA InTouch (not researched in this pass)
+asset_class: hmi-scada-server
+purdue_levels: ["2"]
+protocols: [ICS-PROTO-0004, ICS-PROTO-0003, ICS-PROTO-0001, ICS-PROTO-0010, ICS-PROTO-0011]
+os_base: Microsoft Windows (Ignition also runs on Linux)
+filesystem: NTFS
+customer_shell: "yes"
+memory_acquisition: customer
+program_access: file-copy
+operating_modes: >-
+  Not applicable to the host. Taking an HMI or SCADA server offline removes
+  the operators' view of the process unless a redundant server or manual
+  operation covers it; that decision belongs to operations.
+integrity_features:
+  - feature: Ignition audit profiles
+    description: >-
+      Records actions such as tag writes and user-source authentication into a
+      database table (default AUDIT_EVENTS) or an internal profile viewable only
+      on the gateway Status page; can forward to a remote gateway. Requires an
+      audit profile and auditing enabled per project (and a gateway audit
+      profile for gateway-scoped events). Default retention 90 days.
+    versions: Ignition 8.1 (retention field new in 8.1.1)
+    confidence: high
+    sources:
+      - title: Audit Log and Profiles - Ignition 8.1 User Manual
+        url: https://www.docs.inductiveautomation.com/docs/8.1/platform/audit-log-and-profiles
+        accessed: "2026-11-08"
+        kind: vendor
+        quote: >-
+          Ignition's built-in auditing system automatically records certain
+          actions that occur in the system, such as a Tag writes or User Source
+          authentication, into a SQL database table.
+        read: direct
+  - feature: FactoryTalk View SE activity log (FactoryTalk Diagnostics)
+    description: >-
+      Rockwell's 21 CFR Part 11 guidance describes an audit trail of operator
+      actions (time, operator id and name, action) in the FactoryTalk View SE
+      activity log, routed through FactoryTalk Diagnostics to a local log
+      and optionally an ODBC database; electronic-signature tag writes record
+      old and new values and approver.
+    confidence: low
+    unverified: true
+    sources:
+      - title: Guidelines for applying FactoryTalk View SE in a 21 CFR Part 11 environment (FTALK-WP003)
+        url: https://literature.rockwellautomation.com/idc/groups/literature/documents/wp/ftalk-wp003_-en-e.pdf
+        accessed: "2026-11-08"
+        kind: vendor
+        quote: >-
+          FactoryTalk View SE provides an audit trail for actions performed that
+          is minimally comprised of a time and date stamp, operator ID and full
+          name, and the action taken.
+        read: summariser
+collection:
+  - method: Audit, alarm and Windows logs already centralised (Ignition audit database, FactoryTalk Diagnostics ODBC, SIEM)
+    impact: passive
+    description: Export from the central store; no contact with the HMI host.
+    confidence: medium
+  - method: View the Ignition audit log through the gateway Status page or the Designer Database Query Browser
+    impact: read-only
+    description: The vendor-documented ways to view audit records.
+    safety_note: >-
+      A Designer session on a production gateway can also edit and save the
+      project; use an account without design rights where possible.
+    confidence: high
+    references:
+      - https://www.docs.inductiveautomation.com/docs/8.1/platform/audit-log-and-profiles
+  - method: Offline disk image of the HMI or SCADA server
+    impact: passive
+    description: Full image once the host is out of service.
+    safety_note: >-
+      Shutting the host down is loss of view for operators. Only with a
+      redundant server in service or with manual operation agreed with
+      operations.
+    confidence: medium
+  - method: Live triage collection on the running HMI or SCADA server
+    impact: process-risk
+    description: Collects logs and user-profile files without shutting down.
+    safety_note: >-
+      Rated process-risk by this project: triage load on a running SCADA
+      server can delay polling and screen updates. Agree timing with operations.
+    confidence: medium
+volatility:
+  - Ignition audit records are pruned after the profile's retention (default 90 days) unless pruning is disabled.
+  - Windows event logs roll over by size; HMIs with small default log sizes may keep days, not months.
+datasources: [ICS-DS-0010, ICS-DS-0006, ICS-DS-0011, ICS-DS-0001, ICS-DS-0005]
+confidence: medium
+references:
+  - title: Audit Log and Profiles - Ignition 8.1 User Manual
+    url: https://www.docs.inductiveautomation.com/docs/8.1/platform/audit-log-and-profiles
+    accessed: "2026-11-08"
+  - title: Guidelines for applying FactoryTalk View SE in a 21 CFR Part 11 environment (FTALK-WP003)
+    url: https://literature.rockwellautomation.com/idc/groups/literature/documents/wp/ftalk-wp003_-en-e.pdf
+    accessed: "2026-11-08"
+  - title: CISA AA26-097A
+    url: https://www.cisa.gov/news-events/cybersecurity-advisories/aa26-097a
+    accessed: "2026-11-08"
+  - title: Microsoft - 4624(S) An account was successfully logged on
+    url: https://learn.microsoft.com/en-us/previous-versions/windows/it-pro/windows-10/security/threat-protection/auditing/event-4624
+    accessed: "2026-11-08"
+last_verified: "2026-11-08"
+notes: >-
+  Only Ignition (read directly) and FactoryTalk View SE (read through a
+  summarising fetch) were researched. WinCC, iFIX and InTouch audit trails are
+  not evaluated here. FactoryTalk Diagnostics default log paths and file
+  formats were not found in a public document.
+response: baseline
+artifacts:
+  - locator: Ignition audit table (default AUDIT_EVENTS in the audit profile's database) or Internal Audit Profile (gateway Status page)
+    class: audit-trail
+    volatility: rotating
+    retention: Profile retention in days, default 90; values of 0 or less disable pruning
+    forensic_value: high
+    evidence_type: [impair-process-control, credential-access, timeline, attribution]
+    confidence: high
+    collection_impact: read-only
+    description: >-
+      Exists only if an audit profile was created and auditing enabled in the
+      project (and gateway-scoped auditing set in General Security Settings).
+      No profile means no record; it does not mean no activity.
+    provides: Who wrote which tag, who authenticated, and project saves.
+    normal: Tag writes by operator accounts within their area; project saves by named engineers.
+    suspicious: >-
+      Tag writes to setpoints or alarm limits by unexpected accounts or at
+      unusual times; authentication failures in bursts; project saves nobody
+      scheduled; auditing disabled or retention shortened.
+    basis: vendor
+    sources:
+      - title: Audit Log and Profiles - Ignition 8.1 User Manual
+        url: https://www.docs.inductiveautomation.com/docs/8.1/platform/audit-log-and-profiles
+        accessed: "2026-11-08"
+        kind: vendor
+        quote: Values less than or equal to 0 will disable pruning. Default is 90 days.
+        read: direct
+  - locator: FactoryTalk View SE activity log via FactoryTalk Diagnostics (local log; ODBC destination if configured)
+    class: audit-trail
+    volatility: rotating
+    retention: Local log size and overwrite policy are site-configured
+    forensic_value: high
+    evidence_type: [impair-process-control, timeline, attribution]
+    confidence: low
+    unverified: true
+    collection_impact: passive
+    description: >-
+      Operator actions with user name; Rockwell's guidance has sites route
+      Audit-category messages to the local log and ODBC.
+    provides: Operator actions and tag writes on FactoryTalk View SE.
+    normal: Operator actions consistent with shift logs.
+    suspicious: Setpoint changes or command actions with no shift-log entry; activity under shared or service accounts.
+    basis: vendor
+    sources:
+      - title: Guidelines for applying FactoryTalk View SE in a 21 CFR Part 11 environment (FTALK-WP003)
+        url: https://literature.rockwellautomation.com/idc/groups/literature/documents/wp/ftalk-wp003_-en-e.pdf
+        accessed: "2026-11-08"
+        kind: vendor
+        quote: >-
+          Once an operator is logged on to Windows and FactoryTalk View SE client,
+          all operations are logged with the user name.
+        read: summariser
+  - locator: HMI alarm and event journal compared with historian process data for the same period
+    class: alarms-events
+    volatility: rotating
+    forensic_value: high
+    evidence_type: [inhibit-response-function, impair-process-control, impact]
+    confidence: high
+    collection_impact: passive
+    description: >-
+      AA26-097A reports logic changes that disabled shutdown and alarm logic so
+      operators were not notified, and manipulation of data on HMI and SCADA
+      displays. Missing alarms are therefore evidence; look for process values
+      that crossed limits with no corresponding alarm.
+    seen_in: [AA26-097A]
+    provides: Whether operators would have been told about abnormal conditions.
+    normal: Every historian excursion beyond an alarm limit has a matching alarm and acknowledgement.
+    suspicious: >-
+      Excursions with no alarm; alarms that stop abruptly at one time; values on
+      HMI screens that disagree with independent instruments or the historian.
+      The comparison method is this project's; CISA reports the effect.
+    basis: government
+    sources:
+      - title: CISA AA26-097A
+        url: https://www.cisa.gov/news-events/cybersecurity-advisories/aa26-097a
+        accessed: "2026-11-08"
+        kind: government
+        quote: >-
+          Additionally, the changes disabled critical shutdown and alarm logic,
+          allowing systems to enter unsafe conditions without notifying operators
+          of the anomalies.
+        read: direct
+  - locator: Listening remote-access and file-transfer services on the HMI host (RDP, VNC, Telnet, FTP, web)
+    class: config
+    volatility: live
+    forensic_value: medium
+    evidence_type: [initial-access, configuration]
+    confidence: high
+    collection_impact: passive
+    description: >-
+      Determined from the host's configuration or from passive capture, not by
+      scanning. CISA lists these among services to disable when unused.
+    provides: The routes by which the HMI could be reached.
+    normal: Only services the site's design requires, reachable only from the control network or jump host.
+    suspicious: VNC, RDP, Telnet, FTP or web services reachable from outside the control network.
+    basis: government
+    sources:
+      - title: CISA AA26-097A
+        url: https://www.cisa.gov/news-events/cybersecurity-advisories/aa26-097a
+        accessed: "2026-11-08"
+        kind: government
+        quote: >-
+          such as default authentication keys and passwords, as well as unused or
+          needed services such as Teletype Network (Telnet), File Transfer
+          Protocol (FTP), Remote Desktop Protocol (RDP), Virtual Network Computing
+          (VNC), and web services.
+        read: direct
+  - locator: Windows Security log, event 4624
+    class: auth-logs
+    volatility: rotating
+    forensic_value: high
+    evidence_type: [initial-access, lateral-movement, timeline]
+    confidence: high
+    collection_impact: passive
+    description: Successful logons with type, account and source address.
+    provides: Who logged on to the HMI host and from where.
+    normal: Interactive logons by operators on the console; remote logons only from the approved jump host.
+    suspicious: Type 10 (RemoteInteractive) or type 3 logons from outside the control network or from hosts that are not engineering or jump hosts.
+    basis: vendor
+    sources:
+      - title: Microsoft - 4624(S) An account was successfully logged on
+        url: https://learn.microsoft.com/en-us/previous-versions/windows/it-pro/windows-10/security/threat-protection/auditing/event-4624
+        accessed: "2026-11-08"
+        kind: vendor
+        quote: >-
+          This event generates when a logon session is created (on destination
+          machine). It generates on the computer that was accessed, where the
+          session was created.
+        read: direct

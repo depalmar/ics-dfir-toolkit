@@ -1,0 +1,263 @@
+# ICS platform catalog entry
+# ICS-0013 - Cellular and industrial remote-access gateways
+# Research notes: docs/research/2026-11-08/platforms.md
+
+id: ICS-0013
+name: Cellular and industrial remote-access gateways (Sierra Wireless AirLink, Teltonika, Moxa, Digi)
+vendor: multiple
+products:
+  - Sierra Wireless (Semtech) AirLink routers - AirLink OS (e.g. RX55, XR90) and ALEOS
+  - Teltonika RUT series (RutOS)
+  - Moxa and Digi cellular gateways (not researched in this pass)
+asset_class: remote-access-gateway
+purdue_levels: ["2", "3.5"]
+protocols: []
+os_base: Vendor router firmware (AirLink OS / ALEOS, Teltonika RutOS); internals not covered by the sources read
+customer_shell: restricted
+memory_acquisition: not-available
+program_access: web-export
+operating_modes: >-
+  Not applicable. The questions are which remote-access services were
+  reachable (SSH, web UI, VPN), which port forwards exposed controllers, and
+  whether the device logs survive a reboot or reset.
+integrity_features:
+  - feature: AirLink OS audit log
+    description: >-
+      AirLink OS keeps regular logs and audit logs. The audit log holds all
+      device changes since manufacture, is unaffected by log-level settings,
+      and is not erased by factory reset or reflashing; a rotation policy
+      limits its size. The logs contain no passwords.
+    versions: AirLink OS 5.1 (RX55 documentation); ALEOS not read
+    confidence: high
+    sources:
+      - title: Logging - AirLink OS RX55-5.1 (Sierra Wireless Source)
+        url: https://source.sierrawireless.com/airlinkos/RX55-5.1/reference/system/howto/logs/
+        accessed: "2026-11-08"
+        kind: vendor
+        quote: >-
+          Note: Neither factory resetting nor reflashing will erase the logs.
+          There is no current method to erase either of the logs. A log rotation
+          policy is used to control the size of the logs.
+        read: direct
+  - feature: Teltonika Events Log and Events Reporting
+    description: >-
+      Events Log records logins, reboots, resets, connections and
+      configuration changes. Events Reporting rules can send SMS or email on
+      configuration changes, SSH and WebUI authentication success or failure,
+      reboots and WAN failover, and logs can be shipped periodically to FTP or
+      email.
+    versions: RUT230 documentation for firmware RUT2XX_R_00.01.14.1 (older WebUI); current RutOS pages not compared
+    confidence: high
+    sources:
+      - title: RUT230 Events Log - Teltonika Networks Wiki
+        url: https://wiki.teltonika-networks.com/view/RUT230_Events_Log
+        accessed: "2026-11-08"
+        kind: vendor
+        quote: >-
+          you can view records of events such as logins, reboots, resets,
+          connections, configuration changes and more.
+        read: direct
+collection:
+  - method: Gateway logs already forwarded (syslog server, Teltonika RMS, Sierra ALMS, scheduled FTP/email reports)
+    impact: passive
+    description: Off-device copies; no contact with the gateway.
+    confidence: high
+  - method: Download the logs from the device web UI (AirLink OS System > Logs, Teltonika Logs pages) or retrieve them through ALMS
+    impact: read-only
+    description: Vendor-documented download of the regular and audit logs (AirLink OS) or event logs (Teltonika).
+    safety_note: >-
+      The gateway is often the only link to a remote site; do not reboot,
+      reset or reconfigure it while collecting. Logging on is itself logged.
+    confidence: high
+    references:
+      - https://source.sierrawireless.com/airlinkos/RX55-5.1/reference/system/howto/logs/
+      - https://wiki.teltonika-networks.com/view/RUT230_Logs
+  - method: Passive capture on the gateway's LAN side (TAP or SPAN between gateway and controllers)
+    impact: passive
+    description: Shows remote sessions reaching controllers through the gateway.
+    confidence: medium
+volatility:
+  - >-
+    Teltonika system logs are stored in RAM by default (option "Save log in":
+    RAM or flash; log file size default 128 KB). RAM storage is presumed lost on
+    reboot (toolkit inference). Collect before any power cycle.
+  - AirLink OS logs survive factory reset and reflash (vendor statement) but rotate by size.
+datasources: [ICS-DS-0012, ICS-DS-0005, ICS-DS-0004, ICS-DS-0014, ICS-DS-0003]
+confidence: medium
+references:
+  - title: Logging - AirLink OS RX55-5.1 (Sierra Wireless Source)
+    url: https://source.sierrawireless.com/airlinkos/RX55-5.1/reference/system/howto/logs/
+    accessed: "2026-11-08"
+  - title: RUT230 Logs - Teltonika Networks Wiki
+    url: https://wiki.teltonika-networks.com/view/RUT230_Logs
+    accessed: "2026-11-08"
+  - title: RUT230 Events Log - Teltonika Networks Wiki
+    url: https://wiki.teltonika-networks.com/view/RUT230_Events_Log
+    accessed: "2026-11-08"
+  - title: TRB143 Maintenance - Teltonika Networks Wiki
+    url: https://wiki.teltonika-networks.com/view/TRB143_Maintenance
+    accessed: "2026-11-08"
+  - title: CISA AA26-097A
+    url: https://www.cisa.gov/news-events/cybersecurity-advisories/aa26-097a
+    accessed: "2026-11-08"
+  - title: Unitronics - Cyber Protection, Vision and Samba Series
+    url: https://www.unitronicsplc.com/cyber_security_vision-samba/
+    accessed: "2026-11-08"
+last_verified: "2026-11-08"
+notes: >-
+  Only Sierra Wireless AirLink OS and Teltonika were researched; ALEOS (the
+  older AirLink OS), Moxa and Digi logging were not read. Sierra's ALEOS Secure
+  Deployment and Operation Guide is listed on source.sierrawireless.com but was
+  not read. Cellular carrier records (APN session logs) may exist but no source
+  was read for them.
+response: baseline
+hardening: remote-access-gateways
+artifacts:
+  - locator: AirLink OS audit log (System > Logs > Audit Logs when directly connected; ALMS Retrieve Logs)
+    class: audit-trail
+    volatility: stable
+    retention: All device changes since manufacture, subject to a size-based rotation policy; survives factory reset and reflash
+    forensic_value: high
+    evidence_type: [persistence, evasion, initial-access, timeline]
+    confidence: high
+    collection_impact: read-only
+    description: Configuration changes on the router over its whole life.
+    provides: When remote-access, firewall or port-forward settings changed.
+    normal: Changes matching the site's change records.
+    suspicious: >-
+      New port forwards to controller addresses, newly enabled remote
+      management or SSH, firmware changes, or changes at times nobody worked.
+    basis: vendor
+    sources:
+      - title: Logging - AirLink OS RX55-5.1 (Sierra Wireless Source)
+        url: https://source.sierrawireless.com/airlinkos/RX55-5.1/reference/system/howto/logs/
+        accessed: "2026-11-08"
+        kind: vendor
+        quote: >-
+          Audit logs contain all the device changes since date of manufacture.
+          Log levels control how detailed the regular logs will be. Audit logs are
+          not affected by log level changes.
+        read: direct
+  - locator: AirLink OS regular logs (System > Logs > Regular Logs; ALMS Retrieve Logs)
+    class: system-logs
+    volatility: rotating
+    retention: Size-based rotation; default log level NOTICE
+    forensic_value: medium
+    evidence_type: [initial-access, command-and-control, timeline]
+    confidence: high
+    collection_impact: read-only
+    description: Device operational logs at the configured level.
+    provides: Connection and service events around the time of interest.
+    normal: Events consistent with normal cellular and VPN operation.
+    suspicious: Management logons or service starts that match no maintenance activity.
+    basis: vendor
+    sources:
+      - title: Logging - AirLink OS RX55-5.1 (Sierra Wireless Source)
+        url: https://source.sierrawireless.com/airlinkos/RX55-5.1/reference/system/howto/logs/
+        accessed: "2026-11-08"
+        kind: vendor
+        quote: >-
+          If you want to view the router’s logs remotely, go to the ALMS dashboard
+          of the router and click Retrieve Logs to download them to your local PC.
+        read: direct
+  - locator: Teltonika Events Log (Status > Logs > Events Log) and Events Reporting history
+    class: auth-logs
+    volatility: rotating
+    retention: Not documented in the pages read
+    forensic_value: high
+    evidence_type: [initial-access, credential-access, persistence, timeline]
+    confidence: high
+    collection_impact: read-only
+    description: >-
+      Logins, reboots, resets, connections and configuration changes; Events
+      Reporting can alert on SSH and WebUI authentication success and failure.
+    provides: Who logged on to the gateway, by which service, and what changed.
+    normal: WebUI or SSH logons by known administrators from management addresses.
+    suspicious: >-
+      Successful or failed SSH/WebUI authentication from internet addresses;
+      configuration changes to firewall, port forwarding, access control or
+      VPN; unexpected reboots or resets.
+    basis: vendor
+    sources:
+      - title: RUT230 Events Log - Teltonika Networks Wiki
+        url: https://wiki.teltonika-networks.com/view/RUT230_Events_Log
+        accessed: "2026-11-08"
+        kind: vendor
+        quote: Sends a report message when someone unsuccessfully tries to connect to the router via SSH
+        read: direct
+  - locator: Teltonika system log storage setting (Save log in RAM or flash; external syslog server)
+    class: config
+    volatility: stable
+    forensic_value: medium
+    evidence_type: [configuration]
+    confidence: low
+    unverified: true
+    collection_impact: read-only
+    description: Determines whether system logs outlive a reboot and whether a copy exists off the device.
+    provides: Whether to expect any system log history at all.
+    normal: Logs saved to flash or forwarded to an external syslog server.
+    suspicious: Default RAM storage with no external server (history likely lost at the last reboot).
+    basis: vendor
+    sources:
+      - title: TRB143 Maintenance - Teltonika Networks Wiki
+        url: https://wiki.teltonika-networks.com/view/TRB143_Maintenance
+        accessed: "2026-11-08"
+        kind: vendor
+        quote: Specifies which type of memory to use for storing system logs.
+        read: summariser
+  - locator: SSH service on the modem and inbound TCP 22 from the internet
+    class: network
+    volatility: off-box
+    forensic_value: high
+    evidence_type: [initial-access, command-and-control]
+    confidence: high
+    collection_impact: passive
+    description: >-
+      AA26-097A reports actors using Dropbear SSH on victim modems for remote
+      access over port 22, and asks owners to enable and review modem logs.
+    seen_in: [AA26-097A]
+    provides: Remote access into the site through the modem.
+    normal: SSH disabled, or reachable only over the site VPN from management addresses.
+    suspicious: SSH reachable from the internet; SSH sessions from hosting-provider addresses; an SSH daemon the owner did not enable.
+    basis: government
+    sources:
+      - title: CISA AA26-097A
+        url: https://www.cisa.gov/news-events/cybersecurity-advisories/aa26-097a
+        accessed: "2026-11-08"
+        kind: government
+        quote: >-
+          In one reported instance, the actors utilized Dropbear Secure Shell
+          (SSH) software on victim modems to enable them to gain remote access
+          through port `22`
+        read: direct
+      - title: CISA AA26-097A
+        url: https://www.cisa.gov/news-events/cybersecurity-advisories/aa26-097a
+        accessed: "2026-11-08"
+        kind: government
+        quote: >-
+          Enable logs for connected modems and regularly review for suspicious
+          activity to detect intrusions and improve incident response speed.
+        read: direct
+  - locator: Port-forwarding and firewall rules on the gateway that expose controller ports to the WAN
+    class: config
+    volatility: stable
+    forensic_value: high
+    evidence_type: [initial-access, configuration]
+    confidence: high
+    collection_impact: read-only
+    description: >-
+      The usual reason a field PLC is internet-reachable. Check forwards to
+      controller ports (for example 44818, 2222, 102, 502, 20256).
+    provides: Whether and how controllers behind the gateway were exposed.
+    normal: No port forwards to automation equipment; remote access only through VPN.
+    suspicious: Forwards from the WAN to controller addresses or ports; forwards created recently per the audit or event log.
+    basis: vendor
+    sources:
+      - title: Unitronics - Cyber Protection, Vision and Samba Series
+        url: https://www.unitronicsplc.com/cyber_security_vision-samba/
+        accessed: "2026-11-08"
+        kind: vendor
+        quote: >-
+          Verify that there are no Port Forwarding settings exposing automation
+          equipment directly to the public network.
+        read: direct

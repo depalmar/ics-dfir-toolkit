@@ -1,0 +1,280 @@
+# ICS platform catalog entry
+# ICS-0006 - Unitronics Vision / Samba PLC+HMI
+# Research notes: docs/research/2026-11-08/platforms.md
+
+id: ICS-0006
+name: Unitronics Vision / Samba integrated PLC+HMI
+vendor: Unitronics
+products:
+  - Vision series (e.g. V570)
+  - Samba series
+  - Rebranded Unitronics units sold under other names (per AA23-335A)
+asset_class: plc
+purdue_levels: ["1"]
+protocols: [ICS-PROTO-0013, ICS-PROTO-0001]
+os_base: Proprietary controller operating system; Unitronics does not publish its internals
+customer_shell: "no"
+memory_acquisition: not-available
+program_access: vendor-software-upload
+operating_modes: >-
+  No physical key switch is described in the sources read. Unitronics
+  documents PCOM access levels (Blocked Access, Operator, Technician) as the
+  control on who may connect and what they may do. Whether mode or access
+  changes are logged on the controller is not vendor-documented; Claroty's
+  research describes an on-PLC "signature log" of user interactions.
+integrity_features:
+  - feature: Signature log (researcher-described, not vendor-documented)
+    description: >-
+      Claroty Team82 found an on-PLC log of user interactions recording
+      connection dates, the full path of the project downloaded, the
+      connecting computer's username, operating system and keyboard layout.
+      Extraction needs Claroty's PCOMClient; Unitronics does not document the
+      log or a read path for it.
+    confidence: low
+    unverified: true
+    sources:
+      - title: Claroty Team82 - From Exploits to Forensics, Unraveling the Unitronics Attack
+        url: https://claroty.com/team82/research/from-exploits-to-forensics-unraveling-the-unitronics-attack
+        accessed: "2026-11-08"
+        kind: researcher
+        quote: >-
+          This log contains a list of all the interactions that users performed
+          with the PLC.
+        read: direct
+  - feature: Project "burn" (stored, uploadable project)
+    description: >-
+      At download the engineer chooses whether to burn the project file to the
+      PLC. Only a burned project can be uploaded later, optionally behind an
+      upload password. A project downloaded without burning leaves no
+      uploadable copy of the running logic - but a previously burned project
+      may still be retrievable.
+    confidence: high
+    sources:
+      - title: CISA AA23-335A - IRGC-Affiliated Cyber Actors Exploit PLCs in Multiple Sectors
+        url: https://www.cisa.gov/news-events/cybersecurity-advisories/aa23-335a
+        accessed: "2026-11-08"
+        kind: government
+        quote: >-
+          The actors did not burn their ladder logic file to the device,
+          preventing the retrieval of the ladder logic file from the device.
+        read: direct
+      - title: Claroty Team82 - From Exploits to Forensics, Unraveling the Unitronics Attack
+        url: https://claroty.com/team82/research/from-exploits-to-forensics-unraveling-the-unitronics-attack
+        accessed: "2026-11-08"
+        kind: researcher
+        quote: >-
+          In the case of the Unitronics attack, the attackers did not burn the
+          project when performing the download procedure. This meant we could not
+          obtain the attacker’s project, however our tool was still able to gain
+          access to the old project that was downloaded to the PLC (before the
+          attackers overwrote it), only if it was burned.
+        read: direct
+  - feature: PCOM access levels
+    description: Blocked Access, Operator (viewing and updating data) and Technician (troubleshooting, settings, version updates).
+    confidence: high
+    sources:
+      - title: Unitronics - Cyber Protection, Vision and Samba Series
+        url: https://www.unitronicsplc.com/cyber_security_vision-samba/
+        accessed: "2026-11-08"
+        kind: vendor
+        quote: >-
+          Blocked Access: Ensure that controllers do not allow connection to this
+          protocol until there is a need for viewing only.
+        read: direct
+collection:
+  - method: Photograph the HMI screen and record the PLC name and status shown locally
+    impact: passive
+    description: Captures a defacement splash page or text before anyone clears it.
+    confidence: high
+  - method: Passive capture of PCOM (TCP 20256 by default) and Modbus traffic (TAP or SPAN)
+    impact: passive
+    description: Shows who connected, from where, and on which port; AA23-335A reports the port being changed to 20257.
+    confidence: high
+    references:
+      - https://www.cisa.gov/news-events/cybersecurity-advisories/aa23-335a
+  - method: Upload the burned project with VisiLogic into a new file
+    impact: online-vendor-tool
+    description: >-
+      Works only if a project was burned; may require the upload password.
+      AA23-335A notes a software-version mismatch can block the engineering
+      workstation until VisiLogic matches the version the attacker set.
+    safety_note: >-
+      An online VisiLogic session can also download. Operations approval
+      required; never download a "fix" before the burned project and the
+      device settings have been preserved.
+    confidence: high
+    references:
+      - https://www.cisa.gov/news-events/cybersecurity-advisories/aa23-335a
+  - method: Extract the signature log and raw memory with Claroty PCOMClient
+    impact: process-risk
+    description: >-
+      Third-party research tool, not a vendor read path. Claroty states the
+      client can read and write raw memory.
+    safety_note: >-
+      Break-glass only, on a controller already taken out of process service
+      or with the process in an agreed safe state. Prefer doing it on a
+      replacement-swapped unit in the lab.
+    confidence: low
+    unverified: true
+    references:
+      - https://claroty.com/team82/research/from-exploits-to-forensics-unraveling-the-unitronics-attack
+volatility:
+  - A factory reset is the documented way around an attacker-set software version (AA23-335A) and would destroy whatever the controller holds; preserve first.
+  - The running logic is recoverable from the PLC only if it was burned.
+anti_forensics:
+  - technique: Malicious ladder logic downloaded without burning, so it cannot be uploaded from the PLC
+    seen_in: CyberAv3ngers campaign against Unitronics PLCs (AA23-335A)
+  - technique: Upload/download disabled, upload password set, device renamed and PCOM port changed to lock owners out
+    seen_in: CyberAv3ngers campaign against Unitronics PLCs (AA23-335A)
+  - technique: Software version of the malicious logic set to an older version so the owner's workstation could not communicate
+    seen_in: CyberAv3ngers campaign against Unitronics PLCs (AA23-335A)
+datasources: [ICS-DS-0001, ICS-DS-0004, ICS-DS-0014, ICS-DS-0007]
+confidence: medium
+references:
+  - title: CISA AA23-335A - IRGC-Affiliated Cyber Actors Exploit PLCs in Multiple Sectors, Including US Water and Wastewater Systems Facilities
+    url: https://www.cisa.gov/news-events/cybersecurity-advisories/aa23-335a
+    accessed: "2026-11-08"
+  - title: Claroty Team82 - From Exploits to Forensics, Unraveling the Unitronics Attack
+    url: https://claroty.com/team82/research/from-exploits-to-forensics-unraveling-the-unitronics-attack
+    accessed: "2026-11-08"
+  - title: Unitronics - Cyber Protection, Vision and Samba Series
+    url: https://www.unitronicsplc.com/cyber_security_vision-samba/
+    accessed: "2026-11-08"
+last_verified: "2026-11-08"
+notes: >-
+  The on-PLC signature log is known only from Claroty's research; Unitronics
+  documentation read here does not mention it. VisiLogic help (upload password,
+  burn, SB/SI security operands) was not read. Claroty's PCOM-Tools are on
+  GitHub (claroty/PCOM-Tools); licence not reviewed.
+response: baseline
+hardening: unitronics
+artifacts:
+  - locator: Signature log in PLC memory (extracted with Claroty PCOMClient)
+    class: audit-trail
+    volatility: stable
+    forensic_value: high
+    evidence_type: [initial-access, attribution, timeline]
+    confidence: low
+    unverified: true
+    collection_impact: process-risk
+    description: >-
+      Researcher-described log of user interactions: connection dates, full
+      project path downloaded, username, operating system and keyboard layout
+      of the connecting computer. Retention and capacity not published.
+    seen_in: [CyberAv3ngers campaign against Unitronics PLCs (AA23-335A)]
+    provides: Who connected and with what workstation, recoverable from the PLC itself.
+    normal: Connections from the site's own engineering workstations, usernames and keyboard layouts.
+    suspicious: Unknown usernames, project paths not on any site workstation, unexpected keyboard layouts, connections at times nobody worked.
+    basis: researcher
+    sources:
+      - title: Claroty Team82 - From Exploits to Forensics, Unraveling the Unitronics Attack
+        url: https://claroty.com/team82/research/from-exploits-to-forensics-unraveling-the-unitronics-attack
+        accessed: "2026-11-08"
+        kind: researcher
+        quote: >-
+          Inside the signature log, we can find a lot of super interesting
+          forensic information, including exact dates of connections made to a
+          PLC, the full path of the project that was downloaded to it, the
+          username of the computer that connected to it, as well as information
+          about the computer including its operating system, keyboard layout, etc.
+        read: direct
+  - locator: Burned project on the PLC (VisiLogic upload)
+    class: control-logic
+    volatility: stable
+    forensic_value: high
+    evidence_type: [impair-process-control, impact, attribution]
+    confidence: high
+    collection_impact: online-vendor-tool
+    description: >-
+      The last burned project, which may predate an attacker's unburned
+      download. Its embedded database also carries authoring-host details
+      (see ICS-0010).
+    seen_in: [CyberAv3ngers campaign against Unitronics PLCs (AA23-335A)]
+    provides: The last stored logic, for comparison with the owner's copy.
+    normal: Matches the owner's current project.
+    suspicious: >-
+      Burned project differs from the owner's copy; or the running behaviour
+      (no I/O, splash page) does not match the burned project, meaning the
+      running logic was downloaded unburned.
+    basis: government
+  - locator: Device settings visible in VisiLogic or on the HMI - PLC name, PCOM port, upload/download enabled, upload password, project software version
+    class: config
+    volatility: stable
+    forensic_value: high
+    evidence_type: [evasion, impact, configuration]
+    confidence: high
+    collection_impact: online-vendor-tool
+    description: Each of these was changed in the 2023-2024 campaign to delay owner recovery.
+    seen_in: [CyberAv3ngers campaign against Unitronics PLCs (AA23-335A)]
+    provides: Whether the controller was locked against its owner.
+    normal: The PLC name, port and settings recorded in the site's documentation.
+    suspicious: >-
+      Renamed device; PCOM port changed from 20256 (20257 in the campaign);
+      upload or download disabled; an upload password nobody on site set; a
+      project software version older than the site's VisiLogic.
+    basis: government
+    sources:
+      - title: CISA AA23-335A
+        url: https://www.cisa.gov/news-events/cybersecurity-advisories/aa23-335a
+        accessed: "2026-11-08"
+        kind: government
+        quote: >-
+          The actors disabled the upload and download functions of the PLC device
+          to prevent the device operators from taking down the splash page
+        read: direct
+      - title: CISA AA23-335A
+        url: https://www.cisa.gov/news-events/cybersecurity-advisories/aa23-335a
+        accessed: "2026-11-08"
+        kind: government
+        quote: >-
+          The actors renamed the compromised devices, which delayed the device
+          operators from accessing the devices remotely as the device name was a
+          required field for facilitating remote connections
+        read: direct
+  - locator: HMI screen (splash page or text message)
+    class: alarms-events
+    volatility: live
+    forensic_value: medium
+    evidence_type: [impact, attribution]
+    confidence: high
+    collection_impact: passive
+    description: The integrated HMI shows what the downloaded project tells it to.
+    seen_in: [CyberAv3ngers campaign against Unitronics PLCs (AA23-335A)]
+    provides: Visible evidence of a malicious download and the actor's claimed identity.
+    normal: The site's own screens with live I/O values.
+    suspicious: A defacement image or text replacing the operating screens.
+    basis: government
+    sources:
+      - title: CISA AA23-335A
+        url: https://www.cisa.gov/news-events/cybersecurity-advisories/aa23-335a
+        accessed: "2026-11-08"
+        kind: government
+        quote: >-
+          The actors uploaded a splash page with the aforementioned defacement
+          message to the HMI screen, which prevented operators from reading
+          anything the display screen would normally show, such as input and
+          output readings
+        read: direct
+  - locator: Network traffic to TCP 20256 (or a changed PCOM port) from outside the control network
+    class: network
+    volatility: off-box
+    forensic_value: high
+    evidence_type: [initial-access, credential-access]
+    confidence: high
+    collection_impact: passive
+    description: The 2023 campaign authenticated to internet-exposed devices on the default PCOM port with default or no passwords.
+    seen_in: [CyberAv3ngers campaign against Unitronics PLCs (AA23-335A)]
+    provides: Source addresses and timing of remote access to the PLC.
+    normal: No PCOM sessions from the internet; sessions only from the site's workstations.
+    suspicious: PCOM sessions from internet addresses; repeated authentication attempts; PCOM on 20257 or another non-default port.
+    basis: government
+    sources:
+      - title: CISA AA23-335A
+        url: https://www.cisa.gov/news-events/cybersecurity-advisories/aa23-335a
+        accessed: "2026-11-08"
+        kind: government
+        quote: >-
+          The actors compromised multiple Unitronics Vision Series devices by
+          authenticating to internet-connected devices with communications set to
+          the default TCP port `20256`
+        read: direct

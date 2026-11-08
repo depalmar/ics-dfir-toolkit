@@ -1,0 +1,114 @@
+# Unattributed campaign against internet-exposed MicroLogix PLCs at US water utilities, July 2026.
+# Schema: ../../schema/incident.schema.json
+# Research notes: docs/research/2026-11-08/incidents-and-kev.md
+id: ICS-INC-0010
+name: US water-sector MicroLogix PLC lockout campaign
+date: '2026-07-27'
+date_basis: >-
+  FBI/EPA PSA I-073026-PSA: "Since 27 July 2026, Water and Wastewater Sector (WWS) utility companies in at
+  least seven states have reported incidents to the FBI". CISA's exposure-reduction guidance says "In July
+  2026".
+disclosed: '2026-07-30'
+sectors:
+  - water and wastewater
+countries:
+  - United States
+victim: >-
+  WWS utility companies in at least seven states (FBI); internet-exposed systems at more than 100 WWS
+  entities (CISA, read through a search summary). No victim is named.
+platforms:
+  - ICS-0002
+  - ICS-0013
+summary: >-
+  Unidentified "malicious cyber actors" reached internet-exposed Rockwell Automation/Allen-Bradley MicroLogix
+  1100 and 1400 PLCs at US water and wastewater utilities, commonly connected directly to cellular modems
+  that operators, vendors or integrators installed and did not document, then turned on and set passwords
+  and changed IP addresses. Operators lost monitoring and control; CISA reports boil water notices and
+  sustained manual operations and the FBI reports loss of pressure and flooding. At least one utility found
+  modified project files after noticing ladder logic discrepancies across several sites.
+physical_consequence: loss-of-control
+consequence_detail: >-
+  FBI: the changes resulted "in a loss of monitoring and control functionality"; "Operational effects
+  reported to the FBI have included loss of pressure and flooding." CISA: "This activity has resulted in
+  boil water notices and sustained manual operations."
+ics_effects:
+  - loss-of-view
+  - loss-of-control
+  - denial-of-control
+chain:
+  - tactic: initial-access
+    what: >-
+      Remote access to internet-facing PLCs; CISA notes the targeting "includes cellular modems installed by
+      operators, vendors, or system integrators that may not be documented or included in routine attack
+      surface scans".
+  - tactic: inhibit-response-function
+    what: >-
+      "turning on and setting passwords" on the PLCs, locking operators out (FBI); "modified passwords to lock
+      out operators" (CISA).
+  - tactic: impact
+    what: >-
+      Changed PLC IP addresses, disconnecting them and causing loss of view and, in some cases, loss of
+      function of connected equipment.
+  - tactic: impair-process-control
+    what: >-
+      "At least one organization reported modified PLC project files after noticing ladder logic
+      discrepancies across several sites." (FBI)
+  - tactic: configuration
+    what: >-
+      FBI: "similarities in network setup provided by third parties may provide MCA the opportunity to
+      multiply successes" across customers.
+lessons:
+  - lesson: >-
+      Disconnect PLCs from the internet; route remote access through a VPN or gateway; enable password
+      protection and change defaults; allowlist IPs for known engineering laptops and OT assets.
+    basis: government
+  - lesson: >-
+      Keep a known clean backup of each PLC image before an incident so a password lockout can be recovered;
+      for MicroLogix 1400 see Rockwell's notice SD1790 on restoring access when the password is unknown.
+    basis: government
+  - lesson: >-
+      Include integrator- and vendor-installed cellular modems in the inventory and exposure scans; CISA says
+      even mature organizations missed them.
+    basis: government
+  - lesson: >-
+      Practise manual operation, place physical and software key switches in RUN, and plan replacement of
+      end-of-life PLCs that no longer receive security updates.
+    basis: government
+confidence: high
+sources:
+  - title: CISA Urges Water and Wastewater Systems Sector to Protect OT Against Activity Targeting PLCs
+    url: https://www.cisa.gov/news-events/alerts/2026/07/30/cisa-urges-water-and-wastewater-systems-sector-protect-ot-against-activity-targeting-plcs
+    accessed: '2026-11-08'
+    kind: government
+    quote: >-
+      Threat actors targeting exposed PLCs have modified passwords to lock out operators and disconnected the
+      PLCs by changing their IP addresses. This activity has resulted in boil water notices and sustained
+      manual operations.
+    read: direct
+  - title: Malicious Cyber Actors Targeting Water and Wastewater Sector Internet-Facing Programmable Logic Controllers, Causing Operational Disruptions (FBI/EPA PSA I-073026-PSA)
+    url: https://www.ic3.gov/PSA/2026/PSA260730.pdf
+    accessed: '2026-11-08'
+    kind: government
+    quote: >-
+      MCAs are targeting internet-exposed PLCs (Rockwell Automation/Allen-Bradley’s MicroLogix 1100 and 1400
+      series) to remotely tamper with device configurations by changing IP addresses and turning on and
+      setting passwords, resulting in a loss of view, and in some cases function, of connected equipment in
+      targeted facilities
+    read: direct
+  - title: Internet Exposure Reduction Guidance (CISA)
+    url: https://www.cisa.gov/resources-tools/resources/exposure-reduction
+    accessed: '2026-11-08'
+    kind: government
+    quote: >-
+      In July 2026, CISA observed malicious cyber activity targeting internet-exposed systems at more than 100
+      Water and Wastewater Systems (WWS) Sector entities, commonly via programmable logic controllers (PLCs)
+      connected directly to a cellular modem.
+    read: summariser
+notes: >-
+  Recorded separately from ICS-INC-0009 because neither CISA nor the FBI attributes this campaign or ties it
+  to AA26-097A; the FBI calls the actors "malicious cyber actors (MCAs)". Both involve Rockwell PLCs and
+  cellular modems and AA26-097A's IOC table runs into July 2026, but no source links them. Start-date
+  conflict: FBI says 27 July 2026; an IOActive blog (not a primary source) says 26 July. The FBI has only
+  observed the behaviour on MicroLogix 1100/1400. The CISA exposure-reduction figure (more than 100
+  entities) came through a search summary and should be checked against the page. Rockwell SD1790 was not
+  read.

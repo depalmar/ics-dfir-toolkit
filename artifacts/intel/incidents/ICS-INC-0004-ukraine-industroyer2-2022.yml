@@ -1,0 +1,102 @@
+# Attempted Industroyer2 attack on a Ukrainian energy company, 8 April 2022.
+# Schema: ../../schema/incident.schema.json
+# Research notes: docs/research/2026-11-08/incidents-and-kev.md
+id: ICS-INC-0004
+name: Attempted Industroyer2 attack on Ukrainian high-voltage substations
+aliases:
+  - CERT-UA#4435
+date: '2022-04-08'
+date_basis: >-
+  ESET: "The destructive actions were scheduled for 2022-04-08"; CERT-UA: disconnection of substations was
+  planned for the evening of Friday, 8 April 2022.
+disclosed: '2022-04-12'
+sectors:
+  - electricity
+countries:
+  - Ukraine
+victim: A Ukrainian energy company / energy provider, not named by ESET or CERT-UA.
+actors:
+  - ICS-TA-0001
+malware:
+  - ICS-MAL-0006
+platforms:
+  - ICS-0014
+protocols:
+  - ICS-PROTO-0007
+summary: >-
+  Sandworm (CERT-UA's UAC-0082) planned to switch off several high-voltage substations at a Ukrainian
+  energy company with Industroyer2, an IEC 60870-5-104-only rebuild of Industroyer compiled on 2022-03-23
+  with per-substation parameters hard-coded, while CaddyWiper (Windows, pushed via GPO) and the ORCSHRED,
+  SOLOSHRED and AWFULSHRED scripts (Linux, Solaris) destroyed IT and ICS hosts to slow recovery. CERT-UA
+  says the initial compromise was no later than February 2022 and that implementation of the plan was
+  prevented.
+physical_consequence: attempted-no-effect
+consequence_detail: >-
+  CERT-UA (12 April 2022): "реалізації зловмисного задуму на поточний момент вдалося запобігти"
+  (toolkit translation: implementation of the malicious plan has so far been prevented). ESET calls it "an
+  attempt to deploy the Industroyer2 malware against high-voltage electrical substations".
+chain:
+  - tactic: initial-access
+    what: >-
+      Not described. CERT-UA: the victim experienced two waves of attacks and the initial compromise took
+      place no later than February 2022; ESET: "we don’t know how attackers compromised the initial victim
+      nor how they moved from the IT network to the Industrial Control System (ICS) network."
+  - tactic: lateral-movement
+    what: >-
+      Chains of SSH tunnels between network segments and IMPACKET for remote command execution (CERT-UA);
+      the Linux worm sc.sh spreads over SSH with a supplied credential list (ESET).
+  - tactic: execution
+    what: >-
+      A Sandworm operator created the scheduled task to launch Industroyer2 (108_100.exe) at 2022-04-08
+      15:02:22 UTC; it was scheduled to run at 16:10 UTC (ESET timeline).
+  - tactic: impair-process-control
+    what: >-
+      Industroyer2 terminates a legitimate process used in daily operations (renaming it with .MZ to block
+      restart) and then talks IEC-104 to eight configured devices, including protection relays, using
+      hard-coded ASDU and IOA values (ESET).
+    evidence: 108_100.exe sample and its hard-coded configuration (ESET, CERT-UA)
+  - tactic: inhibit-response-function
+    what: >-
+      CaddyWiper (loaded by ARGUEPATCH) deployed via GPO with the POWERGAP PowerShell script, scheduled for
+      14:58 UTC and again at 16:20 UTC on the Industroyer2 host; Linux and Solaris wipers stop ssh/http and
+      Oracle services and shred disks, which ESET assesses would prevent operators retaking control of the
+      substations.
+  - tactic: attribution
+    what: >-
+      ESET assesses "with high confidence that the APT group Sandworm is responsible"; CERT-UA titles the
+      advisory as an attack by Sandworm (UAC-0082).
+lessons:
+  - lesson: >-
+      The ICS payload was scheduled through Windows task scheduling and staged by GPO from the domain
+      controller, so scheduled-task and GPO change monitoring on hosts that can reach substation devices
+      is a detection opportunity before the payload fires.
+    basis: toolkit
+  - lesson: >-
+      Industroyer2 must be recompiled with victim-specific IEC-104 addresses, so per-station ASDU/IOA
+      configuration and the list of devices an EMS/SCADA host talks to are themselves sensitive data.
+    basis: toolkit
+confidence: high
+sources:
+  - title: 'Industroyer2: Industroyer reloaded (ESET)'
+    url: https://www.welivesecurity.com/2022/04/12/industroyer2-industroyer-reloaded/
+    accessed: '2026-11-08'
+    kind: researcher
+    quote: >-
+      In this case, the Sandworm attackers made an attempt to deploy the Industroyer2 malware against
+      high-voltage electrical substations in Ukraine.
+    read: direct
+  - title: 'Кібератака групи Sandworm (UAC-0082) на об’єкти енергетики України з використанням шкідливих програм INDUSTROYER2 та CADDYWIPER (CERT-UA#4435)'
+    url: https://cert.gov.ua/article/39518
+    accessed: '2026-11-08'
+    kind: government
+    quote: >-
+      Відомо, що організація-жертва зазнала двох хвиль атак. Первинна компрометація відбулася не пізніше
+      лютого 2022 року. Відключення електричних підстанцій та виведення з ладу інфраструктури підприємства
+      було заплановане на вечір п’ятниці, 8 квітня 2022 року. Разом з тим, реалізації зловмисного задуму на
+      поточний момент вдалося запобігти.
+    read: direct
+notes: >-
+  The CERT-UA quote is Ukrainian and kept verbatim; the English in consequence_detail and the chain is the
+  toolkit's translation. ESET's blog does not state whether the attack was stopped; CERT-UA does ("so far
+  ... prevented"). CaddyWiper, ARGUEPATCH, ORCSHRED, SOLOSHRED, AWFULSHRED and POWERGAP have no registry
+  malware ids. ESET says analysis of the exact per-device actions was "still ongoing" at publication.

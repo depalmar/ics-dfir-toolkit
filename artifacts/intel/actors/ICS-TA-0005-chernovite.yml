@@ -1,0 +1,49 @@
+id: ICS-TA-0005
+name: CHERNOVITE
+aliases: []
+reported_by: [Dragos]
+link_confidence: medium
+stated_confidence: >-
+  Dragos, on PIPEDREAM's developer: 'The Dragos team assesses with high confidence
+  this capability was developed by a state actor with the intention to leverage it
+  in future operations.' Dragos also states 'Dragos assesses that PIPEDREAM has
+  not yet been deployed in the wild.'
+state_nexus: >-
+  An unnamed 'state actor' (Dragos, high confidence, about PIPEDREAM's developer).
+  Dragos 'does not corroborate nor conduct political attribution to threat
+  activity'.
+motivation: disruption
+summary: >-
+  Dragos's cluster for the developer of PIPEDREAM, which Dragos calls the seventh
+  known ICS-specific malware. Dragos identified it in early 2022 before any known
+  deployment. PIPEDREAM gives operators the ability to 'scan for new devices,
+  brute force passwords, sever connections, and crash the target device' on
+  Schneider Electric and OMRON PLCs, CODESYS-based PLCs and OPC UA servers. It
+  also carries tools for intrusion against Windows hosts. Dragos says it targets
+  LNG and electric power equipment and 'could easily' be adapted more widely.
+ics_kill_chain_stage: stage-2
+stage_basis: "Dragos, ICS impact: 'ICS Kill Chain Stage 2 - Install/Modify; Execute ICS Attack'."
+platforms: [ICS-0005, ICS-0008, ICS-0009, ICS-0015, ICS-0010]
+malware: [ICS-MAL-0007]
+incidents: []
+tradecraft:
+  - "Malware (Dragos, PIPEDREAM): uses 'several different protocols including FINS, Modbus, and Schneider Electric’s implementation of CoDeSys', plus OPC UA, to scan for devices, brute-force passwords, sever connections and crash targets."
+  - "Malware (Dragos): 'PLC credential capture, bruteforcing, and denial of service'; 'contains tools for intrusion operations against Windows devices'."
+  - "Infrastructure / operator (Dragos): 'Uses victim PLCs, engineering workstations, and PLC control software for lateral movement and manipulation'."
+  - "Not deployed: 'Dragos assesses that PIPEDREAM has not yet been deployed in the wild.'"
+sectors: [liquefied natural gas, electric power, oil and gas]
+first_seen: "2021 (Dragos: 'Since 2021')"
+references:
+  - title: Dragos - CHERNOVITE threat group
+    url: https://www.dragos.com/threat/chernovite
+    accessed: "2026-11-08"
+    kind: vendor
+    quote: "The Dragos team assesses with high confidence this capability was developed by a state actor with the intention to leverage it in future operations."
+    read: direct
+notes: >-
+  The platforms come from Dragos's victim list: 'Asset owners with Schneider
+  Electric, Omron PLCs, CoDeSyS-based PLCs, as well as any OPC UA operations'.
+  Engineering workstations are listed because Dragos says the group uses them for
+  lateral movement. Protocols (FINS, Modbus, CODESYS, OPC UA) are named in text
+  only until protocol records exist. No incident is listed: Dragos reports no
+  deployment.

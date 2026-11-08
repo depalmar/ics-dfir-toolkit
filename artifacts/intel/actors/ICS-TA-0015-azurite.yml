@@ -1,0 +1,74 @@
+id: ICS-TA-0015
+name: AZURITE
+aliases:
+  - name: Flax Typhoon
+    by: "Dragos ('Overlap with Flax Typhoon, Ethereal Panda, UNC5923, Raptor Train, Red Dev 54'; 2026: 'AZURITE shares technical overlaps with Flax Typhoon')"
+    equated: false
+  - name: Ethereal Panda
+    by: Dragos, same overlap list
+    equated: false
+  - name: UNC5923
+    by: Dragos, same overlap list
+    equated: false
+  - name: Raptor Train
+    by: Dragos, same overlap list
+    equated: false
+  - name: Red Dev 54
+    by: Dragos, same overlap list
+    equated: false
+reported_by: [Dragos]
+link_confidence: medium
+stated_confidence: >-
+  Dragos gives no confidence language. It states AZURITE 'moves laterally to
+  engineering workstations where it conducts interactive operations to identify
+  and exfiltrate alarm data, PLC configurations, HMI data, and process
+  information', and lists 'Assessed to share tasking and targeting objectives with
+  VOLTZITE'.
+state_nexus: >-
+  None stated. Dragos 'does not corroborate nor conduct political attribution to
+  threat activity'.
+motivation: prepositioning
+summary: >-
+  Dragos cluster named in the 2026 Year in Review that goes after OT engineering
+  workstations. It gets in through internet-facing VPNs, firewalls and
+  remote-access gateways (Ivanti, Fortinet, Cisco, GIS, F5) and hides behind
+  networks of compromised SOHO routers and NAS devices. It then steals alarm data,
+  PLC configurations, HMI data and process information. Dragos reads the focus on
+  'how industrial processes operate, what triggers alarms, and how control loops
+  are structured' as building knowledge for OT-specific disruptive capability.
+  Motivation follows Dragos's wording: 'treat any AZURITE presence in an OT
+  environment as active prepositioning for future destructive operations'.
+ics_kill_chain_stage: unknown
+stage_basis: >-
+  The Dragos pages read give no stage label. Trade press reports Dragos calling
+  AZURITE a Stage 2 adversary; that is not used here.
+platforms: [ICS-0010]
+malware: []
+incidents: []
+tradecraft:
+  - "Exploit (Dragos): 'Exploits internet-facing Ivanti, Fortinet, Cisco, GIS, and F5 assets'."
+  - "Hands-on operator (Dragos): 'interactive operations to identify and exfiltrate alarm data, PLC configurations, HMI data, and process information' from engineering workstations, over 'RDP access to engineering workstations'."
+  - "Hands-on operator (Dragos): 'Heavy use of LOTL techniques and strong operational security practices'; 'Slow and steady reconnaissance to evade internal detection'."
+  - "Tools (Dragos): web shells 'Chopper, AntSword, SuperShell, and Godzilla'; 'SOCKS/SOCKS5 tunneling for C2'."
+  - "Infrastructure (Dragos): 'Compromised SOHO routers and NAS devices incorporated into adversary ORB networks'; 'Purpose-built VPS infrastructure for C2 and exfiltration'."
+sectors: [manufacturing, automotive, electric, oil and gas, pharmaceutical, defense industrial base, government]
+regions: [United States, Taiwan, Europe, Japan, South Korea, Australia]
+first_seen: "2021 (Dragos: 'Since 2021')"
+references:
+  - title: Dragos - AZURITE threat group
+    url: https://www.dragos.com/threat/azurite
+    accessed: "2026-11-08"
+    kind: vendor
+    quote: "Defenders should treat any AZURITE presence in an OT environment as active prepositioning for future destructive operations, not opportunistic intrusion."
+    read: direct
+  - title: Dragos - 2026 OT Cybersecurity Report / Year in Review press release (17 February 2026)
+    url: https://www.dragos.com/resources/press-release/dragos-2026-year-in-review-new-ot-threats-ransomware
+    accessed: "2026-11-08"
+    kind: vendor
+    quote: "AZURITE focuses on long-term access and OT data theft, targeting OT engineering workstations and exfiltrating operational data including network diagrams, alarm data, and process information for downstream capability development."
+    read: direct
+notes: >-
+  AZURITE is not Flax Typhoon; Dragos states overlap only. Dragos assesses shared
+  tasking with VOLTZITE, which is a relationship, not an equation. The Stage 2
+  label appears only in trade press (Cyber Magazine), and the full Year in Review
+  report was not read.

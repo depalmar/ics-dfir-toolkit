@@ -1,0 +1,81 @@
+# Advisory watch - gated by artifacts/scripts/validate.py (a watch script is not written yet).
+# Schema: ../schema/watch.schema.json
+# Research notes: docs/research/2026-11-08/incidents-and-kev.md
+#
+# Every KEV entry on a watched platform added on or after `since` is either covered by a pack (its CVE is
+# in the pack's `cves`) or has a dated decision below. `deferred` means not yet read against primary
+# sources - never a decision. Nothing is added automatically.
+#
+# Checked 2026-11-08 against KEV catalog version 2026.11.06 (1,769 entries), read through the
+# Firecrawl cisa-gov kev_search provider per vendor and cross-checked by scanning the cisagov/kev-data
+# JSON copy for the vendors and products below.
+
+kev_url: https://raw.githubusercontent.com/cisagov/kev-data/main/known_exploited_vulnerabilities.json
+
+# Entries added before this date are not reported (older ICS KEV entries such as Siemens SIMATIC CP
+# CVE-2016-8562 and Schneider U.motion Builder CVE-2018-7841, both added in 2022, were never triaged).
+since: '2023-01-01'
+
+# Regexes are searched in KEV's own vendorProject and product strings. KEV spells Rockwell Automation
+# as "Rockwell" (CVE-2021-22681). Vendors are anchored so that look-alikes do not match: "Digi" must not
+# match Digiever, and Laravel's "Ignition" product must not match Inductive Automation Ignition.
+platforms:
+  ICS-0001: {vendor: '^Rockwell( Automation)?$', product: 'Logix|Multiple Products', exclude: 'MicroLogix'}
+  ICS-0002: {vendor: '^Rockwell( Automation)?$', product: 'MicroLogix'}
+  ICS-0003: {vendor: '^Siemens$', product: 'S7-1[25]00|SIMATIC S7-1'}
+  ICS-0004: {vendor: '^Siemens$', product: 'S7-[34]00|SIMATIC S7-[34]'}
+  ICS-0005: {vendor: '^Schneider Electric$', product: 'Modicon|M340|M580|M221|M241|M251|M258'}
+  ICS-0006: {vendor: '^Unitronics$', product: 'Vision|Samba|Multiple Products'}
+  ICS-0007: {vendor: '^Schneider Electric$', product: 'Triconex|Tricon|TriStation'}
+  ICS-0008: {vendor: '^OMRON$', product: 'Sysmac|\bN[JX]\b|N[JX][0-9]'}
+  ICS-0009: {vendor: '^(CODESYS|3S-Smart Software Solutions)', product: 'CODESYS|Control|Runtime'}
+  ICS-0010: {vendor: '^(Siemens|Rockwell( Automation)?|Schneider Electric|CODESYS)$', product: 'TIA Portal|STEP 7|Studio 5000|RSLogix|EcoStruxure Control Expert|Unity Pro|Development System'}
+  ICS-0011: {vendor: '^(Siemens|Rockwell( Automation)?|GE|GE Vernova|AVEVA|Wonderware|Inductive Automation)$', product: 'WinCC|FactoryTalk View|iFIX|Proficy|InTouch|Ignition'}
+  ICS-0012: {vendor: '^(AVEVA|OSIsoft)$', product: '\bPI\b|Historian'}
+  ICS-0013: {vendor: '^(Sierra Wireless|Moxa|Teltonika|Teltonika Networks|Digi International)$', product: 'AirLink|ALEOS|RUT|TRB|TCR|EDR|OnCell|NPort|MGate|TransPort|Digi Connect|Multiple'}
+  ICS-0014: {vendor: '^(Siemens|ABB|Hitachi Energy|Schweitzer Engineering Laboratories|SEL|GE|GE Vernova)$', product: 'SIPROTEC|SICAM|RTU|Relion|MiCOM|SEL-[0-9]|Protection Relay'}
+  ICS-0015: {vendor: '.', product: 'OPC UA|OPC Unified|KEPServerEX|Kepware'}
+
+# No indicator sets exist yet.
+upstream: {}
+
+triaged:
+  - cve: CVE-2023-6448
+    platform: ICS-0006
+    kev_vendor: Unitronics
+    kev_product: Vision PLC and HMI
+    kev_date_added: '2023-12-11'
+    decision: no-indicators
+    refs:
+      - ICS-INC-0005
+    date: '2026-11-08'
+    basis: >-
+      CISA AA23-335A: the December 2023 PDF ties the CVE to the default passwords CyberAv3ngers used from
+      November 22, 2023; its only IOCs were "Suspected" Crucio ransomware hashes and IPs unrelated to the
+      Unitronics intrusions, and the December 2024 revision removed them. What remains are device-state
+      changes a hunt can check (logic with no I/O, renamed device, port 20256 moved to 20257, disabled
+      upload/download, HMI defacement), recorded in ICS-INC-0005. No network indicator set to build.
+  - cve: CVE-2021-22681
+    platform: ICS-0001
+    kev_vendor: Rockwell
+    kev_product: Multiple Products
+    kev_date_added: '2026-03-05'
+    decision: no-indicators
+    date: '2026-11-08'
+    basis: >-
+      Rockwell PN1550 rev 1.5 (March 5, 2026) only "Added KEV designation"; rev 1.6 publishes no exploitation
+      detail, only detection strategies (controller change log, Controller Log v17+, Change Detection v20+,
+      syslog on ControlLogix/GuardLogix 5580 fw 34.011+ and 5590 fw 38.011+, FactoryTalk AssetCentre) and
+      the mode-switch-to-RUN and CIP Security mitigations. AA26-097A describes Logix project-file tampering
+      with IP IOCs but names no CVE, so its IOCs are not tied to this CVE.
+  - cve: CVE-2018-4063
+    platform: ICS-0013
+    kev_vendor: Sierra Wireless
+    kev_product: AirLink ALEOS
+    kev_date_added: '2025-12-12'
+    decision: deferred
+    date: '2026-11-08'
+    basis: >-
+      Not yet read against primary sources. No exploitation report was found in this pass (the Hacker News
+      article did not render; a Field Effect post was seen only as a search snippet); ICSA-19-122-03 and
+      Sierra Wireless SWI-PSA-2019-003 were not read. KEV marks the product possibly end-of-life.

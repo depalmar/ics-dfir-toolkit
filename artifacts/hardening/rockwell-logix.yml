@@ -1,0 +1,341 @@
+# Prevention and hardening - ICS-0001 Rockwell Automation Logix 5000 controllers
+# Schema: ../schema/hardening.schema.json
+#
+# Vendor sources are Rockwell's public Trust Center advisories (SD1771, SD1672,
+# PN1550) and the Logix 5000 Controllers Security programming manual
+# (1756-PM016). Rockwell Knowledgebase articles those advisories link to
+# (494865 exposure-search advisory, 1085012 "Security Best Practices", BF7490
+# TCP/UDP port list) are marked "[login required]" and were not read; nothing
+# here rests on them. Baseline controls (artifacts/hardening/baseline.yml) apply
+# in addition.
+
+platform_id: ICS-0001
+name: Rockwell Automation Logix 5000 (ControlLogix, CompactLogix, GuardLogix)
+summary: >-
+  Rockwell's own hardening order for Logix controllers, restated in March 2026
+  (SD1771) after the activity CISA later published as AA26-097A: keep controllers
+  off the internet, turn the mode switch to RUN, upload and store project files
+  offline, and use CIP Security with FactoryTalk Security. CVE-2021-22681 (PN1550,
+  KEV-listed) cannot be patched, so these settings are the remediation for it.
+
+controls:
+  - id: rok-off-internet
+    control: Ensure no Logix controller is reachable from the public internet and close unauthenticated ports on edge routers
+    category: exposure
+    priority: critical
+    why: >-
+      Rockwell's first immediate action in SD1771 (March 2026) and SD1672 (May
+      2024). AA26-097A names CompactLogix and Micro850 PLCs among the targeted
+      Rockwell devices, reached with the manufacturer's own programming software.
+    how: >-
+      Remove public connectivity for devices not designed for it; Rockwell gives
+      closing unauthenticated open ports on edge router appliances as an example.
+      For segmentation and broader defence in depth Rockwell points to the
+      Converged Plantwide Ethernet (CPwE) Design and Implementation Guide
+      (ENET-TD001). If disconnection is impossible Rockwell refers to a "Security
+      Best Practices" Knowledgebase article that requires a login.
+    blunts:
+      - AA26-097A Iranian-affiliated exploitation of internet-facing PLCs (2025-2026)
+    confidence: high
+    sources:
+      - title: Rockwell Automation SD1771 - Reiterates Customer Guidance to Disconnect Devices from the Internet and Harden PLCs (March 2026)
+        url: https://www.rockwellautomation.com/en-us/trust-center/security-advisories/advisory.SD1771.html
+        accessed: "2026-11-08"
+        kind: vendor
+        quote: "Customers should ensure that controllers are not exposed to the public internet."
+        read: direct
+      - title: Rockwell Automation SD1771 - Reiterates Customer Guidance to Disconnect Devices from the Internet and Harden PLCs (March 2026)
+        url: https://www.rockwellautomation.com/en-us/trust-center/security-advisories/advisory.SD1771.html
+        accessed: "2026-11-08"
+        kind: vendor
+        quote: "For example, customers should ensure that unauthenticated open ports are closed on edge router appliances."
+        read: direct
+      - title: Rockwell Automation SD1672 - Reiterates Customer Guidance to Disconnect Devices from the Internet (May 2024)
+        url: https://www.rockwellautomation.com/en-us/trust-center/security-advisories/advisory.SD1672.html
+        accessed: "2026-11-08"
+        kind: vendor
+        quote: "Users should never configure their devices to be directly connected to the public-facing internet."
+        read: direct
+      - title: CISA AA26-097A - Iranian-Affiliated Cyber Actors Exploit Programmable Logic Controllers Across US Critical Infrastructure
+        url: https://www.cisa.gov/news-events/cybersecurity-advisories/aa26-097a
+        accessed: "2026-11-08"
+        kind: government
+        quote: "The actors used leased, third-party hosted infrastructure and manufacturers’ PLC programming software to connect to misconfigured victim PLCs."
+        read: direct
+
+  - id: rok-mode-switch-run
+    control: Put the controller's physical mode switch in RUN and return it to RUN after every online change
+    category: controller-protection
+    priority: critical
+    why: >-
+      Rockwell lists RUN as the first mitigation for CVE-2021-22681 on every
+      affected Logix family, and as the first ControlLogix/CompactLogix item in
+      SD1771. AA26-097A gives the same advice for this campaign.
+    how: >-
+      Turn the key on the controller front to RUN. Use PROGRAM or REMOTE only while
+      downloading or editing online, then switch back. No software setting
+      replaces the physical switch; Rockwell's System Security Design Guidelines
+      (SECURE-RM001) and the CompactLogix 5370 user manual chapter "Select the
+      Operating Mode of the Controller" describe the switch (cited by AA26-097A,
+      not read here).
+    operational_impact: >-
+      Remote downloads and online edits then need someone at the cabinet. Changing
+      mode locks in the project currently downloaded, so AA26-097A asks owners to
+      review and validate the running project before turning the key.
+    blunts:
+      - CVE-2021-22681
+      - AA26-097A Iranian-affiliated exploitation of internet-facing PLCs (2025-2026)
+    confidence: high
+    sources:
+      - title: Rockwell Automation SD1771 - Reiterates Customer Guidance to Disconnect Devices from the Internet and Harden PLCs (March 2026)
+        url: https://www.rockwellautomation.com/en-us/trust-center/security-advisories/advisory.SD1771.html
+        accessed: "2026-11-08"
+        kind: vendor
+        quote: "The Controller’s mode switch should be put into the “Run” position."
+        read: direct
+      - title: Rockwell Automation PN1550 - CVE-2021-22681 Authentication Bypass Vulnerability Found in Logix Controllers (rev 1.6, March 2026)
+        url: https://www.rockwellautomation.com/en-us/trust-center/security-advisories/advisory.PN1550.html
+        accessed: "2026-11-08"
+        kind: vendor
+        quote: "Put the controller mode switch to “Run” mode."
+        read: direct
+      - title: CISA AA26-097A - Iranian-Affiliated Cyber Actors Exploit Programmable Logic Controllers Across US Critical Infrastructure
+        url: https://www.cisa.gov/news-events/cybersecurity-advisories/aa26-097a
+        accessed: "2026-11-08"
+        kind: government
+        quote: "Devices should only be in the program or remote position when updating or downloading software online and immediately switched back to the run position when complete."
+        read: direct
+
+  - id: rok-cip-security
+    control: Deploy CIP Security between engineering workstations and controllers with FactoryTalk Policy Manager
+    category: controller-protection
+    priority: high
+    why: >-
+      CVE-2021-22681 lets a non-Rockwell tool authenticate to Logix controllers
+      using a key discoverable from Studio 5000; Rockwell says CIP Security
+      remediates it when properly deployed and that the flaw cannot be patched.
+    how: >-
+      Use FactoryTalk Policy Manager to deploy a CIP Security policy requiring
+      authenticated connections. Per PN1550: ControlLogix 5580 v32+ and 5590 v38+
+      can use CIP Security on the front port or a 1756-EN4TR module; ControlLogix
+      5570 v31+ and 5580 v31 via a 1756-EN4TR; CompactLogix 5370 v20+ and 5380 v28+
+      via the 1783-CSP CIP Security Proxy. SoftLogix 5800 has no additional
+      mitigation. Check device support in Appendix A of the CIP Security
+      Application Technique (SECURE-AT001).
+    operational_impact: >-
+      Depends on firmware revision and may need added hardware (1756-EN4TR,
+      1783-CSP); certificates or pre-shared keys must be managed. Rockwell asks
+      administrators to plan migration to a secure industrial protocol.
+    blunts:
+      - CVE-2021-22681
+    confidence: high
+    sources:
+      - title: Rockwell Automation PN1550 - CVE-2021-22681 Authentication Bypass Vulnerability Found in Logix Controllers (rev 1.6, March 2026)
+        url: https://www.rockwellautomation.com/en-us/trust-center/security-advisories/advisory.PN1550.html
+        accessed: "2026-11-08"
+        kind: vendor
+        quote: "When properly deployed, CIP Security remediates this vulnerability. FactoryTalk® Policy Manager can be used to deploy a CIP Security policy that requires connections to the controller to be authenticated using strong cryptographic protections."
+        read: direct
+      - title: Rockwell Automation PN1550 - CVE-2021-22681 Authentication Bypass Vulnerability Found in Logix Controllers (rev 1.6, March 2026)
+        url: https://www.rockwellautomation.com/en-us/trust-center/security-advisories/advisory.PN1550.html
+        accessed: "2026-11-08"
+        kind: vendor
+        quote: "Rockwell Automation has determined that this vulnerability cannot be mitigated with a patch."
+        read: direct
+      - title: Rockwell Automation SD1771 - Reiterates Customer Guidance to Disconnect Devices from the Internet and Harden PLCs (March 2026)
+        url: https://www.rockwellautomation.com/en-us/trust-center/security-advisories/advisory.SD1771.html
+        accessed: "2026-11-08"
+        kind: vendor
+        quote: "Industrial Security Administrators should evaluate and plan to migrate to a secure industrial protocol."
+        read: direct
+
+  - id: rok-factorytalk-security-binding
+    control: Bind each controller to a FactoryTalk Security authority for role-based access, together with CIP Security
+    category: identity
+    priority: high
+    why: >-
+      FactoryTalk Security gives centrally managed, role-based control of what
+      users can do in Logix Designer. On its own it can be bypassed through
+      CVE-2021-22681; Rockwell says binding plus CIP Security significantly
+      reduces that likelihood.
+    how: >-
+      Configure permission sets or Logical Names in the FactoryTalk Administration
+      Console and secure the project to use only the selected security authority;
+      review Guest User permissions, which apply to users not authenticated on the
+      same FactoryTalk Directory. See publication FTSEC-QS001 (not read here).
+    blunts:
+      - CVE-2021-22681
+    confidence: high
+    sources:
+      - title: Rockwell Automation PN1550 - CVE-2021-22681 Authentication Bypass Vulnerability Found in Logix Controllers (rev 1.6, March 2026)
+        url: https://www.rockwellautomation.com/en-us/trust-center/security-advisories/advisory.PN1550.html
+        accessed: "2026-11-08"
+        kind: vendor
+        quote: "If FactoryTalk® Security and CIP Security are both configured, binding a controller to a FactoryTalk® Security Authority significantly reduces the likelihood that this vulnerability could be used to circumvent role‑based access controls."
+        read: direct
+      - title: Rockwell Automation 1756-PM016T - Logix 5000 Controllers Security, Programming Manual (September 2025)
+        url: https://literature.rockwellautomation.com/idc/groups/literature/documents/pm/1756-pm016_-en-p.pdf
+        accessed: "2026-11-08"
+        kind: vendor
+        quote: "Use FactoryTalk Security to control access to the logic in your projects with centrally managed, role-based policy enforcement."
+        read: direct
+
+  - id: rok-restrict-44818
+    control: Restrict or block EtherNet/IP (TCP 44818) from outside the industrial control zone and keep controllers behind firewalls
+    category: segmentation
+    priority: high
+    why: >-
+      Exploiting CVE-2021-22681 needs network access to the controller.
+      AA26-097A observed inbound traffic to PLCs on 44818 and 2222 among other
+      ports.
+    how: >-
+      Block TCP 44818 at zone boundaries; place control networks behind firewalls
+      isolated from the business network; where remote access is required use a
+      current VPN. Rockwell's full port list (BF7490) is a login-only
+      Knowledgebase article; the CPwE guides (ENET-TD001, ENET-TD002 for
+      industrial firewalls) give the architecture.
+    blunts:
+      - CVE-2021-22681
+    confidence: high
+    sources:
+      - title: Rockwell Automation PN1550 - CVE-2021-22681 Authentication Bypass Vulnerability Found in Logix Controllers (rev 1.6, March 2026)
+        url: https://www.rockwellautomation.com/en-us/trust-center/security-advisories/advisory.PN1550.html
+        accessed: "2026-11-08"
+        kind: vendor
+        quote: "Restricting or blocking traffic on TCP 44818 from outside of the industrial control system network zone."
+        read: direct
+      - title: Rockwell Automation PN1550 - CVE-2021-22681 Authentication Bypass Vulnerability Found in Logix Controllers (rev 1.6, March 2026)
+        url: https://www.rockwellautomation.com/en-us/trust-center/security-advisories/advisory.PN1550.html
+        accessed: "2026-11-08"
+        kind: vendor
+        quote: "Locating control system networks and devices behind firewalls and isolating them from the enterprise/business network."
+        read: direct
+
+  - id: rok-change-detection
+    control: Turn on the Controller Log, Change Detection and controller syslog, and monitor them for unexpected changes
+    category: logging-monitoring
+    priority: high
+    why: >-
+      Rockwell's detection strategy for CVE-2021-22681 and the only on-controller
+      record of who changed what. Without it an altered project may go unnoticed
+      until the process misbehaves.
+    how: >-
+      Per PN1550: monitor the controller change log; use the Controller Log on v17
+      and later and Change Detection in Logix Designer on v20 and later (both in
+      1756-PM015); on ControlLogix/GuardLogix 5580 firmware 34.011+ or ControlLogix
+      5590 firmware 38.011+ configure syslog to a collector (SECURE-AT001); use
+      FactoryTalk AssetCentre change detection where available.
+    operational_impact: Feature availability depends on firmware revision; syslog needs a collector reachable from the control zone.
+    blunts:
+      - CVE-2021-22681
+    confidence: high
+    sources:
+      - title: Rockwell Automation PN1550 - CVE-2021-22681 Authentication Bypass Vulnerability Found in Logix Controllers (rev 1.6, March 2026)
+        url: https://www.rockwellautomation.com/en-us/trust-center/security-advisories/advisory.PN1550.html
+        accessed: "2026-11-08"
+        kind: vendor
+        quote: "If using v20 or later, utilize Change Detection in the Logix Designer Application."
+        read: direct
+      - title: Rockwell Automation PN1550 - CVE-2021-22681 Authentication Bypass Vulnerability Found in Logix Controllers (rev 1.6, March 2026)
+        url: https://www.rockwellautomation.com/en-us/trust-center/security-advisories/advisory.PN1550.html
+        accessed: "2026-11-08"
+        kind: vendor
+        quote: "If using ControlLogix® 5580 or GuardLogix® 5580 firmware revision 34.011 or later, or ControlLogix® 5590 firmware revision 38.011 or later, configure Syslog to report unexpected modifications or anomalous activity to a Syslog collector."
+        read: direct
+
+  - id: rok-offline-project-files
+    control: Upload the project from every controller and keep the files offline for disaster recovery
+    category: backup-recovery
+    priority: high
+    why: >-
+      Rockwell's SD1771 hardening list for ControlLogix/CompactLogix and Micro800
+      both include it. The uploaded project is also the known-good baseline later
+      comparisons need.
+    how: >-
+      Upload each controller's project with Logix Designer (an online-vendor-tool
+      action: get operations approval), store it offline with the media secured,
+      and verify any backup against engineering source before restoring.
+    confidence: high
+    sources:
+      - title: Rockwell Automation SD1771 - Reiterates Customer Guidance to Disconnect Devices from the Internet and Harden PLCs (March 2026)
+        url: https://www.rockwellautomation.com/en-us/trust-center/security-advisories/advisory.SD1771.html
+        accessed: "2026-11-08"
+        kind: vendor
+        quote: "Upload project files from all controllers and store the files offline for disaster recovery."
+        read: direct
+      - title: CISA AA26-097A - Iranian-Affiliated Cyber Actors Exploit Programmable Logic Controllers Across US Critical Infrastructure
+        url: https://www.cisa.gov/news-events/cybersecurity-advisories/aa26-097a
+        accessed: "2026-11-08"
+        kind: government
+        quote: "If restoring from backups, verify the backup does not contain malicious logic before deployment."
+        read: direct
+
+  - id: rok-review-aois
+    control: Compare running Logix projects with known-good copies and check Add-On Instructions for anomalous changes
+    category: integrity
+    priority: high
+    why: >-
+      AA26-097A (July 2026 update) reports actors modifying and deleting project
+      logic including Add-On Instructions, keeping downstream logic working while
+      overriding instructions that maintained safe operating parameters.
+    how: >-
+      Use Logix Designer's compare and integrity tools and a visual review against
+      known-good logic; check AOIs, reusable logic and I/O configuration. Rockwell
+      publishes no AOI-specific procedure in the public pages read.
+    blunts:
+      - AA26-097A Iranian-affiliated modification of Rockwell project logic and AOIs (2026)
+    confidence: high
+    sources:
+      - title: CISA AA26-097A - Iranian-Affiliated Cyber Actors Exploit Programmable Logic Controllers Across US Critical Infrastructure
+        url: https://www.cisa.gov/news-events/cybersecurity-advisories/aa26-097a
+        accessed: "2026-11-08"
+        kind: government
+        quote: "For Rockwell Automation PLCs listed in the Customer Guidance to Disconnect Devices from the Internet, check the AOIs for any anomalous modifications."
+        read: direct
+
+  - id: rok-apply-listed-cve-mitigations
+    control: Confirm mitigations are in place for the Logix and FactoryTalk CVEs Rockwell lists in SD1672 and SD1771
+    category: patching
+    priority: high
+    why: >-
+      Rockwell names these CVEs alongside its disconnect-and-harden notices and
+      asks customers to make sure mitigations are applied. CVE-2021-22681 and
+      CVE-2023-3595 are the ones most often tied to active threat activity.
+    how: >-
+      Rockwell gives no single procedure: each CVE's linked advisory (CISA ICSA
+      number or Rockwell PN/SD) carries its own fixed versions or workarounds.
+      Logix-relevant entries in SD1672: CVE-2021-22681 (ICSA-21-056-03),
+      CVE-2022-1159 Studio 5000 Logix Designer (ICSA-22-090-07), CVE-2023-3595
+      select communication modules (ICSA-23-193-01), and FactoryTalk Services
+      Platform CVE-2023-46290, CVE-2024-21915 and CVE-2024-21917.
+    operational_impact: Firmware updates need a downtime window and testing; some items are workarounds, not patches.
+    blunts:
+      - CVE-2021-22681
+      - CVE-2022-1159
+      - CVE-2023-3595
+      - CVE-2023-46290
+      - CVE-2024-21915
+      - CVE-2024-21917
+    confidence: high
+    sources:
+      - title: Rockwell Automation SD1672 - Reiterates Customer Guidance to Disconnect Devices from the Internet (May 2024)
+        url: https://www.rockwellautomation.com/en-us/trust-center/security-advisories/advisory.SD1672.html
+        accessed: "2026-11-08"
+        kind: vendor
+        quote: "Customers should be aware of the following related CVE’s and ensure mitigations are in place."
+        read: direct
+      - title: Rockwell Automation SD1771 - Reiterates Customer Guidance to Disconnect Devices from the Internet and Harden PLCs (March 2026)
+        url: https://www.rockwellautomation.com/en-us/trust-center/security-advisories/advisory.SD1771.html
+        accessed: "2026-11-08"
+        kind: vendor
+        quote: "Customers should be aware of the following related CVEs and evaluate mitigations for their specific environments:"
+        read: direct
+
+notes: >-
+  Not included: Rockwell's "Security Best Practices" and exposure-search
+  Knowledgebase articles (login required, SD1672/SD1771 mark them so); the
+  System Security Design Guidelines (SECURE-RM001) and 1756-PM015 were not read,
+  so no menu path is taken from them. Micro800 guidance in SD1771 (mode switch
+  to RUN on Micro850/870, security chapters of 2080-UM002/UM005) belongs with
+  Micro800, which has no platform id yet. CVE-2023-3595 is listed only because
+  Rockwell lists it; its own advisory (ICSA-23-193-01) was not read in this pass.

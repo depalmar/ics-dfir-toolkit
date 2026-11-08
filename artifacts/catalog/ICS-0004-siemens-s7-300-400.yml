@@ -1,0 +1,149 @@
+# ICS platform catalog entry
+# ICS-0004 - Siemens SIMATIC S7-300 / S7-400
+# Research notes: docs/research/2026-11-08/platforms.md
+
+id: ICS-0004
+name: Siemens SIMATIC S7-300 / S7-400
+vendor: Siemens
+products:
+  - SIMATIC S7-300 (e.g. CPU 314, CPU 315-2 DP)
+  - SIMATIC S7-400 (e.g. CPU 417)
+asset_class: plc
+purdue_levels: ["1"]
+protocols: [ICS-PROTO-0002, ICS-PROTO-0017]
+os_base: Proprietary CPU firmware; Siemens does not publish its internals
+customer_shell: "no"
+memory_acquisition: not-available
+program_access: vendor-software-upload
+operating_modes: >-
+  Mode selector with RUN, STOP and MRES (memory reset, a pushbutton-style
+  position needing a specific sequence) on S7-300 CPUs. Operating mode
+  transitions of the CPU are written to the diagnostics buffer.
+integrity_features:
+  - feature: Diagnostics buffer
+    description: >-
+      Ring buffer of module and wiring faults, CPU system errors, operating
+      mode transitions, user-program errors and user-defined events written by
+      the program with SFC 52. Entries cannot be deleted and survive a memory
+      reset. Capacity depends on the CPU (Siemens' example: 100 entries on a
+      CPU 314); some CPUs allow the length to be assigned.
+    confidence: high
+    sources:
+      - title: Diagnostics buffer (S7-300, S7-400) - Functional description of S7-300/400 CPUs, STEP 7 V21
+        url: https://docs.tia.siemens.cloud/r/en-us/v21/functional-description-of-s7-300/400-cpus-s7-300-s7-400/memory-areas-s7-300-s7-400/contents-of-work-and-system-memory-s7-300-s7-400/diagnostics-buffer-s7-300-s7-400
+        accessed: "2026-11-08"
+        kind: vendor
+        quote: >-
+          The entries in the diagnostics buffer cannot be deleted; the content of
+          the diagnostics buffer is retained even after a memory reset.
+        read: direct
+collection:
+  - method: Passive capture of S7comm (TCP 102) traffic (TAP or SPAN)
+    impact: passive
+    description: Block uploads and downloads and the hosts that made them, independent of any engineering station.
+    confidence: medium
+  - method: Read the diagnostics buffer online (STEP 7 diagnostics view)
+    impact: online-vendor-tool
+    description: Save the full buffer with its timestamps before anything else touches the CPU.
+    safety_note: An online session can also download, force or change mode; operations approval required.
+    confidence: high
+    references:
+      - https://docs.tia.siemens.cloud/r/en-us/v21/functional-description-of-s7-300/400-cpus-s7-300-s7-400/memory-areas-s7-300-s7-400/contents-of-work-and-system-memory-s7-300-s7-400/diagnostics-buffer-s7-300-s7-400
+  - method: Upload the program blocks from a clean, separately built engineering station and compare with the known-good project
+    impact: online-vendor-tool
+    description: >-
+      Do not trust a block view from the site's own engineering station:
+      Stuxnet's replacement Step 7 communication DLL hid infected blocks from
+      it. Symantec states an infected PLC can be recognised from a clean
+      environment.
+    safety_note: >-
+      Bring a known-clean station onto the control network only with
+      operations approval; it can download as easily as it can upload.
+    confidence: low
+    unverified: true
+    references:
+      - https://nsarchive2.gwu.edu/NSAEBB/NSAEBB424/docs/Cyber-044.pdf
+volatility:
+  - The diagnostics buffer is a ring; on a CPU 314 the 101st event deletes the oldest. The user program can add entries with SFC 52, so a program can flood it (toolkit inference; not reported in a campaign).
+anti_forensics:
+  - technique: Replacement of the Step 7 communication library (s7otbxdx.dll, original renamed s7otbxsx.dll) to hide infected PLC blocks from the engineering station
+    seen_in: Stuxnet
+    detail: >-
+      Symantec: 16 of 109 exports were intercepted, including the routines that
+      read, write and enumerate code blocks.
+datasources: [ICS-DS-0009, ICS-DS-0001, ICS-DS-0007, ICS-DS-0004]
+confidence: medium
+references:
+  - title: Diagnostics buffer (S7-300, S7-400) - Functional description of S7-300/400 CPUs, STEP 7 V21
+    url: https://docs.tia.siemens.cloud/r/en-us/v21/functional-description-of-s7-300/400-cpus-s7-300-s7-400/memory-areas-s7-300-s7-400/contents-of-work-and-system-memory-s7-300-s7-400/diagnostics-buffer-s7-300-s7-400
+    accessed: "2026-11-08"
+  - title: Symantec - W32.Stuxnet Dossier v1.4 (National Security Archive copy)
+    url: https://nsarchive2.gwu.edu/NSAEBB/NSAEBB424/docs/Cyber-044.pdf
+    accessed: "2026-11-08"
+  - title: Siemens - S7-300 CPU 31xC and CPU 31x Technical specifications
+    url: https://cache.industry.siemens.com/dl/files/906/12996906/att_70325/v1/s7300_cpu_31xc_and_cpu_31x_manual_en-US_en-US.pdf
+    accessed: "2026-11-08"
+last_verified: "2026-11-08"
+notes: >-
+  The mode-selector description (RUN, STOP, MRES) comes from a search-result
+  rendering of Siemens' S7-300 CPU 31xC/31x manual, not a direct read. S7-300/400
+  password protection levels were not researched. Stuxnet details rest on
+  Symantec's dossier alone (read directly from the National Security Archive
+  copy) and are rated low until a second source (e.g. Langner) is read.
+response: baseline
+artifacts:
+  - locator: CPU diagnostics buffer (STEP 7 online diagnostics view)
+    class: diagnostics
+    volatility: rotating
+    retention: Ring buffer; capacity per CPU (e.g. 100 entries on CPU 314), assignable on some CPUs; survives memory reset
+    forensic_value: high
+    evidence_type: [impair-process-control, inhibit-response-function, timeline]
+    confidence: high
+    collection_impact: online-vendor-tool
+    description: >-
+      Operating mode transitions, CPU system errors, user-program errors and
+      user-defined (SFC 52) events, newest first.
+    provides: The events leading up to a STOP or a fault, with timestamps.
+    normal: Mode transitions and faults matching maintenance and process records.
+    suspicious: >-
+      RUN-to-STOP transitions or program errors with no planned work; bursts of
+      user-defined SFC 52 entries that push older entries out.
+    basis: vendor
+    sources:
+      - title: Diagnostics buffer (S7-300, S7-400) - STEP 7 V21
+        url: https://docs.tia.siemens.cloud/r/en-us/v21/functional-description-of-s7-300/400-cpus-s7-300-s7-400/memory-areas-s7-300-s7-400/contents-of-work-and-system-memory-s7-300-s7-400/diagnostics-buffer-s7-300-s7-400
+        accessed: "2026-11-08"
+        kind: vendor
+        quote: >-
+          The diagnostics buffer is designed as a ring buffer. The maximum number
+          of entries depends on the module; for example, the S7-300 CPU 314 can
+          have 100 entries. When this maximum number of entries is reached, the
+          next diagnostics buffer event causes the oldest entry to be deleted.
+        read: direct
+  - locator: Program blocks (OB1, OB35 and called FCs/DBs) uploaded from a clean engineering environment
+    class: control-logic
+    volatility: stable
+    forensic_value: high
+    evidence_type: [impair-process-control, evasion, impact]
+    confidence: low
+    unverified: true
+    collection_impact: online-vendor-tool
+    description: >-
+      Stuxnet infected OB1 and OB35 on 6ES7-315-2 CPUs (and targeted the
+      6ES7-417 family) and hid the changes from the infected engineering
+      station. The block comparison is only meaningful from a station known to
+      be clean.
+    seen_in: [Stuxnet]
+    provides: The CPU's real program, as opposed to what an infected station displays.
+    normal: OB1, OB35 and all blocks identical to the known-good project.
+    suspicious: Extra FC/DB blocks not in the project; OB1 or OB35 beginning with calls to unexpected blocks.
+    basis: researcher
+    sources:
+      - title: Symantec - W32.Stuxnet Dossier v1.4
+        url: https://nsarchive2.gwu.edu/NSAEBB/NSAEBB424/docs/Cyber-044.pdf
+        accessed: "2026-11-08"
+        kind: researcher
+        quote: >-
+          One can recognize an infected PLC in a clean environment by examining
+          blocks OB1 and OB35.
+        read: direct

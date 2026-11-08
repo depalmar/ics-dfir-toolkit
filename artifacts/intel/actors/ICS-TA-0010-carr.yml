@@ -1,0 +1,88 @@
+id: ICS-TA-0010
+name: Cyber Army of Russia Reborn (CARR)
+aliases:
+  - name: The People’s Cyber Army of Russia
+    by: "AA25-343A ('CARR —also known as “The People’s Cyber Army of Russia”')"
+    equated: true
+  - name: Cyber Army of Russia
+    by: "US Treasury ('CARR, which also uses the name Cyber Army of Russia'); also AA25-343A Appendix B"
+    equated: true
+  - name: People’s CyberArmy of Russia (PCA)
+    by: "AA25-343A Appendix B, which cautions that names 'may not be a 1:1 correlation'"
+    equated: false
+  - name: Russian CyberArmy Team (RCAT)
+    by: AA25-343A Appendix B, same caveat
+    equated: false
+  - name: Народная CyberАрмия (НКА)
+    by: AA25-343A Appendix B, same caveat
+    equated: false
+reported_by:
+  - FBI, CISA, NSA, DOE, EPA, DC3, Europol EC3, Eurojust and international partners (AA25-343A)
+  - US Department of the Treasury (OFAC)
+link_confidence: high
+stated_confidence: >-
+  AA25-343A authoring organizations: 'The authoring organizations assess that the
+  Russian General Staff Main Intelligence Directorate (GRU) Main Center for
+  Special Technologies (GTsST) military unit 74455 ... is likely responsible for
+  supporting the creation of CARR'. Treasury (July 2024): 'Using various
+  unsophisticated techniques, CARR has been responsible for manipulating
+  industrial control system equipment at water supply, hydroelectric, wastewater,
+  and energy facilities in the U.S. and Europe.'
+state_nexus: >-
+  Russia. AA25-343A: GRU unit 74455 'is likely responsible for supporting the
+  creation of CARR', and actors suspected to be from that unit 'likely funded the
+  tools CARR threat actors used to conduct distributed denial-of-service (DDoS)
+  attacks through at least September 2024'. By late September 2024 CARR
+  administrators 'became dissatisfied with the level of support and funding
+  provided by the GRU'. Treasury calls CARR a 'Russian government-aligned
+  hacktivist group'.
+motivation: hacktivism
+summary: >-
+  Pro-Russia hacktivist group created in early 2022 with, the authoring agencies
+  assess, GRU unit 74455 support. It ran DDoS attacks first, then from late 2023
+  ICS intrusions through internet-exposed, weakly secured HMIs, mostly over VNC.
+  Treasury says CARR manipulated ICS equipment at water, hydroelectric, wastewater
+  and energy facilities in the US and Europe. It records CARR's claim of the
+  January 2024 water-tank overflows in Abernathy and Muleshoe, Texas, and
+  CARR's compromise of a US energy company's SCADA system. AA25-343A says such
+  groups 'regularly make false or exaggerated claims'. CARR administrators later
+  co-founded Z-Pentest (ICS-TA-0011) with a NoName057(16) administrator.
+ics_kill_chain_stage: unknown
+stage_basis: "Neither Treasury nor AA25-343A uses the ICS Cyber Kill Chain."
+platforms: []
+malware: []
+incidents: [ICS-INC-0007]
+tradecraft:
+  - "Hands-on operator (AA25-343A, describing the pro-Russia groups collectively): scan for VNC on 'the default port 5900 or other nearby ports (5901-5910)' with tools 'such as Nmap or OPENVAS', then password-spray known default or weak credentials."
+  - "Hands-on operator (AA25-343A, collectively): through the HMI GUI, modify usernames and passwords, parameters, device names and instrument settings; disable alarms; create loss of view; restart or shut down devices; record the screen for publicity."
+  - "Claimed (AA25-343A): 'claiming an intrusion against a European wastewater treatment facility in October 2023'; 'In November 2023, CARR targeted human-machine interface (HMI) devices, claiming intrusions at two U.S. dairy farms.'"
+  - "Claimed, with Treasury-stated impact (Treasury): 'In January 2024, CARR claimed responsibility for the overflow of water storage tanks in Abernathy and Muleshoe, Texas'. Treasury states 'The compromise of the industrial control systems resulted in the loss of tens of thousands of gallons of water.'"
+  - "Hands-on operator (Treasury): a CARR member 'was behind the compromise of the SCADA system of a U.S. energy company' and in May 2024 'developed training materials on how to compromise SCADA systems'."
+  - "Claimed (AA25-343A): 'In July 2024, NoName057(16) jointly claimed responsibility with CARR for an alleged intrusion against OT assets in the U.S.'"
+attack: [T1595.002, T0883, T0812, T0859, T1021.005, T0886, T0823, T0892, T0836, T0831, T0878, T0829, T0816, T0828]
+sectors: [water supply, wastewater, hydroelectric, energy, food and agriculture (dairy farms)]
+regions: [United States, Europe, Ukraine]
+first_seen: "2022 (AA25-343A: created 'in late February or early March of 2022')"
+references:
+  - title: CISA, FBI, NSA et al. - AA25-343A Pro-Russia Hacktivists Conduct Opportunistic Attacks Against US and Global Critical Infrastructure (9 December 2025)
+    url: https://www.cisa.gov/news-events/cybersecurity-advisories/aa25-343a
+    accessed: "2026-11-08"
+    kind: government
+    quote: "In late 2023, CARR expanded their operations to include attacks on industrial control systems (ICS), claiming an intrusion against a European wastewater treatment facility in October 2023. In November 2023, CARR targeted human-machine interface (HMI) devices, claiming intrusions at two U.S. dairy farms."
+    read: direct
+  - title: US Treasury - Sanctions Leader and Primary Member of the Cyber Army of Russia Reborn (19 July 2024)
+    url: https://home.treasury.gov/news/press-releases/jy2473
+    accessed: "2026-11-08"
+    kind: government
+    quote: "Using various unsophisticated techniques, CARR has been responsible for manipulating industrial control system equipment at water supply, hydroelectric, wastewater, and energy facilities in the U.S. and Europe."
+    read: direct
+notes: >-
+  CARR is not Sandworm or APT44. The agencies assess GRU unit 74455 'supporting
+  the creation' of CARR, which is a state-nexus statement, not an equation.
+  AA25-343A's TTPs and ATT&CK mapping describe 'pro-Russia hacktivist groups'
+  collectively (CARR, Z-Pentest, NoName057(16), Sector16), not CARR alone. The
+  advisory warns these groups 'frequently misrepresent their capabilities and the
+  impacts of their actions'. Every impact here is marked claimed unless a
+  government states it. Mandiant's APT44 report also discusses CARR, but its PDF
+  was not read. HMI vendors and platforms are not specific in the sources, so no
+  platform id is listed.

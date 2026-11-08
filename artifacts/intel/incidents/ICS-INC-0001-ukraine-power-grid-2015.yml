@@ -1,0 +1,144 @@
+# Ukraine power distribution outages, 23 December 2015.
+# Schema: ../../schema/incident.schema.json
+# Research notes: docs/research/2026-11-08/incidents-and-kev.md
+id: ICS-INC-0001
+name: Ukraine power distribution outages (BlackEnergy, KillDisk)
+aliases:
+  - Ukraine 2015 power grid attack
+date: '2015-12-23'
+date_basis: >-
+  CISA IR-ALERT-H-16-056-01: "On December 23, 2015, Ukrainian power companies experienced unscheduled
+  power outages impacting a large number of customers in Ukraine." ESET gives the same day.
+sectors:
+  - electricity distribution
+countries:
+  - Ukraine
+victim: >-
+  Three regional electric power distribution companies (Oblenergos), not named in the CISA alert; three
+  further organizations were intruded upon without operational impact.
+actors:
+  - ICS-TA-0001
+  - ICS-TA-0002
+  - ICS-TA-0003
+malware:
+  - ICS-MAL-0003
+platforms:
+  - ICS-0011
+  - ICS-0014
+summary: >-
+  Remote intrusions at three Ukrainian regional distribution companies ended in coordinated, hands-on
+  breaker operations that cut power to roughly 225,000 customers (CISA). The operators used existing
+  remote administration tools or the utilities' own ICS client software over VPN with credentials
+  obtained beforehand, then wiped systems with KillDisk, corrupted serial-to-Ethernet firmware and
+  scheduled UPS disconnects to hinder restoration. BlackEnergy was present at every company, but CISA
+  says its role in the outages is unknown.
+physical_consequence: service-outage
+consequence_detail: >-
+  Outages at three Oblenergos "impacting approximately 225,000 customers"; power was restored but the
+  companies continued "to run under constrained operations". Windows HMIs embedded in RTUs were
+  overwritten with KillDisk and substation serial-to-Ethernet devices were rendered inoperable by
+  corrupted firmware (CISA).
+ics_effects:
+  - loss-of-availability
+chain:
+  - tactic: initial-access
+    what: >-
+      BlackEnergy "was reportedly delivered via spear phishing emails with malicious Microsoft Office
+      attachments"; CISA suspects, but does not confirm, it was used to acquire legitimate credentials.
+    evidence: Company reports to the interagency team (CISA could not review technical evidence itself)
+  - tactic: credential-access
+    what: >-
+      "The companies believe that the actors acquired legitimate credentials prior to the cyber-attack to
+      facilitate remote access."
+  - tactic: initial-access
+    what: >-
+      Multiple external humans connected using "existing remote administration tools at the operating
+      system level or remote industrial control system (ICS) client software via virtual private network
+      (VPN) connections".
+  - tactic: impact
+    what: >-
+      Malicious remote operation of breakers; the attacks at each company "occurred within 30 minutes of
+      each other and impacted multiple central and regional facilities".
+  - tactic: inhibit-response-function
+    what: >-
+      KillDisk executed at the conclusion of the attack (MBR corruption), Windows HMIs embedded in RTUs
+      overwritten, serial-to-Ethernet device firmware corrupted, and server UPS disconnects scheduled via
+      the UPS remote management interface, assessed as attempts "to interfere with expected restoration
+      efforts".
+  - tactic: attribution
+    what: >-
+      The US Government (July 2021 update) attributes the activity to Russian nation-state cyber actors;
+      the US DOJ indictment names GRU Unit 74455 (tracked as Sandworm Team) for the December 2015 to
+      December 2016 attacks on Ukraine's grid; Dragos attributes the 2015 attack to its ELECTRUM cluster.
+lessons:
+  - lesson: >-
+      Contingency plans for safe operation or shutdown should "include the assumption that the ICS is
+      actively working counter to the safe operation of the process."
+    basis: government
+  - lesson: >-
+      Limit remote access: monitoring-only access enforced by data diodes rather than software "read only",
+      no persistent vendor connections into the control network, operator-controlled time-limited access,
+      and strong multi-factor authentication.
+    basis: government
+  - lesson: >-
+      Restoration was the adversary's second target (firmware, UPS, HMIs), so OT response plans need
+      spare serial-to-Ethernet devices, configuration and firmware backups, and practised manual
+      operation before an incident.
+    basis: toolkit
+confidence: high
+sources:
+  - title: Dragos - KAMACITE threat group (access enabler; added at integration from the actor record's direct read)
+    url: https://www.dragos.com/threat/kamacite
+    accessed: "2026-11-08"
+    kind: vendor
+    quote: "KAMACITE facilitated ICS-specific operations including the BLACKENERGY2 campaign and the 2015 and 2016 Ukraine power events"
+    read: direct
+  - title: Cyber-Attack Against Ukrainian Critical Infrastructure (IR-ALERT-H-16-056-01)
+    url: https://www.cisa.gov/news-events/ics-alerts/ir-alert-h-16-056-01
+    accessed: '2026-11-08'
+    kind: government
+    quote: >-
+      Through interviews with impacted entities, the team learned that power outages were caused by remote
+      cyber intrusions at three regional electric power distribution companies (Oblenergos) impacting
+      approximately 225,000 customers.
+    read: direct
+  - title: Cyber-Attack Against Ukrainian Critical Infrastructure (IR-ALERT-H-16-056-01) - BlackEnergy role
+    url: https://www.cisa.gov/news-events/ics-alerts/ir-alert-h-16-056-01
+    accessed: '2026-11-08'
+    kind: government
+    quote: >-
+      Each company also reported that they had been infected with BlackEnergy malware however we do not know
+      whether the malware played a role in the cyber-attacks.
+    read: direct
+  - title: 'Six Russian GRU Officers Charged in Connection with Worldwide Deployment of Destructive Malware'
+    url: https://www.justice.gov/archives/opa/pr/six-russian-gru-officers-charged-connection-worldwide-deployment-destructive-malware-and
+    accessed: '2026-11-08'
+    kind: government
+    quote: >-
+      December 2015 through December 2016 destructive malware attacks against Ukraine’s electric power grid,
+      Ministry of Finance, and State Treasury Service, using malware known as BlackEnergy, Industroyer, and
+      KillDisk;
+    read: direct
+  - title: 'Industroyer: Biggest threat to industrial control systems since Stuxnet (ESET)'
+    url: https://www.welivesecurity.com/2017/06/12/industroyer-biggest-threat-industrial-control-systems-since-stuxnet/
+    accessed: '2026-11-08'
+    kind: researcher
+    quote: >-
+      a blackout that affected around 250,000 households in several regions in Ukraine on December 23rd, 2015
+    read: direct
+  - title: Poland Power Grid Attack Targets Distributed Energy Facilities (Dragos)
+    url: https://www.dragos.com/blog/poland-power-grid-attack-electrum-targets-distributed-energy-2025
+    accessed: '2026-11-08'
+    kind: researcher
+    quote: >-
+      Notable attacks primarily targeted centralized electrical infrastructure - distribution control centers
+      in Ukraine in 2015 and a transmission substation in 2016.
+    read: direct
+notes: >-
+  Conflict: CISA counts approximately 225,000 customers; ESET says around 250,000 households. CISA's team
+  "was not able to independently review technical evidence"; the account rests on interviews. Gaps the
+  sources leave open: how the actors reached the distribution management / SCADA environment beyond VPN
+  use with stolen credentials, and which ICS client software was used. KillDisk has no registry malware
+  id. The E-ISAC/SANS analysis was not read in this pass. ICS-TA-0001 (DOJ, Sandworm Team labels) and
+  ICS-TA-0002 (Dragos ELECTRUM) are separate clusters from separate reporters and are both listed, not
+  merged.

@@ -1,0 +1,44 @@
+id: ICS-TA-0013
+name: Sector16
+aliases: []
+reported_by:
+  - FBI, CISA, NSA, DOE, EPA, DC3, Europol EC3, Eurojust and international partners (AA25-343A)
+link_confidence: medium
+stated_confidence: >-
+  AA25-343A authoring organizations: 'Formed in January 2025, Sector16 is a novice
+  pro-Russia hacktivist group that emerged through collaboration with Z-Pentest.'
+  They add: 'Members of Sector16 may have received indirect support from the
+  Russian government in exchange for conducting specific cyber operations that
+  further Russian strategic goals.'
+state_nexus: >-
+  Possible indirect Russian government support. AA25-343A: 'may have received
+  indirect support from the Russian government'.
+motivation: hacktivism
+summary: >-
+  Novice pro-Russia hacktivist group formed in January 2025 with Z-Pentest. It
+  posts videos, statements and claims of compromising US energy infrastructure on a
+  public Telegram channel. After a joint claim with Z-Pentest it began posting
+  intrusions it claimed alone.
+ics_kill_chain_stage: unknown
+stage_basis: "AA25-343A does not use the ICS Cyber Kill Chain."
+platforms: []
+malware: []
+incidents: []
+tradecraft:
+  - "Claimed (AA25-343A): shares on Telegram 'videos, statements, and claims of compromising U.S. energy infrastructure'."
+  - "Claimed (AA25-343A): 'Z-Pentest jointly claimed intrusion of a U.S. system with Sector16. Sector16 later began posting additional intrusions for which the group claimed sole responsibility.'"
+  - "Hands-on operator (AA25-343A, describing the pro-Russia groups collectively): VNC access to internet-exposed HMIs with default or weak passwords, then GUI manipulation."
+sectors: [energy]
+regions: [United States]
+first_seen: "2025-01 (AA25-343A: 'Formed in January 2025')"
+references:
+  - title: CISA, FBI, NSA et al. - AA25-343A Pro-Russia Hacktivists Conduct Opportunistic Attacks Against US and Global Critical Infrastructure (9 December 2025)
+    url: https://www.cisa.gov/news-events/cybersecurity-advisories/aa25-343a
+    accessed: "2026-11-08"
+    kind: government
+    quote: "Formed in January 2025, Sector16 is a novice pro-Russia hacktivist group that emerged through collaboration with Z-Pentest."
+    read: direct
+notes: >-
+  Single reporting publication (multi-agency), so medium. Every impact is
+  claimed. The state-support statement is hedged ('may have received') and is
+  reported as such, not upgraded.

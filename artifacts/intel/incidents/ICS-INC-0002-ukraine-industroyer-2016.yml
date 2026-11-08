@@ -1,0 +1,144 @@
+# Ukraine transmission substation outage (Industroyer / CrashOverride), 17 December 2016.
+# Schema: ../../schema/incident.schema.json
+# Research notes: docs/research/2026-11-08/incidents-and-kev.md
+id: ICS-INC-0002
+name: Kyiv transmission substation outage (Industroyer / CrashOverride)
+aliases:
+  - Ukraine 2016 grid attack
+  - CRASHOVERRIDE attack
+date: '2016-12-17'
+date_basis: >-
+  ESET: "The recent power outage occurred on December 17th, 2016"; the analysed Industroyer sample "contains
+  an activation timestamp for December 17th, 2016, the day of the power outage."
+disclosed: '2017-06-12'
+sectors:
+  - electricity transmission
+countries:
+  - Ukraine
+actors:
+  - ICS-TA-0001
+  - ICS-TA-0002
+  - ICS-TA-0003
+malware:
+  - ICS-MAL-0004
+platforms:
+  - ICS-0014
+protocols:
+  - ICS-PROTO-0007
+  - ICS-PROTO-0008
+  - ICS-PROTO-0011
+cves:
+  - CVE-2015-5374
+summary: >-
+  An outage that cut power to part of Kyiv for about an hour, which ESET judges "highly probable" was caused
+  by Industroyer (Dragos: CRASHOVERRIDE), a modular framework whose payloads speak IEC 60870-5-101,
+  IEC 60870-5-104, IEC 61850 and OPC DA to operate substation switches and circuit breakers directly. The
+  framework also carried a port scanner, a wiper, a serial-port denial-of-service and a Siemens SIPROTEC
+  denial-of-service module (CVE-2015-5374). The US Government later attributed the deployment to Russian
+  nation-state actors.
+physical_consequence: service-outage
+consequence_detail: >-
+  ESET: the attack "deprived part of its capital, Kiev, of power for an hour" (ESET cites Reuters for the
+  outage itself). Dragos places it at "a transmission substation". No source read gives a customer count.
+ics_effects:
+  - loss-of-availability
+chain:
+  - tactic: command-and-control
+    what: >-
+      Industroyer's core backdoor installs and controls the other components and talks to C&C servers
+      hidden in Tor, communication that "can be limited to non-working hours" (ESET).
+  - tactic: persistence
+    what: >-
+      An additional backdoor "masquerading as the Notepad application" to regain access if the main
+      backdoor is detected (ESET).
+  - tactic: discovery
+    what: >-
+      A custom port scanner maps the network; CISA lists "Scans and maps ICS environment using a variety of
+      protocols, including Open Platform Communications (OPC)."
+  - tactic: impair-process-control
+    what: >-
+      Payload components for IEC 101, IEC 104, IEC 61850 and OPC DA map devices and then issue commands to
+      switches and circuit breakers; CISA (from Dragos) describes valid commands sent directly to RTUs,
+      including a rapid open-close breaker sequence.
+    evidence: Recovered Industroyer modules (ESET white paper; Dragos CRASHOVERRIDE)
+  - tactic: inhibit-response-function
+    what: >-
+      A wiper erases system-crucial registry keys and overwrites files; a DoS module "exploits the
+      CVE-2015-5374 vulnerability in Siemens SIPROTEC devices"; CISA adds denial of service to local serial
+      COM ports.
+  - tactic: timeline
+    what: Activation timestamp of 17 December 2016 in the analysed sample (ESET).
+  - tactic: attribution
+    what: >-
+      US Government (July 2021 update to TA17-163A) attributes deployment to Russian nation-state cyber
+      actors; DOJ (2020) names GRU Unit 74455, tracked as Sandworm Team, and Industroyer; ESET (2022) says
+      Industroyer "was used in 2016 by the Sandworm APT group"; Dragos attributes it to ELECTRUM.
+lessons:
+  - lesson: >-
+      ICS protocols such as IEC 104 and IEC 61850 lack authentication; where field devices cannot
+      authenticate commands, use ICS firewalls with stateful inspection of commands or upgrade the devices.
+    basis: government
+  - lesson: >-
+      Keep restorable backups of PLC/RTU configurations, engineering workstation images and offline install
+      media, because the framework carried a wiper aimed at recovery.
+    basis: government
+  - lesson: >-
+      CrashOverride is second-stage capability able to run independent of initial C2, so behavioural
+      detection of precursor activity matters more than signatures.
+    basis: government
+confidence: high
+sources:
+  - title: Dragos - KAMACITE threat group (access enabler; added at integration from the actor record's direct read)
+    url: https://www.dragos.com/threat/kamacite
+    accessed: "2026-11-08"
+    kind: vendor
+    quote: "KAMACITE facilitated ICS-specific operations including the BLACKENERGY2 campaign and the 2015 and 2016 Ukraine power events"
+    read: direct
+  - title: CrashOverride Malware (TA17-163A)
+    url: https://www.cisa.gov/news-events/alerts/2017/06/12/crashoverride-malware
+    accessed: '2026-11-08'
+    kind: government
+    quote: >-
+      The U.S. Government attributes this activity to Russian nation-state cyber actors and assess that
+      Russian nation-state cyber actors deployed CrashOverRide malware to conduct a cyberattack against
+      Ukrainian critical infrastructure.
+    read: direct
+  - title: 'Industroyer: Biggest threat to industrial control systems since Stuxnet (ESET)'
+    url: https://www.welivesecurity.com/2017/06/12/industroyer-biggest-threat-industrial-control-systems-since-stuxnet/
+    accessed: '2026-11-08'
+    kind: researcher
+    quote: >-
+      it’s highly probable that Industroyer was used in the December 2016 attack on the Ukrainian power grid.
+      On top of the fact that the malware clearly possesses the unique capabilities to perform the attack, it
+      contains an activation timestamp for December 17th, 2016, the day of the power outage.
+    read: direct
+  - title: 'Industroyer2: Industroyer reloaded (ESET)'
+    url: https://www.welivesecurity.com/2022/04/12/industroyer2-industroyer-reloaded/
+    accessed: '2026-11-08'
+    kind: researcher
+    quote: Industroyer is an infamous piece of malware that was used in 2016 by the Sandworm APT group to cut power in Ukraine.
+    read: direct
+  - title: 'Six Russian GRU Officers Charged in Connection with Worldwide Deployment of Destructive Malware'
+    url: https://www.justice.gov/archives/opa/pr/six-russian-gru-officers-charged-connection-worldwide-deployment-destructive-malware-and
+    accessed: '2026-11-08'
+    kind: government
+    quote: >-
+      Their computer attacks used some of the world’s most destructive malware to date, including: KillDisk
+      and Industroyer, which each caused blackouts in Ukraine;
+    read: direct
+  - title: Poland Power Grid Attack Targets Distributed Energy Facilities (Dragos)
+    url: https://www.dragos.com/blog/poland-power-grid-attack-electrum-targets-distributed-energy-2025
+    accessed: '2026-11-08'
+    kind: researcher
+    quote: >-
+      Notable attacks primarily targeted centralized electrical infrastructure - distribution control centers
+      in Ukraine in 2015 and a transmission substation in 2016.
+    read: direct
+notes: >-
+  Gaps: none of the sources read describes initial access or the path from the corporate network to the
+  substation control environment. ESET's 2017 blog first says involvement "is yet to be confirmed" and
+  later "highly probable"; the US Government's 2021 attribution statement is the firmest link. The
+  one-hour outage of part of Kyiv is ESET's statement citing Reuters. CVE-2015-5374 is listed because the
+  framework carried a module for it; no source read confirms the module was run against a relay in this
+  incident (see exploitation.yml). IEC 60870-5-101 has no registry protocol id. The Dragos CRASHOVERRIDE
+  report itself was not read in this pass.

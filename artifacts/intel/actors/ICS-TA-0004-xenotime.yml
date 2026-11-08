@@ -1,0 +1,69 @@
+id: ICS-TA-0004
+name: XENOTIME
+aliases:
+  - name: TEMP.Veles
+    by: >-
+      FireEye/Mandiant's cluster for the TRITON intrusion. Dragos and Mandiant each
+      tie their own cluster to the 2017 TRITON/TRISIS intrusion, and neither
+      equates the two in the pages read. Its own record, ICS-TA-0018 in this
+      toolkit.
+    equated: false
+reported_by: [Dragos]
+link_confidence: medium
+stated_confidence: >-
+  Dragos gives no confidence language for the link to TRISIS. It states
+  'XENOTIME configured TRISIS based on the specifics and functions of the Triconex
+  system within the industrial control (ICS) environment'. Dragos's only
+  confidence wording on the page concerns intent: 'Dragos assesses with moderate
+  confidence that XENOTIME intends to establish required access and capability to
+  cause a potential, future disruptive—or event.'
+state_nexus: >-
+  None stated. Dragos 'does not corroborate nor conduct political attribution to
+  threat activity' and says 'This group has no known associations to other
+  activity groups'.
+motivation: disruption
+summary: >-
+  Dragos's cluster for the 2017 TRISIS (TRITON) attack on Schneider Electric
+  Triconex safety instrumented systems at a Middle Eastern facility, which caused
+  industrial systems to shut down. Dragos calls it 'the only activity group
+  intentionally compromising and disrupting industrial safety instrumented
+  systems'. Dragos reports XENOTIME compromised ICS vendors and manufacturers in
+  2018, operates beyond the Middle East including North America, and targets
+  'safety systems beyond Triconex'. Dragos attributes the failed execution to 'an
+  apparent misconfiguration'.
+ics_kill_chain_stage: unknown
+stage_basis: >-
+  The Dragos page gives no stage label. Its ICS impact entry is 'Demonstrated
+  capability to execute disruptive ICS attack, such as the 2017 TRISIS incident'.
+platforms: [ICS-0007]
+malware: [ICS-MAL-0005]
+incidents: [ICS-INC-0003]
+tradecraft:
+  - "Hands-on operator (Dragos): 'XENOTIME used credential capture and replay to move between networks, Windows commands, standard command-line tools such as PSExec, and proprietary tools for operations on victim hosts.'"
+  - "Malware (Dragos): TRISIS was configured for the target's specific Triconex system; Dragos calls it a 'multi-step malware framework'."
+  - "Hands-on operator (Dragos): 'several compromises of ICS vendors and manufacturers in 2018', which Dragos says provides 'potential supply chain threat opportunities'."
+  - "Infrastructure (Dragos): 'Virtual Private Server and compromised, legitimate infrastructure'; 'European web hosting providers'."
+sectors: [oil and gas, electric utilities]
+regions: [Middle East, North America]
+first_seen: "2014 (Dragos: 'active since at least 2014')"
+references:
+  - title: Dragos - XENOTIME threat group
+    url: https://www.dragos.com/threat/xenotime
+    accessed: "2026-11-08"
+    kind: vendor
+    quote: "XENOTIME configured TRISIS based on the specifics and functions of the Triconex system within the industrial control (ICS) environment."
+    read: direct
+  - title: US Treasury - Sanctions Russian Government Research Institution Connected to the Triton Malware (23 October 2020)
+    url: https://home.treasury.gov/news/press-releases/sm1162
+    accessed: "2026-11-08"
+    kind: government
+    quote: "The cyber actors behind the Triton malware have been referred to by the private cybersecurity industry as “the most dangerous threat activity publicly known.”"
+    read: direct
+notes: >-
+  The registry allocated this id as 'XENOTIME / TEMP.Veles (TRITON)'. Neither
+  reporter equates the two clusters, so this record carries Dragos's XENOTIME,
+  and Mandiant's TEMP.Veles is its own record (ICS-TA-0018). Treasury's phrase
+  quotes private industry and matches Dragos's wording ('easily the most dangerous
+  threat activity publicly known'). Treasury names neither XENOTIME nor TEMP.Veles;
+  it ties the attack to TsNIIKhM (see ICS-TA-0018). Dragos's page sentence ends
+  'disruptive—or event' as printed (apparently missing a word); quoted unchanged.

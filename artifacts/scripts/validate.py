@@ -8,7 +8,9 @@ Checks every record under artifacts/ against its schema AND against each other:
   * anything rated confidence: low carries unverified: true, at any depth
   * a record whose every source was read through a summariser is unverified
   * high confidence never rests on press sources alone
-  * every ICS id mentioned anywhere (ICS-NNNN, ICS-TA-, ICS-MAL-, ...) exists
+  * every ICS id mentioned anywhere (ICS-NNNN, ICS-TA-, ICS-MAL-, ...) exists;
+    an id reserved in docs/ID_REGISTRY.md but not written yet is a pending
+    record (warning, listed as a coverage gap), anything else is an error
   * platform response/hardening stems exist
   * every rule path a pack, hunt or malware record names exists, and every rule
     file in a numbered directory is linked by something or tagged standalone
@@ -85,12 +87,26 @@ def build_registry() -> tuple[Registry, dict[str, dict]]:
     return registry, schemas
 
 
+def reserved_ids() -> set[str]:
+    """Ids allocated in the first column of a docs/ID_REGISTRY.md table row."""
+    reg = ROOT / "docs" / "ID_REGISTRY.md"
+    if not reg.exists():
+        return set()
+    row = re.compile(r"^\|\s*(ICS-(?:(?:TA|MAL|IOC|INC|HUNT|PACK|DS|PROTO)-)?[0-9]{4})\s*\|", re.M)
+    return set(row.findall(reg.read_text()))
+
+
 def load_yaml(p: Path):
+    """Parse one record file. Returns None after reporting the problem, so a
+    file that is empty or only comments is an error, never silently skipped."""
     try:
-        return yaml.safe_load(p.read_text())
+        doc = yaml.safe_load(p.read_text())
     except yaml.YAMLError as e:
         err(f"{rel(p)}: YAML error: {e}")
         return None
+    if doc is None:
+        err(f"{rel(p)}: file is empty or only comments")
+    return doc
 
 
 def rel(p: Path) -> str:
@@ -189,15 +205,23 @@ def main() -> int:
         check_low_confidence(doc, rel(p))
         singles[relpath] = doc
 
-    # ---- every id mentioned anywhere exists
+    # ---- every id mentioned anywhere exists, or is reserved in the registry
+    reserved = reserved_ids()
+    pending: dict[str, int] = {}
     all_docs: list[tuple[str, dict]] = [(rel(p), doc) for items in by_dir.values() for p, doc in items]
     all_docs += [(f"artifacts/{k}", v) for k, v in singles.items()]
     for where, doc in all_docs:
         own = doc.get("id") if isinstance(doc, dict) else None
         for path, node in walk(doc):
-            if isinstance(node, str) and ANY_ID.match(node) and node != own and node not in records:
+            if not (isinstance(node, str) and ANY_ID.match(node)) or node == own or node in records:
+                continue
+            if node in reserved:
+                pending[node] = pending.get(node, 0) + 1
+            else:
                 loc = "/".join(str(x) for x in path)
-                err(f"{where}: {loc}: references {node}, which has no record")
+                err(f"{where}: {loc}: references {node}, which has no record and is not reserved in docs/ID_REGISTRY.md")
+    for rid in sorted(pending):
+        warn(f"pending record: {rid} is reserved and referenced {pending[rid]} time(s) but not written yet")
 
     # ---- platform stems
     for p, doc in by_dir["catalog"]:

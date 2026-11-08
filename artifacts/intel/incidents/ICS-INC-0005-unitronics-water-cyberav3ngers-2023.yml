@@ -1,0 +1,132 @@
+# CyberAv3ngers compromise of internet-exposed Unitronics PLC/HMIs, November 2023 - January 2024.
+# Schema: ../../schema/incident.schema.json
+# Research notes: docs/research/2026-11-08/incidents-and-kev.md
+id: ICS-INC-0005
+name: CyberAv3ngers compromise of Unitronics Vision PLC/HMIs at US water utilities
+aliases:
+  - Aliquippa water authority Unitronics defacement (press name)
+date: '2023-11-22'
+date_basis: >-
+  CISA AA23-335A: "Beginning on November 22, 2023, IRGC cyber actors accessed multiple U.S.-based WWS
+  facilities that operate Unitronics Vision Series PLCs"; the December 2024 update adds that the campaign
+  ran "Between November 2023 and January 2024" in likely four waves.
+sectors:
+  - water and wastewater
+  - other critical infrastructure industries using Unitronics PLCs
+countries:
+  - United States
+victim: >-
+  At least 75 Unitronics devices, including at least 34 in the US Water and Wastewater Systems Sector
+  (CISA). CISA's reference list cites press reporting that names the Municipal Water Authority of
+  Aliquippa (Pennsylvania); CISA's own text names no victim.
+actors:
+  - ICS-TA-0009
+platforms:
+  - ICS-0006
+cves:
+  - CVE-2023-6448
+summary: >-
+  IRGC-affiliated actors using the CyberAv3ngers persona logged in to internet-exposed Unitronics Vision
+  Series PLC/HMIs on the default TCP port 20256 using default or no passwords, replaced the ladder logic
+  with a file that had no inputs or outputs, locked operators out (renamed devices, older software version,
+  disabled upload/download, password-protected uploads, moved the port to 20257) and put an anti-Israel
+  defacement on the HMI. CISA assigned CVE-2023-6448 to the default password and added it to KEV on
+  2023-12-11.
+physical_consequence: loss-of-control
+consequence_detail: >-
+  CISA: the replacement ladder logic "prevented the compromised devices from operating as intended", and
+  the splash page "prevented operators from reading anything the display screen would normally show, such
+  as input and output readings". Press reporting cited by CISA describes the affected Aliquippa station
+  switching to manual operation; that page was not read.
+ics_effects:
+  - loss-of-control
+  - loss-of-view
+  - denial-of-control
+chain:
+  - tactic: initial-access
+    what: >-
+      Authenticated to internet-connected Unitronics Vision devices with communications on default TCP port
+      20256 that had a default password or no password.
+    attack:
+      - T1110
+      - T1078.001
+  - tactic: impair-process-control
+    what: >-
+      Erased the original ladder logic and downloaded the actors' own file, which "contained no inputs or
+      outputs"; custom ladder logic was built for each device type.
+    attack:
+      - T1565.001
+  - tactic: inhibit-response-function
+    what: >-
+      Renamed devices (the name is needed for remote connection), set their logic's software version to an
+      older one so the engineering workstation could not communicate, disabled upload and download,
+      password-protected upload settings, changed the port from 20256 to 20257, and did not burn their logic
+      to the device.
+    attack:
+      - T1531
+      - T1499
+  - tactic: impact
+    what: >-
+      Uploaded a splash page with the defacement message to the HMI (a text file on an older device that
+      could not show graphics).
+    attack:
+      - T1491.001
+    evidence: HMI splash page, device name, port and logic software version as described by CISA
+  - tactic: attribution
+    what: >-
+      CISA and partners: IRGC-affiliated APT cyber actors using the persona "CyberAv3ngers"; AA26-097A
+      places the group under the IRGC Cyber Electronic Command (CEC) and lists industry names including
+      Bauxite and Storm-0784 as other names for it.
+lessons:
+  - lesson: >-
+      Upgrade engineering workstations to VisiLogic 9.9.00 and Vision/Samba firmware to the newest version,
+      which forces a default-password change, and set TCP/IP, upload, INFO-mode and SD-card passwords.
+    basis: government
+  - lesson: >-
+      Disconnect the PLC from the internet or require a strong password for remote programming; change the
+      default port and default PLC device name; put the device behind a firewall that can detect remote
+      brute-forcing.
+    basis: government
+  - lesson: >-
+      Keep cold-standby or replacement hardware and tested backups of PLC logic and configuration.
+    basis: government
+  - lesson: >-
+      Because the actors did not burn their logic to the device, CISA says it could not be retrieved from
+      the device; passive capture of traffic on the PLC's programming port is the realistic place to recover
+      what was downloaded.
+    basis: toolkit
+confidence: high
+sources:
+  - title: IRGC-Affiliated Cyber Actors Exploit PLCs in Multiple Sectors, Including US Water and Wastewater Systems Facilities (AA23-335A, December 2024 revision)
+    url: https://www.cisa.gov/news-events/cybersecurity-advisories/aa23-335a
+    accessed: '2026-11-08'
+    kind: government
+    quote: >-
+      Between November 2023 and January 2024, CyberAv3ngers targeted U.S.-based Unitronics PLC devices used
+      in multiple critical infrastructure industries, including the WWS Sector, likely in four separate waves
+      of cyberattacks. The actors compromised at least 75 devices, including at least 34 in the WWS Sector in
+      the United States.
+    read: direct
+  - title: IRGC-Affiliated Cyber Actors Exploit PLCs in Multiple Sectors, Including U.S. Water and Wastewater Systems Facilities (AA23-335A, December 14, 2023 PDF)
+    url: https://www.cisa.gov/sites/default/files/2023-12/aa23-335a-irgc-affiliated-cyber-actors-exploit-plcs-in-multiple-sectors-1.pdf
+    accessed: '2026-11-08'
+    kind: government
+    quote: >-
+      On December 11, 2023, CVE-2023-6448 was assigned to address the default passwords
+    read: direct
+  - title: Iranian-Affiliated Cyber Actors Exploit Programmable Logic Controllers Across US Critical Infrastructure (AA26-097A) - background
+    url: https://www.cisa.gov/news-events/cybersecurity-advisories/aa26-097a
+    accessed: '2026-11-08'
+    kind: government
+    quote: >-
+      These attacks compromised at least 75 devices, targeting U.S.-based Unitronics PLC devices with an HMI
+      used across multiple critical infrastructure sectors, including the WWS.
+    read: direct
+notes: >-
+  ICS-TA-0008 (BAUXITE) is not listed: AA26-097A mentions "Bauxite" only as a name private industry uses,
+  and Dragos's own reporting was not read; BAUXITE and CyberAv3ngers stay separate records. The December
+  2024 revision removed the December 2023 IOCs (Crucio ransomware hashes and IPs rated "Suspected",
+  unrelated to the Unitronics intrusions). Port 20256 is Unitronics' default; CISA does not name the
+  protocol, so ICS-PROTO-0013 (PCOM) is not asserted. The earlier CISA alert of 28 November 2023
+  (Exploitation of Unitronics PLCs used in Water and Wastewater Systems) was not read. AA26-097A says the
+  malicious ladder logic "continues to be observed to date" (2026).

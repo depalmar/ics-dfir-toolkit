@@ -1,0 +1,129 @@
+# Pro-Russia hacktivist manipulation of internet-exposed HMIs at US water utilities, early 2024.
+# Schema: ../../schema/incident.schema.json
+# Research notes: docs/research/2026-11-08/incidents-and-kev.md
+id: ICS-INC-0007
+name: Pro-Russia hacktivist HMI manipulation at US water and wastewater utilities
+aliases:
+  - Muleshoe, Texas water tank overflow
+date: '2024'
+date_basis: >-
+  CISA joint fact sheet (1 May 2024): "In early 2024, the authoring organizations observed pro-Russia
+  hacktivists targeting vulnerable industrial control systems in North America and Europe." NJCCIC dates
+  the Muleshoe, Texas overflow to January 2024 without a day.
+disclosed: '2024-05-01'
+sectors:
+  - water and wastewater
+countries:
+  - United States
+victim: >-
+  "several U.S.-based WWS victims" (CISA/FBI). NJCCIC names a water facility in Muleshoe, Texas.
+actors:
+  - ICS-TA-0010
+summary: >-
+  In early 2024 pro-Russia hacktivists reached internet-exposed HMIs at small US water and wastewater
+  systems over VNC (port 5900) using default or weak passwords, maxed out set points, altered settings,
+  turned off alarms and changed administrative passwords to lock operators out. Pumps and blowers exceeded
+  normal operating parameters and some victims had minor tank overflows; most reverted to manual control
+  and recovered quickly. NJCCIC ties the activity to the Cyber Army of Russia Reborn (CARR), which claimed
+  it with screen recordings; CISA's fact sheet does not name a group.
+physical_consequence: process-manipulation
+consequence_detail: >-
+  CISA: hacktivists "manipulated HMIs, causing water pumps and blower equipment to exceed their normal
+  operating parameters" and "Some victims experienced minor tank overflow events". NJCCIC: in Muleshoe "a
+  cyberattack ... caused a water tank to overflow" and officials "switched to manual operations". CARR's
+  own posts (claimed) are not counted as consequences.
+ics_effects:
+  - manipulation-of-control
+  - loss-of-view
+chain:
+  - tactic: initial-access
+    what: >-
+      Remote access to internet-exposed HMIs "via a combination of exploiting publicly exposed
+      internet-facing connections and outdated VNC software, as well as using the HMIs’ factory default
+      passwords and weak passwords without multifactor authentication"; VNC over port 5900 (CISA fact
+      sheet). AA25-343A adds scanning for VNC on 5900-5910 and brute-forcing from temporary VPSs.
+    attack:
+      - T0883
+      - T1021.005
+      - T1110.003
+      - T0812
+  - tactic: impair-process-control
+    what: "Maxed out set points and altered other settings through the HMI graphical interface."
+    attack:
+      - T0836
+      - T0831
+  - tactic: inhibit-response-function
+    what: >-
+      Turned off alarm mechanisms and changed administrative passwords to lock out operators, which AA25-343A
+      says usually results in loss of view and a switch to manual operations.
+    attack:
+      - T0878
+      - T0892
+  - tactic: impact
+    what: >-
+      Pumps and blowers exceeded normal operating parameters; minor tank overflows at some victims, including
+      Muleshoe, Texas (NJCCIC); operators reverted to manual control.
+  - tactic: attribution
+    what: >-
+      NJCCIC: CARR "is actively targeting Water and Wastewater facilities" and "has claimed responsibility
+      for the cyberattacks in a series of posts". AA25-343A (December 2025) describes CARR, Z-Pentest,
+      NoName057(16) and Sector16 using the same VNC-to-HMI TTPs and warns that they "regularly make false or
+      exaggerated claims".
+lessons:
+  - lesson: >-
+      Disconnect HMIs and PLCs from the public internet; if remote access is needed put it behind a firewall
+      or VPN with a strong password and MFA, keep VNC updated, allowlist source IPs and log remote logins to
+      HMIs including failed attempts.
+    basis: government
+  - lesson: >-
+      Practise manual operation, back up HMI logic, configuration and firmware, and implement hardware or
+      software limits (interlocks, cyber-physical safety systems) on what the HMI can command.
+    basis: government
+  - lesson: >-
+      If an exposed system with a weak or default password is found, assume it was compromised and start
+      incident response.
+    basis: government
+  - lesson: >-
+      Treat hacktivist claims as leads, not confirmed impacts: their screen recordings can identify the
+      device, but CISA warns the groups misidentify victims and exaggerate effects.
+    basis: toolkit
+confidence: high
+sources:
+  - title: Defending OT Operations Against Ongoing Pro-Russia Hacktivist Activity (joint fact sheet, May 2024)
+    url: https://www.cisa.gov/sites/default/files/2024-05/defending-ot-operations-against-ongoing-pro-russia-hacktivist-activity-508c.pdf
+    accessed: '2026-11-08'
+    kind: government
+    quote: >-
+      Specifically, pro-Russia hacktivists manipulated HMIs, causing water pumps and blower equipment to
+      exceed their normal operating parameters. In each case, the hacktivists maxed out set points, altered
+      other settings, turned off alarm mechanisms, and changed administrative passwords to lock out the WWS
+      operators. Some victims experienced minor tank overflow events; however, most victims reverted to manual
+      controls in the immediate aftermath and quickly restored operations.
+    read: direct
+  - title: Russian Hacktivists Target Water and Wastewater Facilities Nationally (NJCCIC)
+    url: https://www.cyber.nj.gov/Home/Components/News/News/1292/214
+    accessed: '2026-11-08'
+    kind: government
+    quote: >-
+      In January, a cyberattack against a water facility in Muleshoe, Texas caused a water tank to overflow.
+      During the incident, hackers used a compromised password to break into a remote login system for
+      industrial software that allows operators to interact with the water tanks. Officials took the system
+      offline and switched to manual operations following the attack.
+    read: direct
+  - title: Pro-Russia Hacktivists Conduct Opportunistic Attacks Against US and Global Critical Infrastructure (AA25-343A)
+    url: https://www.cisa.gov/news-events/cybersecurity-advisories/aa25-343a
+    accessed: '2026-11-08'
+    kind: government
+    quote: >-
+      Victim organizations reported that the most common operational impact caused by these threat actors is
+      a temporary loss of view, necessitating manual intervention to manage processes.
+    read: direct
+notes: >-
+  The CISA fact sheet names no group; the CARR link rests on NJCCIC (a state cyber agency citing Mandiant)
+  and on CARR's own claims, so the actor link is as strong as that. AA25-343A says GRU unit 74455 likely
+  supported CARR's creation and funded its DDoS tools, which is not an attribution of these intrusions to
+  ICS-TA-0001. AA25-343A also records a July 2024 joint CARR / NoName057(16) claim of a US OT intrusion
+  ("alleged"); ICS-TA-0012 is not listed for that reason. Mandiant's APT44 report and press accounts that
+  give the Muleshoe date as 18 January were not read. The HMIs were often embedded panels ("unsupported
+  legacy, foreign-manufactured devices rebranded as U.S. devices"), which have no registry platform; VNC
+  has no registry protocol id.

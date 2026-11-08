@@ -1,0 +1,150 @@
+# Coordinated destructive attacks on Polish renewable-energy grid connection points, a CHP plant and a
+# manufacturer, 29 December 2025.
+# Schema: ../../schema/incident.schema.json
+# Research notes: docs/research/2026-11-08/incidents-and-kev.md
+id: ICS-INC-0008
+name: Poland distributed-energy and CHP destructive attacks
+aliases:
+  - 2025 Poland wiper attacks
+date: '2025-12-29'
+date_basis: >-
+  CERT Polska: "On 29 December 2025, in the morning and afternoon hours, coordinated attacks took place in
+  Polish cyberspace." CISA's 10 February 2026 alert says "In December 2025".
+disclosed: '2026-01-14'
+sectors:
+  - electricity (renewable generation grid connection points)
+  - combined heat and power
+  - manufacturing
+countries:
+  - Poland
+victim: >-
+  "more than 30 wind and photovoltaic farms, a private company from the manufacturing sector, and a large
+  combined heat and power plant supplying heat to almost half a million customers in Poland" (CERT Polska).
+actors:
+  - ICS-TA-0017
+  - ICS-TA-0002
+  - ICS-TA-0001
+malware:
+  - ICS-MAL-0013
+  - ICS-MAL-0014
+platforms:
+  - ICS-0014
+summary: >-
+  An actor that entered through vulnerable internet-facing edge devices and pivoted with default
+  credentials onto HMIs and RTUs at renewable-energy grid connection points carried out a partially
+  automated destructive plan on the morning of 29 December 2025: damaging controller firmware, deleting
+  system files and running wiper malware. The RTUs lost communication with the distribution system
+  operator, which could no longer monitor or control the sites, but generation continued. A wiper at a
+  large CHP plant, after long-term infiltration and theft of operational information, was blocked by EDR;
+  a manufacturing company was hit the same day with the same wiper. CERT Polska links the infrastructure to
+  the Static Tundra / Berserk Bear / Ghost Blizzard / Dragonfly cluster; Dragos attributes the attack to
+  ELECTRUM with moderate confidence.
+physical_consequence: loss-of-control
+consequence_detail: >-
+  CISA: the activity "caused loss of view and control between facilities and distribution system operators,
+  destroyed data on human machine interfaces (HMIs), and corrupted system firmware on OT devices"; the
+  renewable systems kept producing. CERT Polska: "As a result of damage to the RTUs, the stations lost the
+  ability to communicate with the DSO's systems and prevented remote control". The CHP attack "did not
+  achieve the attacker’s intended effect of disrupting heat supply".
+ics_effects:
+  - loss-of-view
+  - loss-of-control
+chain:
+  - tactic: initial-access
+    what: >-
+      "gained initial access in this incident through vulnerable internet-facing edge devices" (CISA).
+  - tactic: lateral-movement
+    what: >-
+      "Threat actors leveraged default credentials ... to pivot onto the HMI and RTUs" (CISA).
+  - tactic: discovery
+    what: >-
+      After gaining access to the grid connection points' internal network the attacker "carried out
+      reconnaissance and then prepared a plan of destructive actions" (CERT Polska).
+  - tactic: collection
+    what: >-
+      At the CHP plant the attack "was preceded by long-term infiltration of the infrastructure and theft of
+      sensitive operational information", giving access to privileged accounts (CERT Polska).
+  - tactic: inhibit-response-function
+    what: >-
+      A partially automated plan triggered on the morning of 29 December damaged controller firmware,
+      deleted system files and launched custom wiper malware against RTUs, local HMIs, protection relays and
+      communications devices (serial port servers, modems, routers, switches) at grid connection points.
+  - tactic: impact
+    what: >-
+      Substations lost communication with the DSO and remote control; generation continued. The CHP wiper
+      was blocked by EDR; the manufacturing company was attacked with the same wiper.
+  - tactic: attribution
+    what: >-
+      CERT Polska: infrastructure shows "a high degree of overlap" with Static Tundra (Cisco), Berserk Bear
+      (CrowdStrike), Ghost Blizzard (Microsoft) and Dragonfly (Symantec), calling it the first publicly
+      described destructive activity attributed to that cluster. Dragos: ELECTRUM, moderate confidence.
+lessons:
+  - lesson: >-
+      Vulnerable and end-of-support edge devices remain a prime target; prioritise them for replacement or
+      mitigation (CISA cites BOD 26-02).
+    basis: government
+  - lesson: >-
+      OT devices without firmware verification can be permanently damaged; prioritise updates that add
+      firmware verification and plan incident response for inoperative OT devices and prolonged outages.
+    basis: government
+  - lesson: >-
+      Change default passwords on HMIs and RTUs immediately and require integrators and OT suppliers to
+      enforce password changes.
+    basis: government
+  - lesson: >-
+      Standardised configurations across many small distributed sites let one technique repeat at scale;
+      inventory and harden the remote connectivity of every site, including those below regulatory
+      thresholds.
+    basis: researcher
+confidence: high
+sources:
+  - title: ESET - DynoWiper update, technical analysis and attribution (30 January 2026) (added at integration from the actor record's direct read)
+    url: https://www.welivesecurity.com/en/eset-research/dynowiper-update-technical-analysis-attribution/
+    accessed: "2026-11-08"
+    kind: vendor
+    quote: "We attribute DynoWiper to Sandworm with medium confidence, in contrast to the ZOV wiper, which we attribute to Sandworm with high confidence."
+    read: direct
+  - title: Energy Sector Incident Report - 29 December 2025 (CERT Polska)
+    url: https://cert.pl/en/posts/2026/01/incident-report-energy-sector-2025/
+    accessed: '2026-11-08'
+    kind: government
+    quote: >-
+      The partially automated plan was triggered in the morning of 29 December. As a result of damage to the
+      RTUs, the stations lost the ability to communicate with the DSO's systems and prevented remote control,
+      although this did not affect ongoing energy production.
+    read: direct
+  - title: Energy Sector Incident Report - 29 December 2025 (CERT Polska) - attribution
+    url: https://cert.pl/en/posts/2026/01/incident-report-energy-sector-2025/
+    accessed: '2026-11-08'
+    kind: government
+    quote: >-
+      shows a high degree of overlap with the infrastructure used by the activity cluster publicly known as
+      “Static Tundra” (Cisco), “Berserk Bear” (CrowdStrike), “Ghost Blizzard” (Microsoft), and “Dragonfly”
+      (Symantec).
+    read: direct
+  - title: Poland Energy Sector Cyber Incident Highlights OT and ICS Security Gaps (CISA)
+    url: https://www.cisa.gov/news-events/alerts/2026/02/10/poland-energy-sector-cyber-incident-highlights-ot-and-ics-security-gaps
+    accessed: '2026-11-08'
+    kind: government
+    quote: >-
+      The malicious cyber activity caused loss of view and control between facilities and distribution system
+      operators, destroyed data on human machine interfaces (HMIs), and corrupted system firmware on OT
+      devices.
+    read: direct
+  - title: Poland Power Grid Attack Targets Distributed Energy Facilities (Dragos)
+    url: https://www.dragos.com/blog/poland-power-grid-attack-electrum-targets-distributed-energy-2025
+    accessed: '2026-11-08'
+    kind: researcher
+    quote: >-
+      Through our incident response work, Dragos can confirm the seriousness of the attack and assess with
+      moderate confidence that the threat group ELECTRUM is responsible.
+    read: direct
+notes: >-
+  Attribution conflict: CERT Polska points to the Static Tundra / Berserk Bear / Ghost Blizzard / Dragonfly
+  cluster (registry ICS-TA-0017, Dragonfly) on infrastructure overlap; Dragos says ELECTRUM (ICS-TA-0002),
+  which it says "exhibits technical and operational overlaps with Sandworm"; ESET attributes the DynoWiper
+  deployment to Sandworm (ICS-TA-0001) with medium confidence and only for the wiper. All three are listed
+  as reported; none is preferred. The ESET attribution and the wiper links (ICS-MAL-0013 DynoWiper,
+  ICS-MAL-0014 LazyWiper) were added at integration from the actor and malware records' direct reads. The disclosure date is the Polish Prime Minister's briefing on 14 January 2026 as Dragos
+  reports it; CERT Polska's report followed on 30 January 2026. The CERT Polska PDF (timeline, IOCs,
+  device vendors) was not read in this pass.

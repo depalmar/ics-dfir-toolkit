@@ -1,10 +1,13 @@
 # ID registry
 
-Ids are permanent. Once a file exists, its id never changes meaning. Reserved
-ids below were allocated up front so records written in parallel can reference
-each other; a reserved id with no file yet is a dangling reference and fails
-the validator, so only reference one once its record exists (or create it).
-New entries take the next free number after the highest allocated one.
+Ids are permanent. Once a file exists, its id never changes meaning. Ids below
+were allocated up front so records written in parallel can reference each
+other. A reference to an id listed here whose record is not written yet is a
+*pending record*: the validator warns and lists it as a coverage gap. A
+reference to an id that is not listed here is an error. Only list an id here
+when the entity is real and sourced; never reserve one to silence the
+validator. New entries take the next free number after the highest allocated
+one.
 
 | Prefix | Record | Directory |
 | --- | --- | --- |

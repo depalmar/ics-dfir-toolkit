@@ -80,15 +80,18 @@ events:
       The register and coil addresses and the values read or written, so a
       write to a holding register or coil can be tied to a source host and
       time.
+    attack: [T0801, T0835, T0836, T0855, T0861, T0877]
     basis: government
   - event: modbus_read_device_identification.log (ICSNPP; Zeek 6.1 and later) - object_id, object_value
     value: Device identification requests and answers (vendor, product) - a sign of reconnaissance when the requester is not an approved host.
+    attack: [T0888]
     basis: government
   - event: dnp3.log (Zeek base) - fc_request, fc_reply, iin; dnp3_control.log (ICSNPP)
     value: >-
       DNP3 request and reply function names; dnp3_control.log records Control
       Relay Output Block and Pattern Control Block data in SELECT/OPERATE
       exchanges - the operational commands to an outstation.
+    attack: [T0855]
     basis: government
   - event: s7comm.log (ICSNPP) - rosctr_name, function_name, subfunction_name, error_class
     value: S7comm header per packet, so the S7 functions each engineering or HMI host used are visible.
@@ -99,9 +102,11 @@ events:
       Download Ended - program block transfers to and from S7-300/400 CPUs,
       with block identity. ICSNPP also passes the transferred blocks to
       Zeek's file analysis framework.
+    attack: [T0821, T0843, T0845, T0889, T0893]
     basis: government
   - event: s7comm_read_szl.log (ICSNPP) - szl_id, szl_id_name, szl_index
     value: System status list reads, which identify the CPU and its state; unexpected SZL reads from a new host suggest reconnaissance.
+    attack: [T0888]
     basis: government
   - event: s7comm_plus.log (ICSNPP) - version, opcode, opcode_name, function_code, function_name
     value: S7comm-plus header only (S7-1200/1500); shows which hosts held S7comm-plus sessions with which CPUs, not what they changed.
@@ -111,9 +116,11 @@ events:
       EtherNet/IP encapsulation and CIP service headers per packet, CIP
       identity objects (device inventory) and implicit I/O - who talked CIP to
       which Logix controller and with what services.
+    attack: [T0846, T0888]
     basis: government
   - event: opcua_binary.log and per-service logs such as opcua_binary_activate_session.log and opcua_binary_write.log (ICSNPP)
     value: OPC UA message types, service request/response headers and status codes; session activation and writes when the channel is not encrypted.
+    attack: [T0861, T0871]
     basis: government
   - event: omron_fins_general.log, omron_fins_detail.log (ICSNPP)
     value: FINS commands and node addresses between OMRON controllers, HMIs and engineering hosts.
@@ -126,6 +133,7 @@ events:
     basis: government
   - event: iec104_ctrl.log, iec104_write.log, iec104_read.log (cert-lv spicy-iec104, bundled in Malcolm)
     value: IEC 60870-5-104 commands and reads toward RTUs and IEDs.
+    attack: [T0855]
     basis: researcher
   - event: Inbound sessions to 44818, 2222, 102 or 502 from internet or foreign hosting-provider addresses
     value: >-
@@ -248,4 +256,153 @@ sources:
     quote: >-
       Functions of industrial control systems management protocols that change
       an asset’s operating mode or modify programs.
+    read: direct
+  - title: MITRE ATT&CK ICS T0801 Monitor Process State, Detection Strategy DET0727, analytic AN1860
+    url: https://attack.mitre.org/techniques/T0801/
+    accessed: "2026-11-08"
+    kind: standard
+    quote: >-
+      Real-time network monitoring identifies a source issuing read-only
+      Industrial Control System (ICS) protocol requests to multiple field devices
+      at a polling rate exceeding the legitimate Supervisory Control and Data
+      Acquisition (SCADA) baseline, from a source not in the approved control
+      server allowlist.
+    read: direct
+  - title: MITRE ATT&CK ICS T0835 Manipulate I/O Image, Detection Strategy DET0773, analytic AN1905
+    url: https://attack.mitre.org/techniques/T0835/
+    accessed: "2026-11-08"
+    kind: standard
+    quote: >-
+      Real-time monitoring identifies an Industrial Control System (ICS) protocol
+      write to output register addresses on a field device from a source not in
+      the approved write-source list, correlated with a discrepancy between the
+      value reported by the Input/Output (I/O) image and an independent
+      measurement of the actual physical output state.
+    read: direct
+  - title: MITRE ATT&CK ICS T0836 Modify Parameter, Detection Strategy DET0776, analytic AN1908
+    url: https://attack.mitre.org/techniques/T0836/
+    accessed: "2026-11-08"
+    kind: standard
+    quote: >-
+      Real-time monitoring identifies an Industrial Control System (ICS) protocol
+      write to a parameter/setpoint register where the written value falls outside
+      the documented safe operating range, or where the write originates from a
+      source not in the approved write-source list, correlated with subsequent
+      historian tag drift.
+    read: direct
+  - title: MITRE ATT&CK ICS T1692.001 Unauthorized Message - Command Message (T0855 redirects here), Detection Strategy DET0794, analytic AN2212
+    url: https://attack.mitre.org/techniques/T1692/001/
+    accessed: "2026-11-08"
+    kind: standard
+    quote: >-
+      Real-time monitoring identifies a control/command message arriving at a
+      field device from a source not in the approved control server list, where
+      the command targets safety-critical output points and does not correspond to
+      any scheduled or operator-acknowledged process action.
+    read: direct
+  - title: MITRE ATT&CK ICS T0861 Point & Tag Identification, Detection Strategy DET0788, analytic AN1920
+    url: https://attack.mitre.org/techniques/T0861/
+    accessed: "2026-11-08"
+    kind: standard
+    quote: >-
+      Real-time monitoring identifies an Industrial Control System (ICS) protocol
+      session that systematically enumerates a device's full tag/object namespace
+      from a source not in the approved control server list
+    read: direct
+  - title: MITRE ATT&CK ICS T0877 I/O Image, Detection Strategy DET0774, analytic AN1906
+    url: https://attack.mitre.org/techniques/T0877/
+    accessed: "2026-11-08"
+    kind: standard
+    quote: >-
+      Real-time monitoring identifies a single Industrial Control System (ICS)
+      protocol session reading the complete Input/Output (I/O) image from a field
+      device, rather than the sparse, fixed tag subset that legitimate Supervisory
+      Control and Data Acquisition (SCADA) polling queries, from a source not in
+      the approved control server list.
+    read: direct
+  - title: MITRE ATT&CK ICS T0888 Remote System Information Discovery, Detection Strategy DET0787, analytic AN2249
+    url: https://attack.mitre.org/techniques/T0888/
+    accessed: "2026-11-08"
+    kind: standard
+    quote: >-
+      Real-time monitoring identifies Industrial Control System (ICS) protocol
+      requests targeting device identification and system metadata objects from a
+      source not in the approved control server list, specifically aimed at device
+      metadata rather than process values.
+    read: direct
+  - title: MITRE ATT&CK ICS T0821 Modify Controller Tasking, Detection Strategy DET0741, analytic AN1874
+    url: https://attack.mitre.org/techniques/T0821/
+    accessed: "2026-11-08"
+    kind: standard
+    quote: >-
+      Real-time monitoring identifies an Industrial Control System (ICS) protocol
+      write to a controller's task/organization-block configuration from a source
+      not in the approved engineering workstation list, correlated against
+      post-modification cycle timing deviation.
+    read: direct
+  - title: MITRE ATT&CK ICS T0843 Program Download, Detection Strategy DET0752, analytic AN1884
+    url: https://attack.mitre.org/techniques/T0843/
+    accessed: "2026-11-08"
+    kind: standard
+    quote: >-
+      Real-time monitoring identifies an Industrial Control System (ICS) protocol
+      session consistent with a program download to a field device from a source
+      not in the approved engineering workstation list, correlated with a device
+      mode-change alarm transitioning to PROGRAM/STOP immediately preceding the
+      transfer.
+    read: direct
+  - title: MITRE ATT&CK ICS T0845 Program Upload, Detection Strategy DET0761, analytic AN1893
+    url: https://attack.mitre.org/techniques/T0845/
+    accessed: "2026-11-08"
+    kind: standard
+    quote: >-
+      Real-time monitoring identifies an Industrial Control System (ICS) protocol
+      session reading back the user program from a field device to a source not in
+      the approved engineering workstation list, where the session byte count is
+      consistent with a substantial portion of the device's program memory.
+    read: direct
+  - title: MITRE ATT&CK ICS T0889 Modify Program, Detection Strategy DET0783, analytic AN1915
+    url: https://attack.mitre.org/techniques/T0889/
+    accessed: "2026-11-08"
+    kind: standard
+    quote: >-
+      Real-time monitoring identifies an Industrial Control System (ICS) protocol
+      write to an existing program block from a source not in the approved
+      engineering workstation list, outside a scheduled change-control window,
+      correlated against post-modification program hash comparison and measurable
+      change in controller Input/Output (I/O) behavior.
+    read: direct
+  - title: MITRE ATT&CK ICS T0893 Data from Local System, Detection Strategy DET0749, analytic AN2244
+    url: https://attack.mitre.org/techniques/T0893/
+    accessed: "2026-11-08"
+    kind: standard
+    quote: >-
+      Real-time monitoring identifies Industrial Control System (ICS) protocol
+      sessions that bulk-read configuration data, program blocks, or data record
+      objects from field devices
+    read: direct
+  - title: MITRE ATT&CK ICS T0846 Remote System Discovery, Detection Strategy DET0739, analytic AN2171
+    url: https://attack.mitre.org/techniques/T0846/
+    accessed: "2026-11-08"
+    kind: standard
+    quote: >-
+      Real-time network monitoring identifies a source generating Industrial
+      Control System (ICS) discovery broadcasts or sequential connection attempts
+      across the full IP range of a device subnet, from a source not in the
+      approved engineering/Supervisory Control and Data Acquisition (SCADA)
+      inventory. Documented in the PIPEDREAM/INCONTROLLER toolset's CODECALL
+      module for EtherNet/IP device discovery.
+    read: direct
+  - title: MITRE ATT&CK ICS T0871 Execution through API, Detection Strategy DET0742, analytic AN2289
+    url: https://attack.mitre.org/techniques/T0871/
+    accessed: "2026-11-08"
+    kind: standard
+    quote: >-
+      Real-time monitoring identifies network traffic to Industrial Control System
+      (ICS) Application Programming Interface (API) ports such as 4840 used in the
+      Open Platform Communications (OPC) Unified Architecture (UA) or
+      vendor-specific API ports from source Internet Protocol (IP) addresses not
+      in the approved application client list, where the traffic pattern is
+      consistent with write/control method invocations rather than
+      subscription/read traffic.
     read: direct

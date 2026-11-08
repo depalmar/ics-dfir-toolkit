@@ -36,12 +36,14 @@ events:
       Who talked to whom, when and how much, without payload. Enough to find
       a host that began talking to PLCs it never used to, outbound sessions
       from OT to the internet, and beaconing.
+    attack: [T0801, T0814, T0846, T0861]
     basis: toolkit
   - event: Internal device talking to devices it normally does not connect to
     value: The joint ASD/CISA logging guidance names this netflow pattern as an example of anomalous behaviour to detect.
     basis: government
   - event: Outbound traffic from OT showing beaconing or unexpected protocols
     value: AA25-343A tells owners to monitor outbound traffic patterns at OT perimeter firewalls for exactly these anomalies.
+    attack: [T0869, T1041]
     basis: government
   - event: Sessions to OT protocol ports (44818, 2222, 102, 502) from foreign hosting-provider addresses
     value: AA26-097A asks owners to check logs for suspicious traffic on these ports, especially from foreign hosting providers.
@@ -104,4 +106,65 @@ sources:
     accessed: "2026-11-08"
     kind: vendor
     quote: '"bytes_toserver": total bytes count to server'
+    read: direct
+  - title: MITRE ATT&CK ICS T0801 Monitor Process State, Detection Strategy DET0727, analytic AN2169
+    url: https://attack.mitre.org/techniques/T0801/
+    accessed: "2026-11-08"
+    kind: standard
+    quote: >-
+      Real-time monitoring identifies NetFlow showing a host generating an
+      anomalously high volume of short-duration flows to multiple field device IPs
+      at regular intervals, from a source not in the approved Supervisory Control
+      and Data Acquisition (SCADA) server list.
+    read: direct
+  - title: MITRE ATT&CK ICS T0814 Denial of Service, Detection Strategy DET0723, analytic AN1856
+    url: https://attack.mitre.org/techniques/T0814/
+    accessed: "2026-11-08"
+    kind: standard
+    quote: >-
+      Real-time network monitoring identifies a sustained spike in malformed or
+      high-volume Industrial Control System (ICS) protocol traffic directed at a
+      single field device from a source not in the approved control server list,
+      immediately followed by that device dropping out of the supervisory poll
+      cycle.
+    read: direct
+  - title: MITRE ATT&CK ICS T0846 Remote System Discovery, Detection Strategy DET0739, analytic AN2171
+    url: https://attack.mitre.org/techniques/T0846/
+    accessed: "2026-11-08"
+    kind: standard
+    quote: >-
+      Real-time network monitoring identifies a source generating Industrial
+      Control System (ICS) discovery broadcasts or sequential connection attempts
+      across the full IP range of a device subnet, from a source not in the
+      approved engineering/Supervisory Control and Data Acquisition (SCADA)
+      inventory. Documented in the PIPEDREAM/INCONTROLLER toolset's CODECALL
+      module for EtherNet/IP device discovery.
+    read: direct
+  - title: MITRE ATT&CK ICS T0861 Point & Tag Identification, Detection Strategy DET0788, analytic AN2177
+    url: https://attack.mitre.org/techniques/T0861/
+    accessed: "2026-11-08"
+    kind: standard
+    quote: >-
+      Real-time monitoring identifies NetFlow showing a source making sequential
+      connections to multiple field device Internet Protocol (IP) addresses, each
+      resulting in large response payloads characteristic of directory listing
+      rather than value reads.
+    read: direct
+  - title: MITRE ATT&CK ICS T0869 Standard Application Layer Protocol, Detection Strategy DET0799, analytic AN2223
+    url: https://attack.mitre.org/techniques/T0869/
+    accessed: "2026-11-08"
+    kind: standard
+    quote: >-
+      This analytic is implementable from session/flow metadata (endpoints, ports,
+      protocol/service, timing, bytes); it does not require or claim
+      packet-payload visibility.
+    read: direct
+  - title: MITRE ATT&CK Enterprise T1041 Exfiltration Over C2 Channel, Detection Strategy DET0348, analytic AN0988
+    url: https://attack.mitre.org/techniques/T1041/
+    accessed: "2026-11-08"
+    kind: standard
+    quote: >-
+      Identifies suspicious outbound traffic volume mismatches from processes that
+      typically do not generate network activity, particularly over C2 protocols
+      like HTTPS, DNS, or custom TCP/UDP ports, following file or data access.
     read: direct

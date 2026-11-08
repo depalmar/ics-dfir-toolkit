@@ -62,6 +62,7 @@ events:
       When and by what kind of request the CPU stopped or restarted; a
       communication-initiated STOP or WARM RESTART outside a change window
       needs explaining.
+    attack: [T0858]
     basis: vendor
   - event: Security events
     value: Siemens lists security events among the entry types in the S7-1500 diagnostics buffer.
@@ -160,4 +161,14 @@ sources:
       The diagnostic buffer can save up to 500 messages. Select an interval for
       the entries from the drop-down list box. Each interval comprises 100
       entries.
+    read: direct
+  - title: MITRE ATT&CK ICS T0858 Change Operating Mode, Detection Strategy DET0755, analytic AN1887
+    url: https://attack.mitre.org/techniques/T0858/
+    accessed: "2026-11-08"
+    kind: standard
+    quote: >-
+      Real-time monitoring identifies an Industrial Control System (ICS) protocol
+      mode-change command targeting a field device from a source not in the
+      approved engineering workstation list, where the transition is not
+      immediately followed by a corresponding operator acknowledgment.
     read: direct

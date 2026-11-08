@@ -46,7 +46,7 @@ events:
       Who came in, from where and when; repeated failures from internet
       addresses indicate password spraying, which AA26-097A asks owners to
       block at the VPN or gateway.
-    attack: [T0883]
+    attack: [T0883, T0859, T1110, T1110.003, T1133]
     basis: government
   - event: Logon to OT devices from the internet that does not match the device control list
     value: AA26-097A recommends a device control list of workstations allowed to connect to OT components and monitoring for unexpected logon activity from the internet.
@@ -56,6 +56,7 @@ events:
       The joint ASD/CISA guidance lists abnormal use of vendor or third-party
       accesses, maintenance methods or remote monitoring as an OT anomaly to
       look for.
+    attack: [T1133]
     basis: government
   - event: Break-glass account use
     value: The joint NCSC/CISA principles say any attempt to use a break-glass account should trigger the highest-criticality alarm in the SOC.
@@ -65,7 +66,7 @@ events:
       AA25-343A reports hacktivists using internet-exposed VNC to reach HMIs;
       a sensor on the remote-access path records which hosts opened remote
       desktop sessions to HMIs.
-    attack: [T0886, T1021.005]
+    attack: [T0886, T1021.005, T0823]
     basis: government
 tooling:
   - name: Zeek (RDP and RFB/VNC analyzers, as listed by CISA Malcolm)
@@ -147,4 +148,54 @@ sources:
       search platforms to scan the internet. This mitigation can help identify if
       there are VNC systems exposed within the IP ranges they own, especially for
       connections set up by third parties.
+    read: direct
+  - title: MITRE ATT&CK ICS T0859 Valid Accounts, Detection Strategy DET0724, analytic AN1857
+    url: https://attack.mitre.org/techniques/T0859/
+    accessed: "2026-11-08"
+    kind: standard
+    quote: >-
+      Real-time monitoring identifies an Industrial Control System (ICS)-role
+      account authenticating via interactive or remote logon from a workstation
+      not in the approved host inventory, or outside the account's established
+      usage pattern, immediately followed within a short window by that session
+      connecting to the field device network or ICS application.
+    read: direct
+  - title: MITRE ATT&CK Enterprise T1110 Brute Force, Detection Strategy DET0463, analytic AN1276
+    url: https://attack.mitre.org/techniques/T1110/
+    accessed: "2026-11-08"
+    kind: standard
+    quote: >-
+      Multiple authentication failures for valid or invalid users followed by
+      success from same IP/user
+    read: direct
+  - title: MITRE ATT&CK Enterprise T1110.003 Brute Force - Password Spraying, Detection Strategy DET0487, analytic AN1336
+    url: https://attack.mitre.org/techniques/T1110/003/
+    accessed: "2026-11-08"
+    kind: standard
+    quote: >-
+      A high volume of authentication failures using a single password (or small
+      set) across many different user accounts within a defined time window
+    read: direct
+  - title: MITRE ATT&CK Enterprise T1133 External Remote Services, Detection Strategy DET0354, analytic AN1004
+    url: https://attack.mitre.org/techniques/T1133/
+    accessed: "2026-11-08"
+    kind: standard
+    quote: >-
+      Unusual or unauthorized external remote access attempts (e.g., RDP, VPN,
+      Citrix) → repeated failed logins followed by a successful session from
+      uncommon geolocations or outside business hours
+    read: direct
+  - title: MITRE ATT&CK ICS T0823 Graphical User Interface, Detection Strategy DET0772, analytic AN1904
+    url: https://attack.mitre.org/techniques/T0823/
+    accessed: "2026-11-08"
+    kind: standard
+    quote: >-
+      Real-time monitoring identifies an interactive desktop session Remote
+      Desktop Protocol (RDP), Virtual Network Computing (VNC), or vendor remote
+      console to an Human-Machine Interface (HMI) or engineering station from a
+      source Internet Protocol (IP) addresses outside the approved Network
+      Management System (NMS) Classless Inter-Domain Routing (CIDR) subnet, or
+      from an account not in the approved operator/engineer list, where the
+      session subsequently interacts with Industrial Control System (ICS) control
+      elements.
     read: direct

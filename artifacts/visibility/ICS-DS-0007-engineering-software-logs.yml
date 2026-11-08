@@ -55,24 +55,30 @@ collection:
 events:
   - event: Control Expert syslog "Transfer project to PAC" / "Transfer project from PAC"
     value: Download of an application to, or upload from, a Modicon controller by a Control Expert instance that has event logging on.
+    attack: [T0843, T0845]
     basis: vendor
   - event: Control Expert syslog "Start stop or initialize the PAC"
     value: Controller start, stop or initialisation commanded from Control Expert.
+    attack: [T0858]
     basis: vendor
   - event: Control Expert syslog "Build online run" / "Build online stop"
     value: Online changes built into a controller while it was in RUN or STOP.
+    attack: [T0889]
     basis: vendor
   - event: Control Expert syslog Password Action events (for example "CyberSecurity - Verifying Password > Incorrect Password", "CyberSecurity - Firmware Password Modified")
     value: Failed application-password checks and changes to firmware-download or data-storage passwords.
+    attack: [T0892, T1110]
     basis: vendor
   - event: Logix audit-log entries in the controller log (Logix Designer v30 and later) as collected by FactoryTalk AssetCentre
     value: Changes to component properties, edits in a routine and changes to tag values, attributable to the workstation and user (see ICS-DS-0008).
+    attack: [T0836, T0889]
     basis: vendor
   - event: Project file differences against the known-good copy (modified or deleted Add-On Instructions, added override logic, disabled shutdown or alarm logic)
     value: >-
       CISA AA26-097A reports modification and deletion of project logic
       including AOIs, and added logic that overrode instructions keeping the
       process within safe limits.
+    attack: [T0889]
     basis: government
 tooling:
   - name: FactoryTalk AssetCentre (Rockwell Automation)
@@ -150,4 +156,65 @@ sources:
     accessed: "2026-11-08"
     kind: government
     quote: If restoring from backups, verify the backup does not contain malicious logic before deployment.
+    read: direct
+  - title: MITRE ATT&CK ICS T0843 Program Download, Detection Strategy DET0752, analytic AN1884
+    url: https://attack.mitre.org/techniques/T0843/
+    accessed: "2026-11-08"
+    kind: standard
+    quote: >-
+      Real-time monitoring identifies an Industrial Control System (ICS) protocol
+      session consistent with a program download to a field device from a source
+      not in the approved engineering workstation list, correlated with a device
+      mode-change alarm transitioning to PROGRAM/STOP immediately preceding the
+      transfer.
+    read: direct
+  - title: MITRE ATT&CK ICS T0845 Program Upload, Detection Strategy DET0761, analytic AN1893
+    url: https://attack.mitre.org/techniques/T0845/
+    accessed: "2026-11-08"
+    kind: standard
+    quote: >-
+      Real-time monitoring identifies an Industrial Control System (ICS) protocol
+      session reading back the user program from a field device to a source not in
+      the approved engineering workstation list, where the session byte count is
+      consistent with a substantial portion of the device's program memory.
+    read: direct
+  - title: MITRE ATT&CK ICS T0858 Change Operating Mode, Detection Strategy DET0755, analytic AN1887
+    url: https://attack.mitre.org/techniques/T0858/
+    accessed: "2026-11-08"
+    kind: standard
+    quote: >-
+      Real-time monitoring identifies an Industrial Control System (ICS) protocol
+      mode-change command targeting a field device from a source not in the
+      approved engineering workstation list, where the transition is not
+      immediately followed by a corresponding operator acknowledgment.
+    read: direct
+  - title: MITRE ATT&CK ICS T0889 Modify Program, Detection Strategy DET0783, analytic AN1915
+    url: https://attack.mitre.org/techniques/T0889/
+    accessed: "2026-11-08"
+    kind: standard
+    quote: >-
+      Real-time monitoring identifies an Industrial Control System (ICS) protocol
+      write to an existing program block from a source not in the approved
+      engineering workstation list, outside a scheduled change-control window,
+      correlated against post-modification program hash comparison and measurable
+      change in controller Input/Output (I/O) behavior.
+    read: direct
+  - title: MITRE ATT&CK ICS T0892 Change Credential, Detection Strategy DET0771, analytic AN2262
+    url: https://attack.mitre.org/techniques/T0892/
+    accessed: "2026-11-08"
+    kind: standard
+    quote: >-
+      Real-time monitoring identifies a password change event for an Industrial
+      Control System (ICS) service or operator account performed by an account not
+      in the authorized credential administration role, immediately followed by
+      failed authentication attempts from the Industrial Control System (ICS)
+      service itself.
+    read: direct
+  - title: MITRE ATT&CK Enterprise T1110 Brute Force, Detection Strategy DET0463, analytic AN1275
+    url: https://attack.mitre.org/techniques/T1110/
+    accessed: "2026-11-08"
+    kind: standard
+    quote: >-
+      High volume of failed logon attempts followed by a successful one from a
+      suspicious user, host, or timeframe
     read: direct

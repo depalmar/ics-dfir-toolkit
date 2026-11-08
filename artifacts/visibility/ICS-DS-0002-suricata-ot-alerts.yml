@@ -50,21 +50,27 @@ collection:
 events:
   - event: eve.json event_type "alert" - alert.signature_id (rule sid), alert.signature (rule msg), app_proto, flow_id
     value: Which rule fired, on which flow and application protocol; flow_id ties the alert to the protocol and flow records for the same session.
+    attack: [T0819, T1595.002]
     basis: vendor
   - event: eve.json event_type "modbus" - transaction_id, unit_id, function_raw, function_code, access_type, category, error_flags
     value: Per-transaction Modbus record, including whether the function is a read or a write and its category (public, user-defined, reserved).
+    attack: [T0801]
     basis: vendor
   - event: Modbus rules using "modbus - function", "access write" and "unit" options
     value: Alerts on writes to coils or holding registers, on reserved or user-defined function codes, or on a specific unit identifier behind a gateway.
+    attack: [T0836, T0855]
     basis: vendor
   - event: app-layer-event:modbus.flooded
     value: Fires when unanswered Modbus requests exceed the configured request-flood threshold (default 500 in the shipped config comments).
+    attack: [T0814]
     basis: vendor
   - event: DNP3 rules using dnp3_func and related dnp3_* keywords
     value: Alerts on DNP3 application function codes in requests and responses; Suricata states the keywords aim to be compatible with Snort's.
+    attack: [T0855]
     basis: vendor
   - event: ENIP/CIP rules using enip_command and cip_service keywords
     value: Alerts on EtherNet/IP encapsulation commands (for example list_identity) and CIP service/class/attribute combinations.
+    attack: [T0846, T0888]
     basis: vendor
   - event: eve.json event_type "flow" - pkts_toserver, pkts_toclient, bytes_toserver, bytes_toclient
     value: A flow summary for every session Suricata saw, usable as a flow record where NetFlow is not collected (see ICS-DS-0003).
@@ -151,4 +157,88 @@ sources:
       supervisory and process areas. Note, it is not recommended to deploy an IPS
       unless it is tailored to the OT environment, or is outside of critical
       process control. IPS risk interrupting critical OT devices.
+    read: direct
+  - title: MITRE ATT&CK ICS T0819 Exploit Public-Facing Application, Detection Strategy DET0740, analytic AN2173
+    url: https://attack.mitre.org/techniques/T0819/
+    accessed: "2026-11-08"
+    kind: standard
+    quote: >-
+      Real-time monitoring identifies exploit-pattern HTTP/HTTPS traffic targeting
+      an ICS DMZ application from a source or request pattern outside the approved
+      application baseline.
+    read: direct
+  - title: MITRE ATT&CK Enterprise T1595.002 Active Scanning - Vulnerability Scanning, Detection Strategy DET0867, analytic AN1999
+    url: https://attack.mitre.org/techniques/T1595/002/
+    accessed: "2026-11-08"
+    kind: standard
+    quote: >-
+      Monitor and analyze traffic patterns and packet inspection associated to
+      protocol(s) that do not follow the expected protocol standards and traffic
+      flows (e.g extraneous packets that do not belong to established flows,
+      gratuitous or anomalous traffic patterns, anomalous syntax, or structure).
+    read: direct
+  - title: MITRE ATT&CK ICS T0801 Monitor Process State, Detection Strategy DET0727, analytic AN1860
+    url: https://attack.mitre.org/techniques/T0801/
+    accessed: "2026-11-08"
+    kind: standard
+    quote: >-
+      Real-time network monitoring identifies a source issuing read-only
+      Industrial Control System (ICS) protocol requests to multiple field devices
+      at a polling rate exceeding the legitimate Supervisory Control and Data
+      Acquisition (SCADA) baseline, from a source not in the approved control
+      server allowlist.
+    read: direct
+  - title: MITRE ATT&CK ICS T0836 Modify Parameter, Detection Strategy DET0776, analytic AN1908
+    url: https://attack.mitre.org/techniques/T0836/
+    accessed: "2026-11-08"
+    kind: standard
+    quote: >-
+      Real-time monitoring identifies an Industrial Control System (ICS) protocol
+      write to a parameter/setpoint register where the written value falls outside
+      the documented safe operating range, or where the write originates from a
+      source not in the approved write-source list, correlated with subsequent
+      historian tag drift.
+    read: direct
+  - title: MITRE ATT&CK ICS T1692.001 Unauthorized Message - Command Message (T0855 redirects here), Detection Strategy DET0794, analytic AN2212
+    url: https://attack.mitre.org/techniques/T1692/001/
+    accessed: "2026-11-08"
+    kind: standard
+    quote: >-
+      Real-time monitoring identifies a control/command message arriving at a
+      field device from a source not in the approved control server list, where
+      the command targets safety-critical output points and does not correspond to
+      any scheduled or operator-acknowledged process action.
+    read: direct
+  - title: MITRE ATT&CK ICS T0814 Denial of Service, Detection Strategy DET0723, analytic AN1856
+    url: https://attack.mitre.org/techniques/T0814/
+    accessed: "2026-11-08"
+    kind: standard
+    quote: >-
+      Real-time network monitoring identifies a sustained spike in malformed or
+      high-volume Industrial Control System (ICS) protocol traffic directed at a
+      single field device from a source not in the approved control server list,
+      immediately followed by that device dropping out of the supervisory poll
+      cycle.
+    read: direct
+  - title: MITRE ATT&CK ICS T0846 Remote System Discovery, Detection Strategy DET0739, analytic AN2171
+    url: https://attack.mitre.org/techniques/T0846/
+    accessed: "2026-11-08"
+    kind: standard
+    quote: >-
+      Real-time network monitoring identifies a source generating Industrial
+      Control System (ICS) discovery broadcasts or sequential connection attempts
+      across the full IP range of a device subnet, from a source not in the
+      approved engineering/Supervisory Control and Data Acquisition (SCADA)
+      inventory. Documented in the PIPEDREAM/INCONTROLLER toolset's CODECALL
+      module for EtherNet/IP device discovery.
+    read: direct
+  - title: MITRE ATT&CK ICS T0888 Remote System Information Discovery, Detection Strategy DET0787, analytic AN2249
+    url: https://attack.mitre.org/techniques/T0888/
+    accessed: "2026-11-08"
+    kind: standard
+    quote: >-
+      Real-time monitoring identifies Industrial Control System (ICS) protocol
+      requests targeting device identification and system metadata objects from a
+      source not in the approved control server list, specifically aimed at device
+      metadata rather than process values.
     read: direct

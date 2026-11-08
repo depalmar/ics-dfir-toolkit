@@ -49,9 +49,11 @@ collection:
 events:
   - event: Ignition AUDIT_EVENTS records (audit profile) - for example Tag writes and User Source authentication
     value: Who wrote which tag from the HMI and who authenticated, attributable to an HMI user and time.
+    attack: [T0812, T0836, T0859, T1694]
     basis: vendor
   - event: Ignition gateway audit actions - creating, editing or deleting a User Source, user or role; user lockout events (8.1.14 and later)
     value: Account and role changes on the SCADA platform and brute-force lockouts.
+    attack: [T0892, T1110, T1531]
     basis: vendor
   - event: Ignition alarm_events - eventtype 0 Active, 1 Clear, 2 Acknowledgement, 4 enabled, 5 disabled (8.1.8 and later); eventflags; source; eventtime
     value: >-
@@ -139,4 +141,64 @@ sources:
     quote: >-
       These alerts can include safety data, availability data, logins, failed
       logins9, configuration changes, and network access and traffic.
+    read: direct
+  - title: MITRE ATT&CK ICS T1694.001 Insecure Credentials - Default Credentials (T0812 redirects here), Detection Strategy DET0756, analytic AN1888
+    url: https://attack.mitre.org/techniques/T1694/001/
+    accessed: "2026-11-08"
+    kind: standard
+    quote: >-
+      Real-time monitoring identifies successful authentication to an Industrial
+      Control System (ICS) application such as a Human-Machine Interface (HMI),
+      historian, Supervisory Control and Data Acquisition (SCADA) server using
+      credentials matching known default vendor passwords, from a logon source not
+      associated with any authorized user.
+    read: direct
+  - title: MITRE ATT&CK ICS T1694 Insecure Credentials, Detection Strategy DET0905, analytic AN2219
+    url: https://attack.mitre.org/techniques/T1694/
+    accessed: "2026-11-08"
+    kind: standard
+    quote: >-
+      Real-time monitoring identifies successful authentication to an Industrial
+      Control System (ICS) device or application using credentials that are either
+      documented vendor defaults (T1694.001) or extracted from configuration
+      files/firmware where stored in cleartext (T1694.002), from a source not in
+      the approved access list.
+    read: direct
+  - title: MITRE ATT&CK ICS T0859 Valid Accounts, Detection Strategy DET0724, analytic AN1857
+    url: https://attack.mitre.org/techniques/T0859/
+    accessed: "2026-11-08"
+    kind: standard
+    quote: >-
+      Real-time monitoring identifies an Industrial Control System (ICS)-role
+      account authenticating via interactive or remote logon from a workstation
+      not in the approved host inventory, or outside the account's established
+      usage pattern, immediately followed within a short window by that session
+      connecting to the field device network or ICS application.
+    read: direct
+  - title: MITRE ATT&CK ICS T0892 Change Credential, Detection Strategy DET0771, analytic AN2262
+    url: https://attack.mitre.org/techniques/T0892/
+    accessed: "2026-11-08"
+    kind: standard
+    quote: >-
+      Real-time monitoring identifies a password change event for an Industrial
+      Control System (ICS) service or operator account performed by an account not
+      in the authorized credential administration role, immediately followed by
+      failed authentication attempts from the Industrial Control System (ICS)
+      service itself.
+    read: direct
+  - title: MITRE ATT&CK Enterprise T1531 Account Access Removal, Detection Strategy DET0120, analytic AN0334
+    url: https://attack.mitre.org/techniques/T1531/
+    accessed: "2026-11-08"
+    kind: standard
+    quote: >-
+      Correlated user account modification (reset, disable, deletion) events with
+      anomalous process lineage
+    read: direct
+  - title: MITRE ATT&CK Enterprise T1110 Brute Force, Detection Strategy DET0463, analytic AN1275
+    url: https://attack.mitre.org/techniques/T1110/
+    accessed: "2026-11-08"
+    kind: standard
+    quote: >-
+      High volume of failed logon attempts followed by a successful one from a
+      suspicious user, host, or timeframe
     read: direct

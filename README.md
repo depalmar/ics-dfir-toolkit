@@ -113,6 +113,14 @@ pip install -r requirements.txt
 python artifacts/scripts/validate.py
 ```
 
+**Browse it:** `python artifacts/scripts/build_site.py` writes one
+self-contained page, `docs/site/index.html` - every library with search,
+facet filters, a detail drawer per record with its quoted sources, cross-links
+between ids, the ATT&CK coverage map and the KEV ledger. No framework, no CDN,
+nothing loaded at view time. The Pages workflow builds and publishes it from
+`main` (set Settings > Pages > Source to "GitHub Actions"); the output is never
+committed.
+
 Maintenance, all report-only (they never edit records):
 
 - `artifacts/scripts/mappings.py` generates [MAPPINGS.md](MAPPINGS.md) - ATT&CK

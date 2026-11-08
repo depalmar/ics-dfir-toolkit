@@ -1,0 +1,33 @@
+# 02-ot-network/inbound_scans_of_ot_ranges.rules
+# One outside source sending connection attempts (TCP SYN) to VNC or PLC
+# ports across the OT range: the scanning that precedes the opportunistic
+# HMI and PLC intrusions in CISA's advisories.
+#
+# VNC (sid 9000019): CISA AA25-343A - pro-Russia hacktivist groups "abuse
+# popular internet-scraping tools, such as Nmap or OPENVAS, to search for
+# visible VNC services" and "typically search for these services on the
+# default port 5900 or other nearby ports (5901-5910)"; the advisory maps
+# this to Active Scanning: Vulnerability Scanning (T1595.002): "Threat actors
+# use open source tools to look for IP addresses in target countries with
+# visible VNC services on common ports." CARR is one of the groups the
+# advisory describes collectively (ICS-TA-0010).
+#
+# PLC ports (sid 9000020): CISA AA26-097A - "Inbound malicious traffic has
+# been observed targeting PLC devices on the following ports: 44818, 2222,
+# 102, and 502". The advisory does not say which tool scanned for them, so
+# this rule is about the pattern, not one actor; it sees only the TCP side
+# of 44818 and 2222.
+#
+# Header and threshold keywords only. flags:S,12 matches the opening SYN
+# (ignoring the two ECN bits); "threshold: type both, track by_src" raises at
+# most one alert per source per period once the count is reached. The count
+# and window are this toolkit's starting values, not CISA's: tune them. A
+# scanner that never reaches the sensor - because the boundary firewall drops
+# it - is in the firewall's deny log, not here; read ICS-DS-0004 for that
+# (ICS-HUNT-0022). Set HOME_NET to the OT ranges, including the public and
+# cellular addresses of modems and gateways, or these rules see nothing.
+#
+# Linked from ICS-HUNT-0022.
+
+alert tcp $EXTERNAL_NET any -> $HOME_NET 5900:5910 (msg:"ICS-DFIR Inbound scan of VNC ports 5900-5910 in the OT range from one outside source"; flags:S,12; threshold:type both, track by_src, count 10, seconds 60; reference:url,www.cisa.gov/news-events/cybersecurity-advisories/aa25-343a; classtype:attempted-recon; sid:9000019; rev:1;)
+alert tcp $EXTERNAL_NET any -> $HOME_NET [102,502,2222,44818] (msg:"ICS-DFIR Inbound scan of PLC ports 102/502/2222/44818 in the OT range from one outside source"; flags:S,12; threshold:type both, track by_src, count 10, seconds 60; reference:url,www.cisa.gov/news-events/cybersecurity-advisories/aa26-097a; classtype:attempted-recon; sid:9000020; rev:1;)

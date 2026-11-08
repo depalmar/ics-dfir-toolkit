@@ -102,6 +102,12 @@ def load(path: str, *, max_bytes: int = MAX_BYTES_DEFAULT, max_elements: int = M
     text, encoding = _decode(data)
     del data
 
+    if not text.lstrip().startswith("<"):
+        # Format detection is by content, not extension: anything that does not
+        # open with markup is no XML export this tool reads.
+        raise InputFormatError(f"{path} is not an XML export (it does not begin with markup); supported formats are "
+                               "Rockwell L5X, PLCopen TC6 XML and Siemens SimaticML (TIA Portal Openness)")
+
     m = _MARKUP_DECL_RE.search(text)
     if m:
         line = text.count("\n", 0, m.start()) + 1

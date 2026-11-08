@@ -224,8 +224,13 @@ Numbered by when they were added; each needs a README.md. Files are
 | ICS-HUNT-0015 | Safety-system trips and unplanned process shutdowns with no process cause |
 | ICS-HUNT-0016 | Logins with vendor-default, built-in or unconfigured accounts on HMIs, controllers and devices |
 | ICS-HUNT-0017 | Credential dumping, kernel-driver abuse, staging and remote-session reuse on hosts next to OT |
+| ICS-HUNT-0018 | Stuxnet artefacts on Step 7 and WinCC hosts, in their projects and media, and in S7-300/400 blocks read from a clean host |
+| ICS-HUNT-0019 | Removable drives and virtual or optical media on engineering, HMI and SCADA hosts, and what ran from them |
+| ICS-HUNT-0020 | Network, OPC server, tag and value enumeration from hosts outside the OPC client baseline |
+| ICS-HUNT-0021 | Exploitation of internet-facing HMI and SCADA applications - remote screen loads, SMB to the internet, installers in the HMI directory |
+| ICS-HUNT-0022 | Inbound scanning of the owner's OT-facing ranges for VNC and PLC services in perimeter firewall logs |
 
-Next free: ICS-HUNT-0018.
+Next free: ICS-HUNT-0023.
 
 ## Detection packs (`ICS-PACK-NNNN`)
 
@@ -237,10 +242,11 @@ Next free: ICS-HUNT-0018.
 | ICS-PACK-0004 | Intrusion on engineering workstations and HMIs, and theft of PLC project files |
 | ICS-PACK-0005 | Destructive attacks on engineering workstations, HMIs and substation devices |
 | ICS-PACK-0006 | Controller logic, tasking and firmware compared with a known-good copy |
+| ICS-PACK-0007 | Stuxnet on Step 7 and WinCC hosts, their projects and media, and S7-300/400 controllers |
 
-Next free: ICS-PACK-0007.
+Next free: ICS-PACK-0008.
 
 ## Suricata sids
 
-`02-ot-network/` uses the local range 9000001 upward: 9000001-9000018 are
-allocated. Next free: 9000019.
+`02-ot-network/` uses the local range 9000001 upward: 9000001-9000022 are
+allocated. Next free: 9000023.

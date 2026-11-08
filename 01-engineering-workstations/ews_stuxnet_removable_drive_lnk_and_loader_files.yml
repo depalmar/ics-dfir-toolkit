@@ -1,0 +1,49 @@
+title: Stuxnet LNK and Loader Files Written to a Removable Drive
+id: 3a4f255f-0355-4dc4-99c5-c3a59fc41a38
+status: experimental
+description: |
+  Sysmon Event ID 11 (FileCreate) for the files Symantec's W32.Stuxnet Dossier
+  says Stuxnet writes to an inserted removable drive: ~WTR4132.tmp (about
+  500 KB, "contains Stuxnet's main DLL"), ~WTR4141.tmp (about 25 KB, "loads
+  ~WTR4132.tmp") and four shortcut files named "Copy of Shortcut to.lnk"
+  through "Copy of Copy of Copy of Copy of Shortcut to.lnk" that "contain an
+  exploit that will automatically execute ~WTR4141.tmp when simply viewing
+  the folder" (CVE-2010-2568). The same names are deleted when Stuxnet cleans
+  a drive, for example "once the removable drive has infected three
+  computers". On an infected host the MrxNet driver hides these names from
+  directory listings, so look for them from a clean host or an image. MITRE
+  maps the spread to Replication Through Removable Media (T0847 for ICS,
+  T1091 for Enterprise). Symantec explains why it matters in OT: control
+  systems "are commonly programmed by a Windows computer that is
+  non-networked and operators often exchange data with other computers using
+  removable drives." Pair with the Security 6416 rule for the device itself
+  (ICS-HUNT-0019).
+references:
+  - https://docs.broadcom.com/doc/security-response-w32-stuxnet-dossier-11-en
+  - https://attack.mitre.org/software/S0603/
+  - https://learn.microsoft.com/en-us/sysinternals/downloads/sysmon
+author: Raymond DePalma (ics-dfir-toolkit)
+date: 2026-11-08
+tags:
+  - attack.initial-access
+  - attack.lateral-movement
+  - attack.t0847
+  - attack.t1091
+  - cve.2010-2568
+  - ics-dfir.ews-hmi
+logsource:
+  category: file_event
+  product: windows
+detection:
+  selection:
+    TargetFilename|endswith:
+      - '\~WTR4132.tmp'
+      - '\~WTR4141.tmp'
+      - '\Copy of Shortcut to.lnk'
+      - '\Copy of Copy of Shortcut to.lnk'
+      - '\Copy of Copy of Copy of Shortcut to.lnk'
+      - '\Copy of Copy of Copy of Copy of Shortcut to.lnk'
+  condition: selection
+falsepositives:
+  - A user copying an ordinary shortcut several times produces the same "Copy of ... Shortcut to.lnk" names; the ~WTR41 names together with them are the stronger signal
+level: high

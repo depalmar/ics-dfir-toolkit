@@ -1,0 +1,137 @@
+# ICS hunt ICS-HUNT-0019
+# Schema: ../schema/hunt.schema.json
+# Research notes: docs/research/2026-11-08/detections-round5.md
+
+id: ICS-HUNT-0019
+title: Removable drives and virtual or optical media on engineering, HMI and SCADA hosts, and what ran from them
+platforms: [ICS-0010, ICS-0011]
+actors: [ICS-TA-0001]
+malware: [ICS-MAL-0001]
+hypothesis: >-
+  Code reached an engineering workstation, HMI or SCADA server on media
+  rather than over the network: a USB drive carrying a worm, as Stuxnet did to
+  reach non-networked engineering hosts, or an ISO image attached to a SCADA
+  virtual machine's CD-ROM drive and auto-run, as Sandworm did in its 2022
+  MicroSCADA attack.
+data: [windows-events, edr]
+datasources: [ICS-DS-0006]
+data_detail: >-
+  Security Event ID 6416 (Audit PNP Activity) and 4656/4663 under Audit
+  Removable Storage on EWS, HMI and SCADA hosts; Sysmon Event IDs 1 and 11 or
+  Security 4688 for what ran and what was written in the minutes after a
+  device arrived; the site's removable-media register; for virtualised SCADA
+  hosts, the hypervisor's own record of media attached to each VM (product
+  formats not read here).
+method:
+  - >-
+    List every 6416 on OT Windows hosts whose ClassName is DiskDrive, CDROM or
+    WPD (rule below) and match each DeviceId and time against the site's
+    removable-media register or work orders. Microsoft's Audit PNP Activity
+    guidance uses exactly this case - a USB stick attached to a critical
+    server "which is typically not allowed".
+  - >-
+    Where Audit Removable Storage is enabled, list the files written to and
+    executed from removable storage around each arrival (4663; Microsoft says
+    the subcategory audits all objects on removable storage without a SACL).
+    Executables, scripts (.vbs, .bat, .wsf, .ps1) and shortcut files are the
+    priority.
+  - >-
+    For each arrival, list process creation on the same host for the next
+    minutes: script hosts and cmd.exe whose command line points at a non-system
+    drive letter (Mandiant's case was wscript.exe "d:\pack\lun.vbs" then cmd /c
+    "D:\pack\n.bat"), and native SCADA utilities run from a script, such as
+    MicroSCADA scilc.exe -do (rules below).
+  - >-
+    For SCADA servers that run as virtual machines, read the hypervisor's
+    task or event history for virtual CD-ROM or ISO attachments to those VMs
+    and who made them. A guest may record no new device when an ISO is
+    inserted into a virtual drive it already has; whether it does was not
+    documented in the sources read.
+  - >-
+    Check whether AutoRun or AutoPlay is enabled for optical and removable
+    drives on SCADA hosts: Mandiant's host was "configured to permit inserted
+    CD-ROMs to autorun". The Windows policy path was not read this round;
+    confirm it in Microsoft's documentation, and agree any change with the
+    HMI/SCADA vendor and operations first.
+  - >-
+    Read transfer media from a clean host for Stuxnet's documented loader and
+    shortcut names (rule below); on an infected host they are hidden.
+normal: >-
+  Device arrivals only for registered transfer media, during work orders, on
+  the hosts the procedure names; nothing executed from removable or optical
+  volumes outside an approved installation.
+suspicious: >-
+  A disk, portable device or CD/DVD arriving on an HMI or SCADA server with
+  no register entry; scripts or binaries executed from the new volume; script
+  hosts followed by SCADA utilities; an ISO attached to a SCADA VM by an
+  account that does not administer it; AutoRun enabled on an OT host.
+attack: [T0847, T1091]
+rules:
+  - 01-engineering-workstations/ews_hmi_removable_disk_or_optical_drive_recognized.yml
+  - 01-engineering-workstations/ews_stuxnet_removable_drive_lnk_and_loader_files.yml
+  - 01-engineering-workstations/ews_hmi_windows_script_host_execution.yml
+  - 01-engineering-workstations/scada_microscada_scilc_program_executed.yml
+inferred: >-
+  Correlating device arrivals with the removable-media register and with
+  process creation is this toolkit's method; Microsoft documents the events,
+  and Mandiant, Symantec and MITRE document the vectors. Hosts too old to
+  produce 6416 (Windows 10 / Server 2016 and later) or to run current Sysmon
+  (Windows 11 / Server 2019 and later) leave this hunt not evaluated except
+  through the hypervisor and the media themselves.
+confidence: medium
+sources:
+  - title: Mandiant - Sandworm Disrupts Power in Ukraine Using a Novel Attack Against Operational Technology, technical analysis
+    url: https://cloud.google.com/blog/topics/threat-intelligence/sandworm-disrupts-power-ukraine-operational-technology/
+    accessed: "2026-11-08"
+    kind: researcher
+    quote: >-
+      leveraged an ISO image named "a.iso" as a virtual CD-ROM. The system was
+      configured to permit inserted CD-ROMs to autorun.
+    read: direct
+  - title: Mandiant - Sandworm Disrupts Power in Ukraine, monitoring recommendations
+    url: https://cloud.google.com/blog/topics/threat-intelligence/sandworm-disrupts-power-ukraine-operational-technology/
+    accessed: "2026-11-08"
+    kind: researcher
+    quote: Files transferred or moved onto MicroSCADA hosts.
+    read: direct
+  - title: Symantec - W32.Stuxnet Dossier v1.4, Removable drive propagation
+    url: https://docs.broadcom.com/doc/security-response-w32-stuxnet-dossier-11-en
+    accessed: "2026-11-08"
+    kind: vendor
+    quote: >-
+      Industrial control systems are commonly programmed by a Windows computer
+      that is non-networked and operators often exchange data with other
+      computers using removable drives.
+    read: direct
+  - title: MITRE ATT&CK - Stuxnet (S0603), T0847 procedure
+    url: https://attack.mitre.org/software/S0603/
+    accessed: "2026-11-08"
+    kind: researcher
+    quote: >-
+      Stuxnet was able to self-replicate by being spread through removable
+      drives. A willing insider or unknown third party, such as a contractor,
+      may have brought the removable media into the target environment.
+    read: direct
+  - title: Microsoft Learn - 6416(S) A new external device was recognized by the System
+    url: https://learn.microsoft.com/en-us/previous-versions/windows/it-pro/windows-10/security/threat-protection/auditing/event-6416
+    accessed: "2026-11-08"
+    kind: vendor
+    quote: This event generates every time a new external device is recognized by a system.
+    read: direct
+  - title: Microsoft Learn - Audit Removable Storage
+    url: https://learn.microsoft.com/en-us/previous-versions/windows/it-pro/windows-10/security/threat-protection/auditing/audit-removable-storage
+    accessed: "2026-11-08"
+    kind: vendor
+    quote: >-
+      It is often useful to track actions with removable storage devices and
+      the files or folders on them, because malicious software very often uses
+      removable devices as a method to get into the system. At the same time,
+      you will be able to track which files were written or executed from a
+      removable storage device.
+    read: direct
+  - title: CISA ICS-ALERT-14-176-02A - ICS Focused Malware (Update A), mitigations
+    url: https://www.cisa.gov/news-events/ics-alerts/ics-alert-14-176-02a
+    accessed: "2026-11-08"
+    kind: government
+    quote: Exercise caution when using removable media (USB thumb drives, external drives, CDs).
+    read: direct

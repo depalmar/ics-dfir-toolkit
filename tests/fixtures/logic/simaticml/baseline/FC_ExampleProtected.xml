@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Synthetic test fixture for icstriage logic-diff: written from scratch with placeholder names. Not a Siemens sample.
+     A know-how-protected block exported without unlocking: interface only. -->
+<Document>
+  <Engineering version="V19" />
+  <DocumentInfo>
+    <Created>2026-01-15T10:00:00.0000000Z</Created>
+    <ExportSetting>WithReadOnly</ExportSetting>
+  </DocumentInfo>
+  <SW.Blocks.FC ID="0">
+    <AttributeList>
+      <Interface>
+        <Sections xmlns="http://www.siemens.com/automation/Openness/SW/Interface/v5">
+          <Section Name="Input">
+            <Member Name="X" Datatype="Real" Accessibility="Public" />
+          </Section>
+          <Section Name="Output">
+            <Member Name="Y" Datatype="Real" Accessibility="Public" />
+          </Section>
+        </Sections>
+      </Interface>
+      <IsKnowHowProtected ReadOnly="true">true</IsKnowHowProtected>
+      <Name>FC_ExampleProtected</Name>
+      <Number>30</Number>
+      <ProgrammingLanguage>SCL</ProgrammingLanguage>
+    </AttributeList>
+    <ObjectList>
+      <MultilingualText ID="1" CompositionName="Title">
+        <ObjectList>
+          <MultilingualTextItem ID="2" CompositionName="Items">
+            <AttributeList>
+              <Culture>en-US</Culture>
+              <Text>Protected example function</Text>
+            </AttributeList>
+          </MultilingualTextItem>
+        </ObjectList>
+      </MultilingualText>
+    </ObjectList>
+  </SW.Blocks.FC>
+</Document>

@@ -1,0 +1,42 @@
+title: Stuxnet MRxCls or MRxNet Driver Service Registered on an EWS or HMI
+id: 178b7d79-0dc1-4747-aa68-6392d9186a6d
+status: experimental
+description: |
+  Sysmon registry events (Event ID 12 or 13) for the service keys Symantec's
+  W32.Stuxnet Dossier documents for Stuxnet's two drivers:
+  HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Services\MRxCls ("ImagePath" =
+  "%System%\drivers\mrxcls.sys", a boot start service, plus a "Data" value
+  holding the encrypted list of processes to inject) and
+  ...\Services\MRxNet ("ImagePath" = "%System%\drivers\mrxnet.sys"). MITRE
+  maps the boot-start driver to Windows Service (T1543.003) and the registry
+  writes to Modify Registry (T1112). Sysmon abbreviates HKEY_LOCAL_MACHINE to
+  HKLM and ControlSet00x to CurrentControlSet, which the endswith match
+  tolerates. Registry events must be enabled in the Sysmon configuration for
+  the Services key. Pairs with the driver-load rule: a boot-start driver can
+  be registered long before anyone looks at driver loads.
+references:
+  - https://docs.broadcom.com/doc/security-response-w32-stuxnet-dossier-11-en
+  - https://attack.mitre.org/software/S0603/
+  - https://learn.microsoft.com/en-us/sysinternals/downloads/sysmon
+author: Raymond DePalma (ics-dfir-toolkit)
+date: 2026-11-08
+tags:
+  - attack.persistence
+  - attack.evasion
+  - attack.t1543.003
+  - attack.t1112
+  - attack.t1014
+  - ics-dfir.ews-hmi
+logsource:
+  category: registry_event
+  product: windows
+detection:
+  selection:
+    TargetObject|endswith:
+      - '\Services\MRxCls\ImagePath'
+      - '\Services\MRxCls\Data'
+      - '\Services\MRxNet\ImagePath'
+  condition: selection
+falsepositives:
+  - No legitimate service with these names is described in the sources read
+level: critical

@@ -157,7 +157,14 @@ def _entities(out: list, notev: list, base: Model, cur: Model) -> None:
 
 
 def _unit_label(r: Routine, u) -> str:
-    return f"{r.unit_name} {u.label}"
+    return f"{r.unit_name} {u.label}".strip()
+
+
+def _unit_note(*units) -> tuple:
+    """(opaque, note) for a unit difference: graphical networks compared by hash."""
+    if any(u is not None and u.opaque for u in units):
+        return True, "graphical network: what changed inside is not shown"
+    return False, ""
 
 
 def _routine(out: list, notev: list, a: Routine, b: Routine) -> None:
@@ -197,11 +204,14 @@ def _routine(out: list, notev: list, a: Routine, b: Routine) -> None:
         paired = min(len(olds), len(news)) if op == "replace" else 0
         for ua, ub in zip(olds[:paired], news[:paired]):
             label = _unit_label(a, ua) + ("" if ua.label == ub.label else f" (now {ub.label})")
-            _add(out, Difference(a.cls, "changed", path, label, ua.raw, ub.raw))
+            opq, note = _unit_note(ua, ub)
+            _add(out, Difference(a.cls, "changed", path, label, ua.raw, ub.raw, opaque=opq, note=note))
         for ua in olds[paired:]:
-            _add(out, Difference(a.cls, "removed", path, _unit_label(a, ua), ua.raw, None))
+            opq, note = _unit_note(ua)
+            _add(out, Difference(a.cls, "removed", path, _unit_label(a, ua), ua.raw, None, opaque=opq, note=note))
         for ub in news[paired:]:
-            _add(out, Difference(a.cls, "added", path, _unit_label(b, ub), None, ub.raw))
+            opq, note = _unit_note(ub)
+            _add(out, Difference(a.cls, "added", path, _unit_label(b, ub), None, ub.raw, opaque=opq, note=note))
     if a.comments != b.comments:
         _add(out, Difference(DOC, "changed", path, "comments in code", " | ".join(a.comments) or None,
                              " | ".join(b.comments) or None, False))
@@ -212,7 +222,7 @@ def _routines(out: list, notev: list, base: Model, cur: Model) -> None:
         a, b = base.routines.get(path), cur.routines.get(path)
         if a is None or b is None:
             r = a or b
-            summ = f"{r.language}, " + (f"{len(r.units)} {r.unit_name}s" if not r.opaque_hash else "opaque")
+            summ = f"{r.language}, " + (f"{len(r.units)} {r.unit_name or 'unit'}s" if not r.opaque_hash else "opaque")
             _add(out, Difference(r.cls, "removed" if b is None else "added", path, "routine",
                                  summ if b is None else None, summ if a is None else None))
             continue

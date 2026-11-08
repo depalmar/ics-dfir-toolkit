@@ -15,6 +15,7 @@ protocols:
   - ICS-PROTO-0010
 actors: [ICS-TA-0019]
 incidents: [ICS-INC-0009]
+malware: [ICS-MAL-0009]
 hypothesis: >-
   A host that is not an approved engineering workstation, HMI, SCADA server
   or historian collector began talking an industrial protocol to a
@@ -58,7 +59,7 @@ suspicious: >-
   talking directly to controllers, or a process such as python.exe,
   powershell.exe or a binary in AppData\Local\Temp; identity reads or writes
   from a host that never spoke to that controller before.
-attack: [T0846, T0888, T0885, T0843]
+attack: [T0846, T0888, T0885, T0843, T0801]
 rules:
   - 02-ot-network/ot_protocol_inbound_from_unapproved_host.rules
   - 01-engineering-workstations/ews_script_or_user_path_process_to_controller_port.yml
@@ -66,6 +67,11 @@ inferred: >-
   The ranking by protocol function and the use of Sysmon to attribute a new
   connection to a process are this toolkit's method. CISA supplies the
   device control list; the joint ASD/CISA guidance supplies the anomaly.
+  T0801 rests on Mandiant's mapping of TAGRUN's OPC UA value reads to Monitor
+  Process State; FrostyGoop's Modbus register traffic to ENCO controllers
+  (Dragos) from a host outside the baseline is the same new-talker pattern,
+  so this hunt carries it rather than a duplicate. The hunt shows a new
+  client reading a controller, not which values it read.
 confidence: high
 sources:
   - title: CISA AA26-097A - Iranian-Affiliated Cyber Actors Exploit Programmable Logic Controllers Across US Critical Infrastructure, mitigations
@@ -101,4 +107,22 @@ sources:
     quote: >-
       netflow data indicating one device talking to other internal devices it
       normally does not connect to
+    read: direct
+  - title: Mandiant - INCONTROLLER, TAGRUN ATT&CK for ICS mapping (Table 2)
+    url: https://cloud.google.com/blog/topics/threat-intelligence/incontroller-state-sponsored-ics-tool/
+    accessed: "2026-11-08"
+    kind: researcher
+    quote: >-
+      TAGRUN Collection T0801: Monitor Process State TAGRUN Collection T0861:
+      Point & Tag Identification
+    read: direct
+  - title: Dragos - How to Protect Against FrostyGoop, ICS Malware Targeting Operational Technology
+    url: https://www.dragos.com/blog/protect-against-frostygoop-ics-malware-targeting-operational-technology
+    accessed: "2026-11-08"
+    kind: vendor
+    quote: >-
+      The adversaries sent Modbus commands to ENCO controllers, causing
+      inaccurate measurements and system malfunctions - taking almost two days
+      to remediate the issues. Dragos assesses that FrostyGoop was likely used
+      in this attack.
     read: direct

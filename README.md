@@ -119,8 +119,9 @@ python artifacts/scripts/validate.py
 python -m icstriage logic-diff --baseline known_good.L5X --current suspect.L5X [--format md|json] [--out report.md]
 ```
 
-Reads Rockwell Logix L5X and PLCopen TC6 XML (CODESYS) exports an engineer has
-already produced, and classifies every difference as logic, AOI / reusable
+Reads Rockwell Logix L5X, PLCopen TC6 XML (CODESYS) and Siemens TIA Portal
+Openness (SimaticML, a file or a directory of block exports) that an engineer
+has already produced, and classifies every difference as logic, AOI / reusable
 module, tasking, interface, value, module or metadata; comment-only changes are
 reported but never count. The verdict is `DIFFERENCES-FOUND` or
 `NO-DIFFERENCES-FOUND`, never "clean", and every report states its limits (an

@@ -205,6 +205,12 @@ references:
     accessed: "2026-11-08"
 last_verified: "2026-11-08"
 notes: >-
+  Offline logic comparison: after an "Upload from device" into a new, empty
+  offline project (online-vendor-tool impact - operations must approve), export
+  the blocks and tag tables with TIA Portal Openness (SimaticML XML) and compare
+  them with the known-good project's export using `python -m icstriage
+  logic-diff` (docs/logic-compare.md). Know-how-protected blocks export only
+  their interface, so their code is reported as not evaluated.
   Every Siemens page used is S7-1500 documentation. The S7-1200 shares the
   diagnostics-buffer concept, but its buffer size, security-event list and
   syslog support were not read; treat S7-1200 specifics as not evaluated. The

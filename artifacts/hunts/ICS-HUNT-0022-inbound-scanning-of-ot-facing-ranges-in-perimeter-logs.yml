@@ -1,0 +1,109 @@
+# ICS hunt ICS-HUNT-0022
+# Schema: ../schema/hunt.schema.json
+# Research notes: docs/research/2026-11-08/detections-round5.md
+
+id: ICS-HUNT-0022
+title: Inbound scanning of the owner's OT-facing ranges for VNC and PLC services in perimeter firewall logs, and what it reached
+platforms: [ALL]
+actors: [ICS-TA-0010, ICS-TA-0011, ICS-TA-0012, ICS-TA-0013]
+incidents: [ICS-INC-0007]
+seen_in: [AA25-343A, AA26-097A]
+hypothesis: >-
+  Internet sources are sweeping the owner's public, cellular and
+  integrator-provided addresses for VNC and PLC services, as the pro-Russia
+  hacktivist groups in AA25-343A do with Nmap or OpenVAS before password
+  spraying, and one of them has gone on to complete a session.
+data: [firewall, netflow, ics-network-capture]
+datasources: [ICS-DS-0004, ICS-DS-0003, ICS-DS-0002, ICS-DS-0014]
+data_detail: >-
+  Boundary and internet-edge firewall logs with both denied and allowed
+  sessions, forwarded off the device (ICS-DS-0004; a firewall that logs only
+  allows or only denies shows half the picture); flow records at the edge;
+  Suricata on a sensor that sees the internet-facing segment, including
+  cellular modem and gateway addresses (rules below).
+method:
+  - >-
+    Start from the list of every public and cellular address in use,
+    including those integrators, vendors and carriers set up
+    (ICS-HUNT-0012). Scanning of addresses that are not on the list but
+    reach OT is itself a finding about the list.
+  - >-
+    From the firewall logs, group inbound connection attempts by source
+    address per hour for 5900-5910 (VNC), the PLC ports CISA names (44818,
+    2222, 102, 502) and 22 on modems: count distinct destination addresses
+    and distinct destination ports per source. Many owner addresses on one
+    port is a sweep for that service; many ports on one address is a host
+    scan. Keep the source, its network owner and the first and last time.
+  - >-
+    For every scanning source, look for any later session from it that the
+    firewall allowed and that completed, and for logins or VNC sessions on
+    the scanned hosts at those times (ICS-HUNT-0001, ICS-HUNT-0004,
+    ICS-HUNT-0010). Scanning followed by an allowed session to the same
+    service is the step CISA describes from search to password spraying.
+  - >-
+    Compare the scanning sources with the parsed indicator sets
+    (ICS-IOC-0001) and record matches with the publisher's role for each
+    address; most published addresses are VPN exits or compromised third
+    parties.
+  - >-
+    Where the boundary does not log denies, run the Suricata rules below on
+    a sensor at the internet edge. Do not scan or probe the scanning sources
+    back, and do not run an active scan of the control network to "confirm"
+    exposure; that is process-risk.
+normal: >-
+  Background internet scanning reaches every public address and is not by
+  itself an incident; it should meet a default-deny boundary and produce
+  only denies. No OT-facing VNC or PLC service accepts a session from the
+  internet.
+suspicious: >-
+  Sweeps aimed at the owner's OT-facing addresses on VNC or PLC ports; any
+  allowed or completed session from a scanning source; scanning of
+  cellular modem addresses that are missing from the inventory; a rise in
+  scanning shortly before an HMI or PLC change.
+attack: [T1595.002]
+rules:
+  - 02-ot-network/inbound_scans_of_ot_ranges.rules
+inferred: >-
+  The grouping by source, the counts and the thresholds in the Suricata
+  rules are this toolkit's; CISA describes the scanning and asks owners to
+  monitor and alert on access attempts outside their allowlist. Firewall log
+  field names differ by vendor and were not read (ICS-DS-0004), so no field
+  names are given. AA25-343A's tactics and ATT&CK table describe the
+  pro-Russia groups collectively, not CARR alone.
+confidence: high
+sources:
+  - title: CISA AA25-343A - Pro-Russia Hacktivists Conduct Opportunistic Attacks Against US and Global Critical Infrastructure, technical details
+    url: https://www.cisa.gov/news-events/cybersecurity-advisories/aa25-343a
+    accessed: "2026-11-08"
+    kind: government
+    quote: >-
+      These pro-Russia hacktivist groups abuse popular internet-scraping
+      tools, such as Nmap or OPENVAS, to search for visible VNC services and
+      use brute force password spraying tools to access devices via known
+      default or otherwise weak credentials.
+    read: direct
+  - title: CISA AA25-343A, ATT&CK table (T1595.002)
+    url: https://www.cisa.gov/news-events/cybersecurity-advisories/aa25-343a
+    accessed: "2026-11-08"
+    kind: government
+    quote: >-
+      Threat actors use open source tools to look for IP addresses in target
+      countries with visible VNC services on common ports.
+    read: direct
+  - title: CISA AA25-343A, mitigations (allowlist monitoring)
+    url: https://www.cisa.gov/news-events/cybersecurity-advisories/aa25-343a
+    accessed: "2026-11-08"
+    kind: government
+    quote: >-
+      organizations are encouraged to establish monitoring and alerting for
+      access attempts not meeting these criteria
+    read: direct
+  - title: CISA AA26-097A - Iranian-Affiliated Cyber Actors Exploit Programmable Logic Controllers Across US Critical Infrastructure, technical details
+    url: https://www.cisa.gov/news-events/cybersecurity-advisories/aa26-097a
+    accessed: "2026-11-08"
+    kind: government
+    quote: >-
+      Inbound malicious traffic has been observed targeting PLC devices on the
+      following ports: 44818, 2222, 102, and 502, as well as targeting modems
+      on port 22.
+    read: direct

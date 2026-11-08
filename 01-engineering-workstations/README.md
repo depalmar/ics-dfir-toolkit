@@ -3,8 +3,9 @@
 Platforms: `ICS-0010` (engineering workstation), `ICS-0011` (HMI / SCADA server).
 Data source: `ICS-DS-0006` (Windows Security, Sysmon and PowerShell logs).
 Detection packs: `ICS-PACK-0002`, `ICS-PACK-0004`, `ICS-PACK-0005`,
-`ICS-PACK-0006`. Hunts: `ICS-HUNT-0002`, `ICS-HUNT-0004`, `ICS-HUNT-0008`,
-`ICS-HUNT-0011`, `ICS-HUNT-0013`, `ICS-HUNT-0014`, `ICS-HUNT-0017`.
+`ICS-PACK-0006`, `ICS-PACK-0007`. Hunts: `ICS-HUNT-0002`, `ICS-HUNT-0004`,
+`ICS-HUNT-0008`, `ICS-HUNT-0011`, `ICS-HUNT-0013`, `ICS-HUNT-0014`,
+`ICS-HUNT-0017`, `ICS-HUNT-0018`, `ICS-HUNT-0019`, `ICS-HUNT-0021`.
 
 ## Rules
 
@@ -29,6 +30,14 @@ Detection packs: `ICS-PACK-0002`, `ICS-PACK-0004`, `ICS-PACK-0005`,
 | `scada_microscada_scilc_program_executed.yml` | Sysmon 1 / 4688 | MicroSCADA scilc.exe -do running an external SCIL program | Mandiant (Sandworm 2022 MicroSCADA attack) |
 | `ews_hmi_asrock_vulnerable_driver_loaded.yml` | Sysmon 6 (driver loaded) | AsrDrv103.sys loaded (CVE-2020-15368) | AA22-103A |
 | `ews_snap7_library_loaded.yml` | Sysmon 7 (image loaded) | snap7.dll loaded by any process | AA26-231A |
+| `ews_stuxnet_rootkit_driver_loaded.yml` | Sysmon 6 (driver loaded) | mrxcls.sys or mrxnet.sys loaded (Stuxnet load-point and rootkit drivers, signed with revoked Realtek/JMicron certificates) | Symantec W32.Stuxnet Dossier; MITRE S0603 |
+| `ews_stuxnet_driver_service_registered.yml` | Sysmon 12/13 (registry) | Services\MRxCls ImagePath or Data, or Services\MRxNet ImagePath written | Symantec W32.Stuxnet Dossier; MITRE S0603 |
+| `ews_step7_s7otbxsx_library_loaded.yml` | Sysmon 7 (image loaded) | s7otbxsx.dll (Stuxnet's rename of the Step 7 PLC communication library) loaded | Symantec W32.Stuxnet Dossier; MITRE S0603 |
+| `ews_step7_s7otbx_library_written.yml` | Sysmon 11 (file created) | s7otbxdx.dll or s7otbxsx.dll created or overwritten | Symantec W32.Stuxnet Dossier; MITRE S0603 |
+| `ews_stuxnet_step7_wincc_project_infection_files.yml` | Sysmon 11 (file created) | xutils\listen\*.mdx, xutils\links\s7p00001.dbf or GracS\*.sav files written into a Step 7 / WinCC project | Symantec W32.Stuxnet Dossier; MITRE S0603 |
+| `ews_stuxnet_removable_drive_lnk_and_loader_files.yml` | Sysmon 11 (file created) | ~WTR4132.tmp, ~WTR4141.tmp or the "Copy of ... Shortcut to.lnk" files written to a drive | Symantec W32.Stuxnet Dossier; MITRE S0603 |
+| `ews_hmi_removable_disk_or_optical_drive_recognized.yml` | Security 6416 (Audit PNP Activity) | Disk, portable device or CD/DVD drive recognised (ClassName DiskDrive, CDROM or WPD) | Microsoft 6416 and device setup classes; Mandiant (Sandworm a.iso); Symantec |
+| `hmi_cimplicity_blackenergy_installer_started.yml` | Sysmon 1 / 4688 | CimWrapPNPS.exe or CimCMSafegs.exe run or named on a command line (BlackEnergy installers from the Cimplicity CVE-2014-0751 vector) | CISA ICS-ALERT-14-281-01E |
 
 ## Deploying
 
@@ -43,8 +52,14 @@ Detection packs: `ICS-PACK-0002`, `ICS-PACK-0004`, `ICS-PACK-0005`,
   Sysmon network rules need a configuration that includes the controller and
   VNC ports. Sysmon image loads (ID 7) are disabled by default, and driver
   loads (ID 6) and FileBlockShredding (ID 28) appear only for what the
-  configuration includes; 4698 needs the "Audit Other Object Access Events"
-  subcategory, and the System-log rules need the System channel forwarded. A
+  configuration includes, as do FileCreate (ID 11) and registry events (IDs
+  12 and 13) for the project folders and Services keys the Stuxnet rules
+  name; 4698 needs the "Audit Other Object Access Events" subcategory, 6416
+  needs "Audit PNP Activity" (Windows 10 / Server 2016 and later), and the
+  System-log rules need the System channel forwarded. Current Sysmon runs on
+  Windows 11 / Server 2019 and later only, so hosts still running Step 7
+  (classic) or older WinCC produce none of the Sysmon events; ICS-PACK-0007
+  gives the file, registry and memory checks for them. A
   rule that cannot see its event says nothing, which is not the same as
   passing (ICS-DS-0006).
 - **Field names** follow Sysmon and the Sigma taxonomy (`Image`,

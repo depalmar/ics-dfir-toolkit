@@ -177,8 +177,8 @@ controls:
         kind: vendor
         quote: "Allows protection of sensitive configuration data in TIA Portal and PLCs via user-defined passwords (optional)"
         read: direct
-      - title: Siemens TIA Portal V20 information system - Protection & Security settings (S7-1500)
-        url: https://docs.tia.siemens.cloud/r/en-us/v20/functional-description-of-s7-1500-cpus-s7-1500/setting-the-operating-behavior-s7-1500/protection-security-s7-1500/settings-for-access-levels-s7-1500/configuring-access-levels-s7-1500
+      - title: Siemens TIA Portal V20 information system - Overview of the CPU properties (S7-1500), Protection & Security
+        url: https://docs.tia.siemens.cloud/r/en-us/v20/functional-description-of-s7-1500-cpus-s7-1500/setting-the-operating-behavior-s7-1500/cpu-properties-s7-1500/overview-of-the-cpu-properties-s7-1500
         accessed: "2026-11-08"
         kind: vendor
         quote: "Enable access via a PUT/GET communication or via secure PG/PC communication and HMI communication. For secure PG/PC communication and HMI communication you can select the communication certificates here."
@@ -199,8 +199,8 @@ controls:
       pages read.
     confidence: high
     sources:
-      - title: Siemens TIA Portal V20 information system - Protection & Security settings (S7-1500)
-        url: https://docs.tia.siemens.cloud/r/en-us/v20/functional-description-of-s7-1500-cpus-s7-1500/setting-the-operating-behavior-s7-1500/protection-security-s7-1500/settings-for-access-levels-s7-1500/configuring-access-levels-s7-1500
+      - title: Siemens TIA Portal V20 information system - Overview of the CPU properties (S7-1500), Protection & Security
+        url: https://docs.tia.siemens.cloud/r/en-us/v20/functional-description-of-s7-1500-cpus-s7-1500/setting-the-operating-behavior-s7-1500/cpu-properties-s7-1500/overview-of-the-cpu-properties-s7-1500
         accessed: "2026-11-08"
         kind: vendor
         quote: "Enable and configure the locking of user accounts that have made a certain number of failed logon attempts. As of firmware V4.0 (S7-1500)."

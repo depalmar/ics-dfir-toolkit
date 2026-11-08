@@ -178,3 +178,39 @@ and reported only the two Dragos/cert.pl order fixes above (then fixed) and
 the Year in Review quote (now `unverified`); the rest of that run's misses
 were hosts the sandbox cannot reach. Not re-checked: ICS-MAL-0002's spliced
 CISA quote (cisa.gov unreachable here; not flagged in run 2).
+
+## Round 6 - 2026-11-08 (quotes GitHub's runners cannot fetch)
+
+`check_quotes.py` run 2 (issue #7) could not check 410 quotes: 368 on hosts
+that answer GitHub's runners with 403 or a timeout (cisa.gov, cyber.gov.au,
+Rockwell, media.defense.gov, Siemens, Omron, Armis, Colonial, Communica,
+NJCCIC) and 42 on documentation portals that build their text in the browser
+(docs.tia.siemens.cloud, docs.aveva.com). Every quote on those hosts - 430 on
+74 pages once the records were re-collected - was checked in this pass against
+a text copy of its page fetched outside the runner: the 31 cisa.gov pages with
+the checker's own urllib fetch from the sandbox (curl is refused, urllib is
+not), the three Siemens cache PDFs with curl and pdftotext, eleven TIA Portal
+pages with Playwright (the reader draws its article in shadow DOM, so the text
+was collected by walking shadow roots; the AVEVA portal loads its app from a
+CDN the sandbox cannot reach and was left to Firecrawl), and 30 pages with
+Firecrawl (about 1,200 credits, most of them the 294-page MicroLogix 1400
+manual and the 587-page ALEOS guide; the ALEOS fetch timed out once and
+returned from Firecrawl's cache on the retry). Each copy is saved as
+`<sha1(url)>.txt` with its url and fetch time, and `check_quotes.py --saved`
+now checks quotes against such copies with the same normalisation as a live
+page, reporting them in their own section. 424 quotes matched as written; the
+six that did not are corrected below (none was gone from its page, so no
+record became `unverified`). PDFs were read with plain `pdftotext`, as the
+checker does, not `-layout`: the two-column CISA fact sheets interleave their
+columns under `-layout`. No quote on these hosts carried `read: summariser`.
+
+| Record | Field | Was | Now | Source | Read |
+| --- | --- | --- | --- | --- | --- |
+| hardening/baseline | controls[base-secure-by-demand].sources[0].quote | "Has the manufacturer eliminated default passwords? Are older insecure protocols disabled by default?" | the two sentences are separate bullets on the page; spliced with " ... " in page order | https://www.cisa.gov/sites/default/files/2025-04/Priority-Considerations-for-OT-508c.pdf | direct (urllib, pdftotext) |
+| response/baseline | sources[CISA Recommended Practice 2009].quote | "...from the network by removing the networking communication point..." | "...from the network ... by removing..." - footnote marker 29 sits between the two halves in the PDF text | https://www.cisa.gov/sites/default/files/2023-01/final-RP_ics_cybersecurity_incident_response_100609.pdf | direct (urllib, pdftotext) |
+| ICS-DS-0008 | sources[1756-PM015 Controller log].quote | "physical conditions such as keyswitches" | "physical conditions such as keywitches" - the manual's own spelling in its text layer; a YAML comment keeps the next reader from "fixing" it | https://literature.rockwellautomation.com/idc/groups/literature/documents/pm/1756-pm015_-en-p.pdf | Firecrawl (PDF parse) |
+| ICS-DS-0013 | sources[TIA V21 Syslog introduction].quote | "A CPU records the following events: - Security events - Firmware updates - ..." (" - " written in as list markers) | the list items on their own lines in a literal block, as the page lists them | https://docs.tia.siemens.cloud/r/en-us/v21/functional-description-of-s7-1500-cpus-s7-1500/setting-the-operating-behavior-s7-1500/protection-security-s7-1500/syslog-s7-1500/introduction-s7-1500 | Playwright |
+| hardening/siemens-s7 | controls[s7-secure-pg-hmi-communication].sources[2].url, title | the "Configuring access levels (S7-1500)" page, which does not carry the sentence | "Overview of the CPU properties (S7-1500)" (V20), where the quote is verbatim in the Protection & Security rows; the quote itself is unchanged | https://docs.tia.siemens.cloud/r/en-us/v20/functional-description-of-s7-1500-cpus-s7-1500/setting-the-operating-behavior-s7-1500/cpu-properties-s7-1500/overview-of-the-cpu-properties-s7-1500 | Playwright |
+| hardening/siemens-s7 | controls[s7-account-lockout].sources[0].url, title | the "Configuring access levels (S7-1500)" page, which does not carry the sentence | "Overview of the CPU properties (S7-1500)" (V20), same page as above; the quote itself is unchanged | as above | Playwright |
+| check_quotes.py | norm | a word hyphenated at a line end ("rele-" newline "vance", as pdftotext prints the SIPROTEC 5 manual) was not matched to "relevance" | the hyphen and the break are joined, as the intra-word hyphen already was | - | - |
+| check_quotes.py | --saved DIR | - | checks quotes against saved page texts (`<sha1(url)>.txt`, url and fetch time in two header lines) instead of fetching; a Markdown copy's links, images, `<br>` and escapes are reduced to text first; results go under "Checked against a saved copy", never under "no longer on the page" | - | - |

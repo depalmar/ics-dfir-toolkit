@@ -130,10 +130,13 @@ sources:
     url: https://docs.tia.siemens.cloud/r/en-us/v21/functional-description-of-s7-1500-cpus-s7-1500/setting-the-operating-behavior-s7-1500/protection-security-s7-1500/syslog-s7-1500/introduction-s7-1500
     accessed: "2026-11-08"
     kind: vendor
-    quote: >-
-      A CPU records the following events: - Security events - Firmware updates -
-      Changes to the user program - Changes to the configuration - Changes to the
-      operating state
+    quote: |-
+      A CPU records the following events:
+      Security events
+      Firmware updates
+      Changes to the user program
+      Changes to the configuration
+      Changes to the operating state
     read: direct
   - title: TIA Portal V21 help - Syslog (S7-1500), local cache and forwarding
     url: https://docs.tia.siemens.cloud/r/en-us/v21/functional-description-of-s7-1500-cpus-s7-1500/setting-the-operating-behavior-s7-1500/protection-security-s7-1500/syslog-s7-1500/introduction-s7-1500

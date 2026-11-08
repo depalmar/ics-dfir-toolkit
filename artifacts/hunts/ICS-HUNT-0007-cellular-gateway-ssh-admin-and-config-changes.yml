@@ -1,0 +1,108 @@
+# ICS hunt ICS-HUNT-0007
+# Schema: ../schema/hunt.schema.json
+# Research notes: docs/research/2026-11-08/detections.md
+
+id: ICS-HUNT-0007
+title: Cellular and remote-access gateways - SSH logins, administrative access and configuration changes
+platforms: [ICS-0013, ICS-0002, ICS-0001]
+actors: [ICS-TA-0019, ICS-TA-0006]
+incidents: [ICS-INC-0009, ICS-INC-0010]
+seen_in: [AA26-097A, VOLTZITE (Dragos 2026 Year in Review)]
+hypothesis: >-
+  An actor logged in to the cellular modem or industrial gateway itself (SSH
+  through Dropbear, or the web interface), changed its configuration to
+  expose controllers or keep access, and used it as the route to the PLCs
+  and engineering workstations behind it.
+data: [remote-access, syslog, firewall, netflow, config-archive]
+datasources: [ICS-DS-0012, ICS-DS-0005, ICS-DS-0004, ICS-DS-0003]
+data_detail: >-
+  Gateway logs already forwarded to a syslog server, SIEM or the vendor's
+  management cloud; the last approved gateway configuration from the config
+  archive or change records; edge flow records for the modem's public
+  address. Device-local logs are small and volatile; do not reboot, reset or
+  reconfigure the gateway to collect them (ICS-DS-0012). Carrier-side records
+  need a formal request to the mobile operator.
+method:
+  - >-
+    Inventory every modem and gateway, including the ones integrators and
+    vendors installed and never documented (ICS-INC-0010), with its public
+    address and management path.
+  - >-
+    Search the forwarded gateway logs for Dropbear SSH server messages -
+    "Password auth succeeded for", "Pubkey auth succeeded for", "Auth
+    succeeded with blank password for", "Bad password attempt for", "Login
+    attempt for nonexistent user from" and "Child connection from" - and
+    for web-interface logins, recording account and source address.
+  - >-
+    Diff the configuration as found (export it read-only through the vendor
+    interface if no forwarded copy exists) against the approved one: port
+    forwards to controller addresses or ports such as 44818, 502, 102 and
+    20256, SSH or remote management newly enabled, new users, changed VPN or
+    firewall rules.
+  - >-
+    In edge flow records, list inbound sessions to the modem's address on 22
+    and on controller ports, and the internal hosts reached through the
+    gateway afterwards; follow any pivot to engineering workstations.
+normal: >-
+  SSH disabled, or reachable only over the site VPN from management
+  addresses by named administrators; configuration matches the approved
+  baseline; no port forwards to automation equipment.
+suspicious: >-
+  A Dropbear login from an internet or hosting address; SSH enabled where it
+  should be off; new port forwards to controller ports; configuration
+  changes outside a window; sessions through the gateway to engineering
+  workstations shortly after a gateway login.
+attack: [T1219, T0822, T0883, T0886]
+rules:
+  - 03-remote-access/gateway_dropbear_ssh_auth_succeeded.yml
+  - 03-remote-access/gateway_dropbear_ssh_auth_failed.yml
+  - 02-ot-network/remote_access_inbound_to_ot.rules
+inferred: >-
+  The Dropbear message strings come from Dropbear's current source; firmware
+  on a given modem may carry an older or modified build with different
+  wording, so confirm one known login produces a matching line. Web-interface
+  log formats for AirLink, Teltonika, Moxa and Digi were not read and are not
+  given.
+confidence: medium
+sources:
+  - title: CISA AA26-097A - Iranian-Affiliated Cyber Actors Exploit Programmable Logic Controllers Across US Critical Infrastructure, command and control
+    url: https://www.cisa.gov/news-events/cybersecurity-advisories/aa26-097a
+    accessed: "2026-11-08"
+    kind: government
+    quote: >-
+      In one reported instance, the actors utilized Dropbear Secure Shell
+      (SSH) software on victim modems to enable them to gain remote access
+      through port `22`
+    read: direct
+  - title: CISA AA26-097A, modem logging
+    url: https://www.cisa.gov/news-events/cybersecurity-advisories/aa26-097a
+    accessed: "2026-11-08"
+    kind: government
+    quote: >-
+      Enable logs for connected modems and regularly review for suspicious
+      activity to detect intrusions and improve incident response speed.
+    read: direct
+  - title: CISA AA26-097A, lateral movement review
+    url: https://www.cisa.gov/news-events/cybersecurity-advisories/aa26-097a
+    accessed: "2026-11-08"
+    kind: government
+    quote: >-
+      Review logs and configurations on all connected devices, including
+      modems, HMIs, and workstations, to assess potential lateral movement by
+      threat actors.
+    read: direct
+  - title: Dropbear SSH server source, src/svr-authpasswd.c (mkj/dropbear, master)
+    url: https://raw.githubusercontent.com/mkj/dropbear/master/src/svr-authpasswd.c
+    accessed: "2026-11-08"
+    kind: vendor
+    quote: "\"Password auth succeeded for '%s' from %s\","
+    read: direct
+  - title: Dragos 2026 OT/ICS Cybersecurity Report and Year in Review, press release (VOLTZITE)
+    url: https://www.dragos.com/resources/press-release/dragos-2026-year-in-review-new-ot-threats-ransomware
+    accessed: "2026-11-08"
+    kind: researcher
+    quote: >-
+      VOLTZITE compromised Sierra Wireless Airlink cellular gateways to access
+      U.S. midstream pipeline operations and then pivoted to engineering
+      workstations.
+    read: direct

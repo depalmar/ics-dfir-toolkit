@@ -1,0 +1,84 @@
+title: PLC Project File Archived, Copied or Uploaded With a Command-Line Tool
+id: f5d8fb09-b8df-4951-9021-e0b08da521cf
+status: experimental
+description: |
+  An archiver, bulk-copy tool, curl or PowerShell Compress-Archive is started
+  with a PLC project or project-archive file on its command line. CISA
+  AA26-097A reports actors exfiltrating "device project files" (on Rockwell
+  "an .ACD file"), and Dragos reports AZURITE "targeting OT engineering
+  workstations and exfiltrating operational data" and VOLTZITE "manipulating
+  engineering workstation software to extract configuration files". The
+  extensions are vendor-documented: Rockwell .ACD (as quoted by CISA),
+  Siemens TIA Portal projects ".ap[version number]" and archives
+  ".zap[version number]", Schneider EcoStruxure Control Expert .STU, .STA,
+  .ZEF and .XEF, and Unitronics VisiLogic .vlp. Values are anchored to a
+  following quote, space or end of line where the extension is short enough
+  to collide with ordinary words. Needs process creation with command lines
+  (Sysmon Event ID 1, or Security 4688 with command-line auditing enabled,
+  which is empty by default). Deploy to the EWS host group and to file
+  servers that hold projects.
+references:
+  - https://www.cisa.gov/news-events/cybersecurity-advisories/aa26-097a
+  - https://www.dragos.com/resources/press-release/dragos-2026-year-in-review-new-ot-threats-ransomware
+  - https://docs.tia.siemens.cloud/r/en-us/v20/editing-projects/archiving-and-retrieving-projects/working-with-project-archives
+  - https://www.se.com/us/en/faqs/FAQ000259996/
+  - https://www.unitronicsplc.com/Download/SoftwareHelp/VisiLogic_Knowledgebase/PLC_types/Updating_Project_Versions.htm
+author: Raymond DePalma (ics-dfir-toolkit)
+date: 2026-11-08
+tags:
+  - attack.collection
+  - attack.exfiltration
+  - attack.t1560.001
+  - attack.t1005
+  - attack.t0893
+  - attack.t0882
+  - ics-dfir.ews-hmi
+logsource:
+  category: process_creation
+  product: windows
+detection:
+  selection_tool:
+    - Image|endswith:
+        - '\7z.exe'
+        - '\7za.exe'
+        - '\7zr.exe'
+        - '\rar.exe'
+        - '\WinRAR.exe'
+        - '\tar.exe'
+        - '\robocopy.exe'
+        - '\xcopy.exe'
+        - '\curl.exe'
+    - CommandLine|contains: 'Compress-Archive'
+  selection_ext_tia:
+    CommandLine|contains:
+      - '.ap1'
+      - '.ap2'
+      - '.zap1'
+      - '.zap2'
+  selection_ext_anchored:
+    CommandLine|contains:
+      - '.acd"'
+      - '.acd '
+      - '.stu"'
+      - '.stu '
+      - '.sta"'
+      - '.sta '
+      - '.zef"'
+      - '.zef '
+      - '.xef"'
+      - '.xef '
+      - '.vlp"'
+      - '.vlp '
+  selection_ext_end:
+    CommandLine|endswith:
+      - '.acd'
+      - '.stu'
+      - '.sta'
+      - '.zef'
+      - '.xef'
+      - '.vlp'
+  condition: selection_tool and 1 of selection_ext_*
+falsepositives:
+  - Engineers archiving projects for change management or handing them to an integrator; baseline by account, destination path and time
+  - Backup software that calls 7-Zip or robocopy on project folders
+level: medium

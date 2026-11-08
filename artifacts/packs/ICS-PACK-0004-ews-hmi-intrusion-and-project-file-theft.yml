@@ -1,0 +1,146 @@
+# Detection pack ICS-PACK-0004
+# Schema: ../schema/pack.schema.json
+# Research notes: docs/research/2026-11-08/detections.md
+#
+# Detections of type "check" name an evaluation step for the triage engine,
+# which is not built yet (docs/ROADMAP.md); until then they are manual steps,
+# and the Sigma files linked in "rules" are what can be deployed today. A
+# detection whose evidence was not collected is not evaluated.
+
+id: ICS-PACK-0004
+name: Intrusion on engineering workstations and HMIs, and theft of PLC project files
+platforms: [ICS-0010, ICS-0011]
+actors: [ICS-TA-0015, ICS-TA-0006, ICS-TA-0019]
+incidents: [ICS-INC-0009]
+summary: >-
+  Engineering workstations hold the plant's logic and the means to change
+  it. Dragos's 2026 Year in Review reports AZURITE "targeting OT engineering
+  workstations and exfiltrating operational data" and VOLTZITE "manipulating
+  engineering workstation software to extract configuration files and alarm
+  data" after pivoting from Sierra Wireless gateways, and notes OT incidents
+  are misclassified as IT-only because EWS and HMIs run Windows. CISA
+  AA26-097A reports project files exfiltrated from PLCs and defines the
+  Rockwell project file as the .ACD. This pack collects the Windows-side
+  signs of an intruder on an EWS or HMI: project files gathered for removal,
+  scripts or dropped binaries talking to controllers, new administrators, log
+  enumeration and log clearing. It does not cover AA26-097A's main route,
+  where the actors ran the vendor software on their own infrastructure and
+  left nothing on the owner's EWS (ICS-PACK-0001).
+confidence: high
+references:
+  - title: Dragos 2026 OT/ICS Cybersecurity Report and Year in Review, press release
+    url: https://www.dragos.com/resources/press-release/dragos-2026-year-in-review-new-ot-threats-ransomware
+    accessed: "2026-11-08"
+  - title: CISA AA26-097A - Iranian-Affiliated Cyber Actors Exploit Programmable Logic Controllers Across US Critical Infrastructure
+    url: https://www.cisa.gov/news-events/cybersecurity-advisories/aa26-097a
+    accessed: "2026-11-08"
+  - title: Best practices for event logging and threat detection (ASD's ACSC with CISA, FBI, NSA and partners, August 2024)
+    url: https://www.cyber.gov.au/sites/default/files/2024-08/best-practices-for-event-logging-and-threat-detection.pdf
+    accessed: "2026-11-08"
+  - title: TIA Portal V20 help - Working with project archives (Siemens)
+    url: https://docs.tia.siemens.cloud/r/en-us/v20/editing-projects/archiving-and-retrieving-projects/working-with-project-archives
+    accessed: "2026-11-08"
+  - title: Schneider Electric FAQ000259996 - .STU, .STA, .ZEF and .XEF files in EcoStruxure Control Expert
+    url: https://www.se.com/us/en/faqs/FAQ000259996/
+    accessed: "2026-11-08"
+  - title: Unitronics VisiLogic Knowledgebase - Updating Project Versions
+    url: https://www.unitronicsplc.com/Download/SoftwareHelp/VisiLogic_Knowledgebase/PLC_types/Updating_Project_Versions.htm
+    accessed: "2026-11-08"
+
+detect:
+  - id: ews-project-file-archived-or-copied
+    title: Archiver, copy tool or curl run on a PLC project or project-archive file
+    type: check
+    check: windows_event_query
+    args:
+      channel: Microsoft-Windows-Sysmon/Operational
+      event_id: 1
+      extensions: [.ACD, .apNN, .zapNN, .STU, .STA, .ZEF, .XEF, .vlp]
+    tier: possible
+    evidence_class: process
+    datasources: [ICS-DS-0006, ICS-DS-0007]
+    attack: [T1560.001, T1005, T0893, T0882]
+    rules: [01-engineering-workstations/ews_project_file_archived_or_copied_by_cli.yml]
+    notes: >-
+      Engineers archive projects legitimately; rises to likely when the
+      account, time or remote session is out of pattern, or when a large
+      outbound transfer follows (ICS-HUNT-0008).
+
+  - id: ews-script-to-controller-port
+    title: Script interpreter or user-writable binary on an EWS or HMI connected to a controller port
+    type: check
+    check: windows_event_query
+    args:
+      channel: Microsoft-Windows-Sysmon/Operational
+      event_id: 3
+      Initiated: "true"
+      DestinationPort: [102, 502, 2222, 2404, 4840, 20000, 20256, 44818]
+    tier: likely
+    evidence_class: process
+    datasources: [ICS-DS-0006]
+    attack: [T0885, T1059]
+    rules: [01-engineering-workstations/ews_script_or_user_path_process_to_controller_port.yml]
+    notes: >-
+      Likely unless the script is a known engineering tool in the baseline.
+      Shows the connection, not what was sent; pair with the Zeek protocol log
+      for the same flow.
+
+  - id: ews-project-file-differs-from-approved
+    title: Project file on the EWS differs from the approved copy in version control or AssetCentre
+    type: check
+    check: project_file_hash_compare
+    tier: possible
+    evidence_class: project-files
+    datasources: [ICS-DS-0007]
+    attack: [T0873, T0889]
+    notes: >-
+      A modified project on the EWS can be downloaded to a controller by an
+      engineer who trusts it. The EWS copy is evidence, not the reference;
+      without an offline approved copy this is not evaluated.
+
+  - id: ews-hmi-local-admin-added
+    title: Member added to BUILTIN\Administrators on an EWS or HMI
+    type: check
+    check: windows_event_query
+    args:
+      channel: Security
+      event_id: 4732
+      TargetSid: S-1-5-32-544
+    tier: possible
+    evidence_class: identity
+    datasources: [ICS-DS-0006]
+    attack: [T1098]
+    rules: [01-engineering-workstations/ews_hmi_local_administrators_member_added.yml]
+
+  - id: ews-hmi-logon-log-enumeration
+    title: Security log queried for logons on an EWS or HMI
+    type: check
+    check: windows_event_query
+    args:
+      channel: Microsoft-Windows-Sysmon/Operational
+      event_id: 1
+      commands: [wevtutil qe Security, Get-EventLog Security, Get-WinEvent Security]
+    tier: possible
+    evidence_class: process
+    datasources: [ICS-DS-0006]
+    attack: [T1654, T1033]
+    rules: [01-engineering-workstations/ews_hmi_event_log_logon_enumeration.yml]
+    notes: >-
+      The joint ASD/CISA guidance reports Volt Typhoon doing exactly this on
+      enterprise hosts; on an OT host it suggests an intruder mapping accounts.
+
+  - id: ews-hmi-security-log-cleared
+    title: Security audit log cleared on an EWS or HMI
+    type: check
+    check: windows_event_query
+    args:
+      channel: Security
+      event_id: 1102
+    tier: likely
+    evidence_class: system-logs
+    datasources: [ICS-DS-0006]
+    attack: [T1070.001, T0872]
+    rules: [01-engineering-workstations/ews_hmi_security_log_cleared.yml]
+    notes: >-
+      Microsoft: "Typically you should not see this event." Work from the
+      forwarded copy; the local log is gone.

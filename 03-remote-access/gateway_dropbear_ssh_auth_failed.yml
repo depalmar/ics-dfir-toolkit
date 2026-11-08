@@ -1,0 +1,39 @@
+title: Dropbear SSH Login Failures on a Cellular or Remote-Access Gateway
+id: 5dd7ca16-25b4-4dd4-9132-04e72d2d20f0
+status: experimental
+description: |
+  Failed logins recorded by the Dropbear SSH server in the syslog that a
+  cellular modem or industrial gateway forwards: a wrong password, a
+  nonexistent user, or a bad public-key signature (message prefixes from
+  Dropbear's svr-authpasswd.c, svr-auth.c and svr-authpubkey.c). AA26-097A
+  reports Dropbear SSH used on victim modems and asks owners to put the kind
+  of protection in front of OT devices that stops "repeated and sustained
+  login attempts seen during a brute force attack". One failure means
+  little; many from one internet source, followed by the success that
+  gateway_dropbear_ssh_auth_succeeded.yml detects, is the pattern. Sigma
+  cannot count, so aggregate in the SIEM. Firmware builds may word messages
+  differently; confirm against a sample from the device.
+references:
+  - https://www.cisa.gov/news-events/cybersecurity-advisories/aa26-097a
+  - https://github.com/mkj/dropbear/blob/master/src/svr-authpasswd.c
+  - https://github.com/mkj/dropbear/blob/master/src/svr-auth.c
+  - https://github.com/mkj/dropbear/blob/master/src/svr-authpubkey.c
+author: Raymond DePalma (ics-dfir-toolkit)
+date: 2026-11-08
+tags:
+  - attack.credential-access
+  - attack.t1110
+  - ics-dfir.remote-access
+logsource:
+  product: linux
+  service: syslog
+detection:
+  keywords:
+    - "Bad password attempt for '"
+    - 'Login attempt for nonexistent user from'
+    - "Pubkey auth bad signature for '"
+  condition: keywords
+falsepositives:
+  - Administrators mistyping a password
+  - Internet background scanning of any gateway whose SSH is exposed (itself a finding under AA26-097A)
+level: low

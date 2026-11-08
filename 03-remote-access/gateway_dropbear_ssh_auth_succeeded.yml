@@ -1,0 +1,42 @@
+title: Dropbear SSH Login Succeeded on a Cellular or Remote-Access Gateway
+id: ff79f439-f2da-4d1d-a465-2411083c393d
+status: experimental
+description: |
+  A successful login recorded by the Dropbear SSH server in the syslog that a
+  cellular modem or industrial gateway forwards. CISA AA26-097A reports the
+  actors "utilized Dropbear Secure Shell (SSH) software on victim modems to
+  enable them to gain remote access through port 22" and asks owners to
+  "Enable logs for connected modems and regularly review for suspicious
+  activity". The three message prefixes are the success messages in
+  Dropbear's own source (svr-authpasswd.c, svr-authpubkey.c, svr-auth.c);
+  each continues with the account and "from <address>". Gateway firmware may
+  ship an older or patched Dropbear whose wording differs, so confirm one
+  sample from the device before relying on silence. Where SSH on the gateway
+  should be off, any hit is out of design; where it is used, compare the
+  source address with the management addresses.
+references:
+  - https://www.cisa.gov/news-events/cybersecurity-advisories/aa26-097a
+  - https://github.com/mkj/dropbear/blob/master/src/svr-authpasswd.c
+  - https://github.com/mkj/dropbear/blob/master/src/svr-authpubkey.c
+  - https://github.com/mkj/dropbear/blob/master/src/svr-auth.c
+author: Raymond DePalma (ics-dfir-toolkit)
+date: 2026-11-08
+tags:
+  - attack.command-and-control
+  - attack.initial-access
+  - attack.t1219
+  - attack.t0822
+  - ics-dfir.remote-access
+logsource:
+  product: linux
+  service: syslog
+detection:
+  keywords:
+    - "Password auth succeeded for '"
+    - "Pubkey auth succeeded for '"
+    - "Auth succeeded with blank password for '"
+  condition: keywords
+falsepositives:
+  - Administrators managing the gateway over SSH from management addresses; baseline the accounts and source addresses
+  - Other embedded Linux devices that use Dropbear and forward to the same receiver; scope the rule to the gateway hosts
+level: medium

@@ -1,0 +1,14 @@
+# 02-ot-network/unitronics_port_inbound.rules
+# Sessions from outside HOME_NET to Unitronics Vision/Samba PLC/HMIs on the
+# default remote-communication port 20256/tcp, and to 20257/tcp, the port
+# CISA AA23-335A reports the actors moved devices to ("from 20256 to 20257").
+# Header, flow and threshold keywords only. CISA does not name the protocol
+# on these ports in AA23-335A, so the messages name ports only.
+#
+# Traffic to 20257 is a strong lead only where the site's projects use
+# 20256; a site that chose 20257 itself should disable sid 9000013.
+#
+# Linked from ICS-PACK-0003 and ICS-HUNT-0010.
+
+alert tcp $EXTERNAL_NET any -> $HOME_NET 20256 (msg:"ICS-DFIR session to Unitronics default port 20256/tcp from outside HOME_NET"; flow:established,to_server; threshold:type limit, track by_both, count 1, seconds 3600; reference:url,www.cisa.gov/news-events/cybersecurity-advisories/aa23-335a; classtype:policy-violation; sid:9000012; rev:1;)
+alert tcp any any -> $HOME_NET 20257 (msg:"ICS-DFIR session to 20257/tcp, the port AA23-335A actors moved Unitronics devices to"; flow:established,to_server; threshold:type limit, track by_both, count 1, seconds 3600; reference:url,www.cisa.gov/news-events/cybersecurity-advisories/aa23-335a; classtype:policy-violation; sid:9000013; rev:1;)

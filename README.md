@@ -82,19 +82,24 @@ ics-dfir-toolkit/
 └── CLAUDE.md             # the rules, for humans and agents alike
 ```
 
-Rule directories (`NN-*`, Sigma / YARA / Suricata) arrive with the first
-detection packs.
+Rule directories (`NN-*`): `01-engineering-workstations/` and
+`03-remote-access/` (Sigma), `02-ot-network/` (Suricata, port and flow level;
+set `HOME_NET` and the client variables for your site). Every rule is linked
+from the hunt or pack it expresses.
 
-## What is in it (round 1, 2026-11-08)
+## What is in it (rounds 1-2, 2026-11-08)
 
 | Records | Count | Highlights |
 | --- | --- | --- |
-| Platforms | 9 | Rockwell Logix (controller log, Change Detection AuditValue), Siemens S7-1200/1500 (diagnostics buffer survives memory reset but is not in TIA Portal backups), S7-300/400, Modicon (M580 syslog; M340 has none), Unitronics, Triconex, Windows EWS and HMI/SCADA hosts, cellular gateways |
+| Platforms | 15 | Rockwell Logix (controller log, Change Detection AuditValue), Siemens S7-1200/1500 (diagnostics buffer survives memory reset but is not in TIA Portal backups), S7-300/400, Modicon (M580 syslog; M340 has none), Unitronics, Triconex, OMRON, CODESYS, MicroLogix (vendor password recovery erases program and IP), substation RTU/IED, OPC UA, historian, Windows EWS and HMI/SCADA hosts, cellular gateways |
+| Hunts | 12 | Internet-facing PLC sessions, new engineering-protocol talkers, out-of-window downloads, HMI remote access, historian gaps during remote sessions, gateway SSH, project-file theft |
+| Detection packs | 4 | AA26-097A, AA25-343A, AA23-335A, engineering-workstation intrusion; 11 Sigma rules and 14 port/flow Suricata rules in `01-`, `02-`, `03-` |
+| Indicator sets | 3 | CISA AA26-097A STIX; ESET DynoWiper and Industroyer (BSD 2-Clause), parsed in code |
 | Protocols | 20 | Identity records: transport, native authentication, open parsers. Operations tables come later |
 | Data sources | 14 | Many of the most useful logs ship disabled (Suricata ICS parsers, Control Expert event logging, Windows 4688 command line, Ignition audit) |
 | Threat actors | 19 | Dragos, US Government, Mandiant, ESET and CERT Polska clusters kept apart; Poland 2025's three-way attribution listed as reported |
 | Malware | 16 | Stuxnet to the 2025 wipers (DynoWiper, LazyWiper, PathWiper, GigaWiper); every record states its detection gap |
-| Incidents | 12 | Ukraine 2015 to the July 2026 US water-sector MicroLogix campaign |
+| Incidents | 13 | Ukraine 2015 to the July 2026 US water-sector MicroLogix campaign and AA26-231A (AI-generated scripts against exposed S7 PLCs) |
 | Hardening | 76 controls | Cross-platform baseline plus Rockwell, Siemens, Unitronics and remote-access gateways |
 | Response | 1 | Safety-first baseline playbook with a sourced `do_not` list |
 

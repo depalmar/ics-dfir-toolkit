@@ -19,6 +19,7 @@ victim: >-
 platforms:
   - ICS-0002
   - ICS-0013
+hunts: [ICS-HUNT-0003, ICS-HUNT-0007, ICS-HUNT-0012]
 summary: >-
   Unidentified "malicious cyber actors" reached internet-exposed Rockwell Automation/Allen-Bradley MicroLogix
   1100 and 1400 PLCs at US water and wastewater utilities, commonly connected directly to cellular modems

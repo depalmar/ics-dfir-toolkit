@@ -1,0 +1,61 @@
+title: Inbound VNC Connection to an HMI From a Public Address
+id: f4094601-ba07-4738-bc94-b24154458a12
+status: experimental
+description: |
+  An inbound TCP connection (Sysmon Event ID 3, Initiated false) to the VNC
+  default port 5900 or the nearby ports 5901-5910 on a Windows HMI or EWS,
+  from a source that is not private, loopback, link-local or carrier-grade
+  NAT space. CISA AA25-343A reports pro-Russia hacktivists searching for VNC
+  "on the default port 5900 or other nearby ports (5901-5910)" to "gain
+  remote access to HMI devices connected to live control networks", then
+  changing setpoints, credentials and alarms through the HMI's GUI. Sysmon's
+  network connection event "is disabled by default", so this rule says
+  nothing unless the Sysmon configuration includes these ports. Embedded HMI
+  panels that cannot run Sysmon are covered only by the network rule in
+  02-ot-network/remote_access_inbound_to_ot.rules.
+references:
+  - https://www.cisa.gov/news-events/cybersecurity-advisories/aa25-343a
+  - https://learn.microsoft.com/en-us/sysinternals/downloads/sysmon
+author: Raymond DePalma (ics-dfir-toolkit)
+date: 2026-11-08
+tags:
+  - attack.initial-access
+  - attack.lateral-movement
+  - attack.t0883
+  - attack.t0886
+  - attack.t1021.005
+  - ics-dfir.ews-hmi
+logsource:
+  category: network_connection
+  product: windows
+detection:
+  selection:
+    Initiated: 'false'
+    DestinationPort:
+      - 5900
+      - 5901
+      - 5902
+      - 5903
+      - 5904
+      - 5905
+      - 5906
+      - 5907
+      - 5908
+      - 5909
+      - 5910
+  filter_main_private:
+    SourceIp|cidr:
+      - '127.0.0.0/8'
+      - '10.0.0.0/8'
+      - '172.16.0.0/12'
+      - '192.168.0.0/16'
+      - '169.254.0.0/16'
+      - '100.64.0.0/10'
+      - '::1/128'
+      - 'fe80::/10'
+      - 'fc00::/7'
+  condition: selection and not 1 of filter_main_*
+falsepositives:
+  - Sites whose OT ranges are public IPv4 or global IPv6 space; add those ranges to the filter
+  - Vendor support that reaches the HMI's VNC directly from a known public address (out of design; record it and route it through the broker)
+level: high

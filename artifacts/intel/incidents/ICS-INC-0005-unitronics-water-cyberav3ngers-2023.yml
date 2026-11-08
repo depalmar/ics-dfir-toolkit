@@ -25,6 +25,8 @@ platforms:
   - ICS-0006
 cves:
   - CVE-2023-6448
+hunts: [ICS-HUNT-0010, ICS-HUNT-0012]
+packs: [ICS-PACK-0003]
 summary: >-
   IRGC-affiliated actors using the CyberAv3ngers persona logged in to internet-exposed Unitronics Vision
   Series PLC/HMIs on the default TCP port 20256 using default or no passwords, replaced the ladder logic

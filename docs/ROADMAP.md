@@ -15,12 +15,16 @@ Ordered by value. The knowledge base comes first because every later layer
 
 ## Round 1 follow-ups (found during research, 2026-11-08)
 
-- **Pending records** - referenced by other records but not written; the
-  validator lists them as `pending record` warnings:
-  - Platforms: ICS-0002 MicroLogix (no public source on its logging found),
-    ICS-0008 OMRON Sysmac, ICS-0009 CODESYS runtime, ICS-0012 historian,
-    ICS-0014 substation RTU/IED (referenced nine times - highest priority),
-    ICS-0015 OPC UA servers.
+- ~~**Pending records**~~ - all six platforms written in round 2 (ICS-0002,
+  0008, 0009, 0012, 0014, 0015); the validator reports no pending records.
+  Still thin: ICS-0002 (no on-controller log documented), ICS-0012 (AVEVA PI
+  only), ICS-0008 (only the first 90 pages of OMRON's troubleshooting manual
+  read).
+- **Detections, round 2 follow-ups:** a Sigma rule for engineering software
+  started by an unusual parent (needs vendor-documented process names);
+  removable-media writes, gateway web logins, Windows 4625/4720 (formats not
+  yet read); `check` detections in packs are manual until the triage engine
+  exists; the break-glass rule ships with placeholder account names.
 - ~~**New intel to record:** CISA AA26-231A~~ - recorded in round 2 as
   ICS-INC-0013 (no actor, malware or indicator named by the advisory).
 - **SLMP authentication:** Mitsubishi's SLMP manual lists a "Remote Password"

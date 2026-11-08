@@ -203,7 +203,37 @@ Numbered by when they were added; each needs a README.md. Files are
 | `03-remote-access/` | Sigma over remote-access, VPN, jump-host and cellular gateway logs | ICS-0013 |
 | `04-ics-malware/` | YARA for ICS malware families, vendored only after licence review | ALL |
 
-## Hunts, packs, indicator sets
+## Hunts (`ICS-HUNT-NNNN`)
 
-Allocated by the first record that needs one: ICS-HUNT-0001, ICS-PACK-0001,
-ICS-IOC-0001 upward.
+| Id | Hunt |
+| --- | --- |
+| ICS-HUNT-0001 | Sessions to PLC protocol ports from internet or hosting-provider addresses |
+| ICS-HUNT-0002 | Hosts that start speaking an industrial protocol to a controller |
+| ICS-HUNT-0003 | Controller downloads, online edits, mode changes and logins outside approved change windows |
+| ICS-HUNT-0004 | Remote desktop to HMIs and use of the OT remote-access path from unexpected sources |
+| ICS-HUNT-0005 | HMI alarm suppression, credential, device-name and setpoint changes during remote sessions |
+| ICS-HUNT-0006 | Process excursions with no alarm, and historian or alarm gaps during remote sessions |
+| ICS-HUNT-0007 | Cellular and remote-access gateways: SSH logins, administrative access and configuration changes |
+| ICS-HUNT-0008 | PLC project files archived, copied or sent from engineering workstations |
+| ICS-HUNT-0009 | Industrial protocols crossing the IT/OT boundary or leaving OT |
+| ICS-HUNT-0010 | Unitronics PLC/HMI sessions on 20256 or 20257 from outside the site |
+| ICS-HUNT-0011 | New local administrators, logon-log enumeration and log clearing on EWS and HMIs |
+| ICS-HUNT-0012 | The owner's own address ranges in internet exposure data |
+
+Next free: ICS-HUNT-0013.
+
+## Detection packs (`ICS-PACK-NNNN`)
+
+| Id | Pack |
+| --- | --- |
+| ICS-PACK-0001 | AA26-097A - Iranian-affiliated exploitation of internet-facing PLCs |
+| ICS-PACK-0002 | AA25-343A - pro-Russia hacktivist intrusions into HMIs over VNC |
+| ICS-PACK-0003 | AA23-335A - CyberAv3ngers compromise of Unitronics Vision PLC/HMIs |
+| ICS-PACK-0004 | Intrusion on engineering workstations and HMIs, and theft of PLC project files |
+
+Next free: ICS-PACK-0005.
+
+## Suricata sids
+
+`02-ot-network/` uses the local range 9000001 upward: 9000001-9000014 are
+allocated. Next free: 9000015.

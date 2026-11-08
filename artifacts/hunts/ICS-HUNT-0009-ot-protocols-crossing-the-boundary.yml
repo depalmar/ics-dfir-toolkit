@@ -1,0 +1,95 @@
+# ICS hunt ICS-HUNT-0009
+# Schema: ../schema/hunt.schema.json
+# Research notes: docs/research/2026-11-08/detections.md
+
+id: ICS-HUNT-0009
+title: Industrial protocols crossing the IT/OT boundary or leaving OT
+platforms: [ALL]
+protocols:
+  - ICS-PROTO-0001
+  - ICS-PROTO-0004
+  - ICS-PROTO-0006
+  - ICS-PROTO-0007
+  - ICS-PROTO-0010
+hypothesis: >-
+  Industrial protocol traffic crosses the boundary outside the designed data
+  flows: an IT host polling or programming controllers, an OT host speaking
+  an industrial protocol to the internet, or a standard protocol running on
+  a port that does not belong to it.
+data: [firewall, netflow, ics-network-capture]
+datasources: [ICS-DS-0004, ICS-DS-0003, ICS-DS-0001, ICS-DS-0002]
+data_detail: >-
+  Firewall logs at the enterprise/DMZ and DMZ/control boundaries, including
+  allowed sessions and rule-change entries; flow records exported at the
+  boundary and between OT zones; Zeek conn.log, whose service field records
+  the protocol Zeek recognised independently of the port; the site's
+  documented data-flow map.
+method:
+  - >-
+    From the data-flow map, list the flows that are meant to cross each
+    boundary (for example historian replication to the DMZ).
+  - >-
+    From firewall and flow records, list sessions on industrial protocol
+    ports (102, 502, 2222, 2404, 4840, 20000, 20256, 44818) where either end
+    sits in the enterprise network or the internet, and every session an OT
+    host initiated to an external address on those ports; remove the
+    documented flows.
+  - >-
+    In Zeek conn.log, list connections where the recognised service does not
+    match the port (an industrial protocol on a non-standard port, or a
+    non-industrial protocol on an industrial port).
+  - >-
+    For each path found, read the firewall rule-change history to see who
+    opened it and when.
+normal: >-
+  Only documented flows cross the boundary; industrial protocols stay inside
+  OT zones; services match their ports.
+suspicious: >-
+  Enterprise hosts speaking Modbus, S7, CIP, DNP3 or IEC 104 to controllers;
+  OT hosts initiating industrial-protocol sessions to the internet; beaconing
+  from OT; protocol-to-port mismatches; firewall rules opened without a
+  change record.
+attack: [T0885, T0869, T0886, T0883]
+rules:
+  - 02-ot-network/ot_protocol_outbound_to_external.rules
+  - 02-ot-network/ot_protocol_inbound_from_unapproved_host.rules
+inferred: >-
+  Using Zeek's service detection to find protocol-to-port mismatches is this
+  toolkit's method for the mismatch CISA describes.
+confidence: high
+sources:
+  - title: Secure connectivity principles for Operational Technology (NCSC-UK with CISA, FBI, ASD's ACSC, Cyber Centre, BSI, NCSC-NL, NCSC-NZ), data flow monitoring
+    url: https://www.ncsc.gov.uk/sites/default/files/documents/ncsc-secure-connectivity-for-operational-technology.pdf
+    accessed: "2026-11-08"
+    kind: government
+    quote: >-
+      Continuous monitoring of data flows within and between network segments
+      is crucial to enable you to validate segmentation policies, and identify
+      early signs of compromise or misconfiguration in your controls.
+    read: direct
+  - title: CISA AA25-343A - Pro-Russia Hacktivists Conduct Opportunistic Attacks Against US and Global Critical Infrastructure, mitigations
+    url: https://www.cisa.gov/news-events/cybersecurity-advisories/aa25-343a
+    accessed: "2026-11-08"
+    kind: government
+    quote: >-
+      Regularly audit firewall rulesets and monitor outbound traffic patterns
+      for anomalies indicative of threat actor activity, such as beaconing or
+      unexpected protocol usage.
+    read: direct
+  - title: CISA AA23-335A - IRGC-Affiliated Cyber Actors Exploit PLCs in Multiple Sectors (revised December 18, 2024), monitor network traffic
+    url: https://www.cisa.gov/news-events/cybersecurity-advisories/aa23-335a
+    accessed: "2026-11-08"
+    kind: government
+    quote: >-
+      Unexpected protocols connected to ports that are mismatched with the
+      protocols that would normally connect to these ports.
+    read: direct
+  - title: Best practices for event logging and threat detection (ASD's ACSC with CISA, FBI, NSA and partners, August 2024), OT considerations
+    url: https://www.cyber.gov.au/sites/default/files/2024-08/best-practices-for-event-logging-and-threat-detection.pdf
+    accessed: "2026-11-08"
+    kind: government
+    quote: >-
+      unexpected communication between the control system and external
+      network or unusual communication between components that do not usually
+      communicate
+    read: direct

@@ -1,0 +1,53 @@
+title: Remote Desktop Logon to an EWS or HMI From a Public Address
+id: 9b6b8154-0d14-4cb1-96ff-c8c868c9cd33
+status: experimental
+description: |
+  A RemoteInteractive logon (Security 4624, LogonType 10) on an engineering
+  workstation or HMI whose source address is not private, loopback,
+  link-local or carrier-grade NAT space. CISA AA26-097A asks owners to use a
+  device control list "to monitor for logon activity for unexpected or unusual
+  access to devices from the internet", and AA25-343A reports HMIs reached
+  from internet-exposed remote desktop services. On a correctly built site an
+  EWS or HMI takes remote desktop sessions only from the jump host, so any
+  public source is out of design. Deploy to the EWS and HMI host group only;
+  Sigma cannot tell an EWS from any other Windows host. Microsoft notes the
+  address fields are populated depending on the authentication context, so
+  an empty IpAddress proves nothing.
+references:
+  - https://learn.microsoft.com/en-us/previous-versions/windows/it-pro/windows-10/security/threat-protection/auditing/event-4624
+  - https://www.cisa.gov/news-events/cybersecurity-advisories/aa26-097a
+  - https://www.cisa.gov/news-events/cybersecurity-advisories/aa25-343a
+author: Raymond DePalma (ics-dfir-toolkit)
+date: 2026-11-08
+tags:
+  - attack.initial-access
+  - attack.lateral-movement
+  - attack.t0822
+  - attack.t0886
+  - attack.t1021.001
+  - ics-dfir.ews-hmi
+logsource:
+  product: windows
+  service: security
+detection:
+  selection:
+    EventID: 4624
+    LogonType: 10
+  filter_main_private:
+    IpAddress|cidr:
+      - '127.0.0.0/8'
+      - '10.0.0.0/8'
+      - '172.16.0.0/12'
+      - '192.168.0.0/16'
+      - '169.254.0.0/16'
+      - '100.64.0.0/10'
+      - '::1/128'
+      - 'fe80::/10'
+      - 'fc00::/7'
+  filter_main_empty:
+    IpAddress: '-'
+  condition: selection and not 1 of filter_main_*
+falsepositives:
+  - A site that deliberately routes vendor remote desktop from public addresses straight to the HMI (a design that AA26-097A and the NCSC connectivity principles advise against; record and allowlist the vendor addresses while it is fixed)
+  - Sites whose OT ranges are public IPv4 or global IPv6 space; add those ranges to the filter
+level: high

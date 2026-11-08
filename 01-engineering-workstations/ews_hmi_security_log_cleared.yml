@@ -1,0 +1,35 @@
+title: Security Audit Log Cleared on an EWS or HMI
+id: 315cfc35-a80c-42f4-b1fe-74afa8ad5656
+status: experimental
+description: |
+  Event 1102 ("The audit log was cleared") from Microsoft-Windows-Eventlog in
+  the Security channel of an engineering workstation or HMI. Microsoft:
+  "Typically you should not see this event." The joint ASD/CISA logging
+  guidance lists "unexpected clearing of logs" as anomalous behaviour and
+  notes some actors "modify or delete local system event logs to avoid
+  detection". On an OT host, treat it as an incident until explained, and
+  work from the forwarded copy of the log: the local one is gone. SigmaHQ's
+  general rule win_security_audit_log_cleared.yml covers the same event on
+  all hosts.
+references:
+  - https://learn.microsoft.com/en-us/previous-versions/windows/it-pro/windows-10/security/threat-protection/auditing/event-1102
+  - https://www.cyber.gov.au/sites/default/files/2024-08/best-practices-for-event-logging-and-threat-detection.pdf
+  - https://github.com/SigmaHQ/sigma/blob/master/rules/windows/builtin/security/win_security_audit_log_cleared.yml
+author: Raymond DePalma (ics-dfir-toolkit)
+date: 2026-11-08
+tags:
+  - attack.defense-evasion
+  - attack.t1070.001
+  - attack.t0872
+  - ics-dfir.ews-hmi
+logsource:
+  product: windows
+  service: security
+detection:
+  selection:
+    EventID: 1102
+    Provider_Name: 'Microsoft-Windows-Eventlog'
+  condition: selection
+falsepositives:
+  - Rollout of a log collection agent or reimaging of the host under a change record
+level: high

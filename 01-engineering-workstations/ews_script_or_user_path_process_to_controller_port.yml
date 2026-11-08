@@ -1,0 +1,67 @@
+title: Script Interpreter or User-Writable Binary Connects to a Controller Port
+id: 7cf0f1d6-7b11-499b-95a4-27a482d1dedd
+status: experimental
+description: |
+  An outbound connection (Sysmon Event ID 3, Initiated true) to a common
+  industrial protocol port, opened by a script interpreter or LOLBin, or by
+  a binary running from a user-writable folder. On an EWS or HMI the
+  processes that talk to controllers are the engineering suite and the
+  HMI/SCADA runtime, installed under Program Files. The joint ASD/CISA
+  logging guidance lists "execution of scripts that are not part of regular
+  operations" and "an execution of the process from an unusual or suspicious
+  path" as anomalies to look for. Ports are those AA26-097A reports targeted
+  (44818, 2222, 102, 502) plus the parser defaults recorded in ICS-DS-0001
+  (DNP3 20000, IEC 104 2404, OPC UA 4840) and the Unitronics default 20256
+  (AA23-335A). Sysmon network events are disabled by default; the
+  configuration must include these ports. Deploy to the EWS and HMI host
+  group only.
+references:
+  - https://www.cyber.gov.au/sites/default/files/2024-08/best-practices-for-event-logging-and-threat-detection.pdf
+  - https://www.cisa.gov/news-events/cybersecurity-advisories/aa26-097a
+  - https://www.cisa.gov/news-events/cybersecurity-advisories/aa23-335a
+  - https://learn.microsoft.com/en-us/sysinternals/downloads/sysmon
+author: Raymond DePalma (ics-dfir-toolkit)
+date: 2026-11-08
+tags:
+  - attack.execution
+  - attack.t1059
+  - attack.t0885
+  - ics-dfir.ews-hmi
+logsource:
+  category: network_connection
+  product: windows
+detection:
+  selection_port:
+    Initiated: 'true'
+    DestinationPort:
+      - 102
+      - 502
+      - 2222
+      - 2404
+      - 4840
+      - 20000
+      - 20256
+      - 44818
+  selection_img_interpreter:
+    Image|endswith:
+      - '\python.exe'
+      - '\pythonw.exe'
+      - '\powershell.exe'
+      - '\pwsh.exe'
+      - '\cmd.exe'
+      - '\wscript.exe'
+      - '\cscript.exe'
+      - '\mshta.exe'
+      - '\rundll32.exe'
+      - '\regsvr32.exe'
+  selection_img_userpath:
+    Image|contains:
+      - '\AppData\Local\Temp\'
+      - '\Windows\Temp\'
+      - '\Users\Public\'
+      - '\Downloads\'
+  condition: selection_port and 1 of selection_img_*
+falsepositives:
+  - Engineers' own Python or PowerShell tools that poll controllers for inventory or testing; baseline them by script path and account and allowlist
+  - Vendor diagnostic utilities run once from a Downloads folder during commissioning
+level: medium

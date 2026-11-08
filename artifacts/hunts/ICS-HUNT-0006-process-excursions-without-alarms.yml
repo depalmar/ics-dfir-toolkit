@@ -1,0 +1,83 @@
+# ICS hunt ICS-HUNT-0006
+# Schema: ../schema/hunt.schema.json
+# Research notes: docs/research/2026-11-08/detections.md
+
+id: ICS-HUNT-0006
+title: Process excursions with no alarm, and historian or alarm gaps during remote sessions
+platforms: [ICS-0011, ICS-0012, ICS-0001]
+actors: [ICS-TA-0019]
+incidents: [ICS-INC-0009]
+seen_in: [AA26-097A]
+hypothesis: >-
+  Control logic or HMI data was altered so that the process left its safe
+  limits without operators being alarmed, or data collection stopped while a
+  remote session or controller change was under way.
+data: [historian, alarm-events, remote-access, controller-audit]
+datasources: [ICS-DS-0011, ICS-DS-0010, ICS-DS-0005, ICS-DS-0008, ICS-DS-0013]
+data_detail: >-
+  Historian time series for process variables, setpoints and modes (a
+  replica or backup where one exists); the HMI alarm journal; the PI audit
+  database where auditing was enabled (it records edits and deletions of
+  archive values, not normal data collection); remote-session intervals
+  (ICS-HUNT-0004) and controller change events (ICS-HUNT-0003).
+method:
+  - >-
+    For each historised variable with configured alarm limits, find the
+    intervals where its value crossed a limit, and check the alarm journal
+    for a matching Active event in the same interval.
+  - >-
+    Find intervals where tags stop updating, flatline or jump to a constant,
+    and where the alarm journal goes silent; overlay remote sessions and
+    controller downloads or mode changes.
+  - >-
+    Where PI auditing is enabled, list edits and deletions of archive values
+    and point configuration in the window.
+  - >-
+    Where an independent measurement exists (a field reading, a second
+    historian, a safety system record), compare it with what the HMI and
+    historian show for the same period.
+normal: >-
+  Every excursion beyond an alarm limit has a matching alarm and
+  acknowledgement; data gaps line up with known outages or maintenance.
+suspicious: >-
+  Excursions with no alarm; alarms that stop abruptly at one time; tags that
+  flatline during a remote session or after a download; archive values
+  edited after the fact; HMI values that disagree with an independent
+  instrument.
+attack: [T0878, T0838, T0832, T0837]
+inferred: >-
+  The comparison of historian excursions with the alarm journal is this
+  toolkit's method (as in ICS-0011); CISA reports the effect, not how to
+  find it. A historian faithfully stores whatever a manipulated controller
+  reports, so agreement between historian and HMI does not clear either.
+confidence: medium
+sources:
+  - title: CISA AA26-097A - Iranian-Affiliated Cyber Actors Exploit Programmable Logic Controllers Across US Critical Infrastructure, impact
+    url: https://www.cisa.gov/news-events/cybersecurity-advisories/aa26-097a
+    accessed: "2026-11-08"
+    kind: government
+    quote: >-
+      Additionally, the changes disabled critical shutdown and alarm logic,
+      allowing systems to enter unsafe conditions without notifying operators
+      of the anomalies.
+    read: direct
+  - title: CISA AA26-097A, impact (data manipulation)
+    url: https://www.cisa.gov/news-events/cybersecurity-advisories/aa26-097a
+    accessed: "2026-11-08"
+    kind: government
+    quote: >-
+      After the actors extracted device project files, the FBI and CISA
+      identified the modification and deletion of project file logic, to
+      include Add-On Instructions (AOIs) and data manipulation on HMI and
+      SCADA displays
+    read: direct
+  - title: Best practices for event logging and threat detection (ASD's ACSC with CISA, FBI, NSA and partners, August 2024), historians
+    url: https://www.cyber.gov.au/sites/default/files/2024-08/best-practices-for-event-logging-and-threat-detection.pdf
+    accessed: "2026-11-08"
+    kind: government
+    quote: >-
+      Data historians may be implemented on some operational assets to record
+      and store time-series data of industrial processes running on the
+      computer system. These can provide an additional source of event log
+      data for OT networks.
+    read: direct

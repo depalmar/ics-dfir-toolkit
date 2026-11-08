@@ -1,0 +1,34 @@
+# 02-ot-network/ot_protocol_inbound_from_unapproved_host.rules
+# Sessions to industrial protocol ports from a host outside the approved
+# client list (or, with Suricata's default variables, from outside HOME_NET).
+# Header, flow and threshold keywords only: no application-layer parser is
+# needed, because Suricata ships its Modbus, DNP3 and ENIP parsers disabled
+# (ICS-DS-0002).
+#
+# Variables used are the ones Suricata's default suricata.yaml defines:
+#   HOME_NET, EXTERNAL_NET, ENIP_CLIENT/ENIP_SERVER, MODBUS_CLIENT/MODBUS_SERVER,
+#   DNP3_CLIENT/DNP3_SERVER. The *_CLIENT and *_SERVER groups default to
+#   $HOME_NET, so out of the box these rules fire on sessions from outside
+#   HOME_NET. Set HOME_NET to the OT ranges and each *_CLIENT to the approved
+#   engineering workstations, HMIs and SCADA servers (AA26-097A's "device
+#   control list") and they fire on any other client as well.
+#
+# Ports: 44818, 2222, 102 and 502 are the ports CISA AA26-097A reports
+# targeted on PLCs. 20000 (DNP3), 2404 (IEC 60870-5-104) and 4840 (OPC UA)
+# are the default ports of the Zeek/ICSNPP and spicy-iec104 parsers recorded
+# in ICS-DS-0001. Port 102 carries S7comm, S7comm-plus and IEC 61850 MMS, so
+# the message names the port, not a protocol.
+#
+# Linked from ICS-PACK-0001 and ICS-HUNT-0001, ICS-HUNT-0002, ICS-HUNT-0009.
+# A hit says a session reached the port; it does not say what the session
+# did. Pull the Zeek protocol logs for the same flow (ICS-DS-0001).
+
+alert tcp !$ENIP_CLIENT any -> $ENIP_SERVER 44818 (msg:"ICS-DFIR EtherNet/IP session to 44818/tcp from a host outside ENIP_CLIENT"; flow:established,to_server; threshold:type limit, track by_both, count 1, seconds 3600; reference:url,www.cisa.gov/news-events/cybersecurity-advisories/aa26-097a; classtype:policy-violation; sid:9000001; rev:1;)
+alert udp !$ENIP_CLIENT any -> $ENIP_SERVER 44818 (msg:"ICS-DFIR EtherNet/IP datagram to 44818/udp from a host outside ENIP_CLIENT"; flow:to_server; threshold:type limit, track by_both, count 1, seconds 3600; reference:url,www.cisa.gov/news-events/cybersecurity-advisories/aa26-097a; classtype:policy-violation; sid:9000002; rev:1;)
+alert tcp !$ENIP_CLIENT any -> $ENIP_SERVER 2222 (msg:"ICS-DFIR session to 2222/tcp on an ENIP_SERVER from a host outside ENIP_CLIENT"; flow:established,to_server; threshold:type limit, track by_both, count 1, seconds 3600; reference:url,www.cisa.gov/news-events/cybersecurity-advisories/aa26-097a; classtype:policy-violation; sid:9000003; rev:1;)
+alert udp !$ENIP_CLIENT any -> $ENIP_SERVER 2222 (msg:"ICS-DFIR datagram to 2222/udp on an ENIP_SERVER from a host outside ENIP_CLIENT"; flow:to_server; threshold:type limit, track by_both, count 1, seconds 3600; reference:url,www.cisa.gov/news-events/cybersecurity-advisories/aa26-097a; classtype:policy-violation; sid:9000004; rev:1;)
+alert tcp !$MODBUS_CLIENT any -> $MODBUS_SERVER 502 (msg:"ICS-DFIR Modbus/TCP session to 502/tcp from a host outside MODBUS_CLIENT"; flow:established,to_server; threshold:type limit, track by_both, count 1, seconds 3600; reference:url,www.cisa.gov/news-events/cybersecurity-advisories/aa26-097a; classtype:policy-violation; sid:9000005; rev:1;)
+alert tcp $EXTERNAL_NET any -> $HOME_NET 102 (msg:"ICS-DFIR session to 102/tcp (ISO-TSAP: S7comm, S7comm-plus or MMS) from outside HOME_NET"; flow:established,to_server; threshold:type limit, track by_both, count 1, seconds 3600; reference:url,www.cisa.gov/news-events/cybersecurity-advisories/aa26-097a; classtype:policy-violation; sid:9000006; rev:1;)
+alert tcp !$DNP3_CLIENT any -> $DNP3_SERVER 20000 (msg:"ICS-DFIR DNP3 session to 20000/tcp from a host outside DNP3_CLIENT"; flow:established,to_server; threshold:type limit, track by_both, count 1, seconds 3600; classtype:policy-violation; sid:9000007; rev:1;)
+alert tcp $EXTERNAL_NET any -> $HOME_NET 2404 (msg:"ICS-DFIR IEC 60870-5-104 session to 2404/tcp from outside HOME_NET"; flow:established,to_server; threshold:type limit, track by_both, count 1, seconds 3600; classtype:policy-violation; sid:9000008; rev:1;)
+alert tcp $EXTERNAL_NET any -> $HOME_NET 4840 (msg:"ICS-DFIR OPC UA session to 4840/tcp from outside HOME_NET"; flow:established,to_server; threshold:type limit, track by_both, count 1, seconds 3600; classtype:policy-violation; sid:9000009; rev:1;)

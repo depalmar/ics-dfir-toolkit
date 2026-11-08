@@ -1,0 +1,101 @@
+# ICS hunt ICS-HUNT-0003
+# Schema: ../schema/hunt.schema.json
+# Research notes: docs/research/2026-11-08/detections.md
+
+id: ICS-HUNT-0003
+title: Controller downloads, online edits, mode changes and logins outside approved change windows
+platforms: [ICS-0001, ICS-0003, ICS-0004, ICS-0005]
+protocols: [ICS-PROTO-0002, ICS-PROTO-0004, ICS-PROTO-0012]
+actors: [ICS-TA-0019]
+incidents: [ICS-INC-0009, ICS-INC-0010]
+hypothesis: >-
+  Control logic was downloaded or edited, or a controller's operating mode
+  changed, when no approved change was in progress.
+data: [controller-audit, syslog, ics-network-capture, config-archive]
+datasources: [ICS-DS-0008, ICS-DS-0013, ICS-DS-0007, ICS-DS-0009, ICS-DS-0001]
+data_detail: >-
+  Controller logs already collected: Rockwell Logix controller log entries
+  from FactoryTalk AssetCentre, a ControlLogix 5590 syslog feed or files
+  copied earlier from the card (ICS-DS-0008); Modicon M580 and S7-1500
+  syslog at the syslog server (ICS-DS-0013); Control Expert event-logging
+  syslog (ICS-DS-0007); S7 diagnostic buffer exports already taken
+  (ICS-DS-0009); Zeek s7comm_upload_download.log and cip.log
+  (ICS-DS-0001). The site's work orders and maintenance windows. Event
+  names are those recorded from vendor manuals in ICS-DS-0007, ICS-DS-0008
+  and ICS-DS-0013.
+method:
+  - >-
+    Collect the change records and maintenance windows for the period, with
+    the engineer and workstation each approved change used.
+  - >-
+    List controller events that change logic or state - Rockwell "Project
+    download", "Online edits modified controller program", "Remote mode
+    change", I/O and SFC force changes, "Firmware update", "Log Collected
+    Data Cleared" and "The Changes To Detect value has changed"; M580
+    "Operating mode change", "Backup operation.", "Restore operation." and
+    "Firmware update"; S7-1500 changes to the user program, configuration or
+    operating state; Control Expert "Transfer project to PAC" - and S7
+    block downloads in s7comm_upload_download.log.
+  - >-
+    Flag every event outside an approved window, or by a workstation or
+    Windows user name not on the approved list. Rockwell's log records the
+    names the client supplies, so a familiar name is not proof of who acted.
+  - >-
+    For Logix controllers, compare the current change-detection AuditValue
+    (from AssetCentre where it is collected) with the value recorded after
+    the last approved download. Reading it online with Logix Designer is an
+    online-vendor-tool action that needs operations approval and is not part
+    of this hunt.
+  - >-
+    For any unexplained change, compare the running logic with an offline
+    known-good copy before anyone restores a backup; a backup taken after
+    the change reinstalls it.
+normal: >-
+  Every download, online edit, force and mode change lines up with a work
+  order, a named engineer and an approved workstation, inside the window.
+suspicious: >-
+  Downloads or mode changes at night or at weekends; unknown workstation
+  names; a Remote mode change into program mode with no window open; log
+  cleared or ChangesToDetect events; an M580 connection from an unknown peer
+  just before a Restore operation or transfer.
+attack: [T0843, T0889, T0858, T0872]
+inferred: >-
+  Correlating controller events with the work-order system is this toolkit's
+  method. The NCSC principles and CISA advisories call for detecting changes
+  that are not legitimate maintenance; the event names come from vendor
+  manuals via the data-source records.
+confidence: high
+sources:
+  - title: Secure connectivity principles for Operational Technology (NCSC-UK with CISA, FBI, ASD's ACSC, Cyber Centre, BSI, NCSC-NL, NCSC-NZ), unauthorised activity
+    url: https://www.ncsc.gov.uk/sites/default/files/documents/ncsc-secure-connectivity-for-operational-technology.pdf
+    accessed: "2026-11-08"
+    kind: government
+    quote: >-
+      However, business processes should verify maintenance actions are
+      legitimate to prevent attackers from exploiting this system to hide
+      malicious activities.
+    read: direct
+  - title: CISA AA26-097A - Iranian-Affiliated Cyber Actors Exploit Programmable Logic Controllers Across US Critical Infrastructure, monitor network traffic
+    url: https://www.cisa.gov/news-events/cybersecurity-advisories/aa26-097a
+    accessed: "2026-11-08"
+    kind: government
+    quote: >-
+      Functions of industrial control systems management protocols that
+      change an asset’s operating mode or modify programs.
+    read: direct
+  - title: CISA AA26-097A, configuration changes
+    url: https://www.cisa.gov/news-events/cybersecurity-advisories/aa26-097a
+    accessed: "2026-11-08"
+    kind: government
+    quote: >-
+      Monitor asset management systems for device configuration changes,
+      which can be used to understand expected parameter settings.
+    read: direct
+  - title: Best practices for event logging and threat detection (ASD's ACSC with CISA, FBI, NSA and partners, August 2024), OT considerations
+    url: https://www.cyber.gov.au/sites/default/files/2024-08/best-practices-for-event-logging-and-threat-detection.pdf
+    accessed: "2026-11-08"
+    kind: government
+    quote: >-
+      unauthorised updates or changes to operating systems, software,
+      firmware, configurations, or databases
+    read: direct

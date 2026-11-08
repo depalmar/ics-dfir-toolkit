@@ -1,0 +1,38 @@
+title: ASRock AsrDrv103.sys Driver Loaded on an EWS or HMI
+id: fe12298d-253a-4d9c-afc9-ec5002d42389
+status: experimental
+description: |
+  Sysmon Event ID 6 (Driver loaded) for AsrDrv103.sys on an engineering
+  workstation, HMI or SCADA server. DOE, CISA, NSA and FBI (AA22-103A) report
+  that the INCONTROLLER/PIPEDREAM actors "can use a tool that installs and
+  exploits a known-vulnerable ASRock-signed motherboard driver,
+  AsrDrv103.sys, exploiting CVE-2020-15368 to execute malicious code in the
+  Windows kernel", and recommend: "Monitor systems for loading of unusual
+  drivers, especially for ASRock driver if no ASRock driver is normally used
+  on the system." Sysmon records driver loads with hashes and signature
+  information; a renamed copy of the driver is missed by this name match, so
+  also review driver loads whose signer is ASRock on hosts that have no
+  ASRock board.
+references:
+  - https://www.cisa.gov/news-events/cybersecurity-advisories/aa22-103a
+  - https://cloud.google.com/blog/topics/threat-intelligence/incontroller-state-sponsored-ics-tool/
+  - https://learn.microsoft.com/en-us/sysinternals/downloads/sysmon
+author: Raymond DePalma (ics-dfir-toolkit)
+date: 2026-11-08
+tags:
+  - attack.privilege-escalation
+  - attack.lateral-movement
+  - attack.t0866
+  - attack.t1068
+  - cve.2020-15368
+  - ics-dfir.ews-hmi
+logsource:
+  category: driver_load
+  product: windows
+detection:
+  selection:
+    ImageLoaded|endswith: '\AsrDrv103.sys'
+  condition: selection
+falsepositives:
+  - ASRock motherboard utilities on hosts that genuinely use an ASRock board; confirm the host's hardware before closing
+level: high

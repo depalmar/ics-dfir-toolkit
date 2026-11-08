@@ -1,0 +1,132 @@
+# ICS hunt ICS-HUNT-0015
+# Schema: ../schema/hunt.schema.json
+# Research notes: docs/research/2026-11-08/detections-round3.md
+
+id: ICS-HUNT-0015
+title: Safety-system trips and unplanned process shutdowns with no process cause
+platforms: [ICS-0007, ICS-0011, ICS-0012, ICS-0010]
+protocols: [ICS-PROTO-0016]
+actors: [ICS-TA-0004, ICS-TA-0018, ICS-TA-0010]
+malware: [ICS-MAL-0005, ICS-MAL-0011, ICS-MAL-0012]
+incidents: [ICS-INC-0003, ICS-INC-0011]
+hypothesis: >-
+  A safety instrumented system tripped, or a process or service was shut
+  down, because of an intrusion - modified safety logic diverging between
+  redundant processors, a controller left open to programming, malware on the
+  hosts the operation depends on, or a precautionary shutdown forced by an IT
+  incident - and the event was investigated only as a process upset.
+data: [alarm-events, historian, controller-audit, windows-events, ics-network-capture]
+datasources: [ICS-DS-0010, ICS-DS-0011, ICS-DS-0006, ICS-DS-0007, ICS-DS-0001]
+data_detail: >-
+  The DCS or HMI alarm history for safety-system trips and diagnostic alarms
+  (Triconex MP diagnostic failures, safe-state trips); the safety controller's
+  Sequence of Events (SOE) records already collected; the historised
+  key-switch position of each safety controller where the site historises it;
+  historian data for the process conditions that would legitimately cause the
+  trip; production-loss and outage records; Windows logs and EDR alerts from
+  the engineering workstations that program the safety system (for TRITON,
+  the SIS engineering workstation); passive capture on the safety network
+  where it exists. Reading the safety controller online is an
+  online-vendor-tool action and is not part of this hunt.
+method:
+  - >-
+    List every safety-system trip, failed-safe state and unplanned shutdown in
+    the period, from the alarm history and production records.
+  - >-
+    For each, find the initiating process condition in the SOE and the
+    historian. A trip whose SOE has no initiating process event, or that
+    follows a safety-controller diagnostic failure rather than a process
+    excursion, has not been explained. In 2017 the SIS controllers "initiated
+    a safe shutdown when application code between redundant processing units
+    failed a validation check" (Mandiant) - the first visible sign of TRITON.
+  - >-
+    Check whether the safety controller's key switch was in PROGRAM (or
+    REMOTE) at or before the trip, and whether an engineering workstation
+    communicated with it then; the FBI asks operator stations to alarm
+    whenever the key is in PROGRAM.
+  - >-
+    For each unplanned shutdown not caused by the process, look for a cyber
+    precursor on the hosts the operation depends on: ransomware or wiper
+    activity, HMI or historian services stopping (ICS-HUNT-0013), loss of
+    view, or a business system the plant cannot run without. Record when the
+    shutdown was a precautionary decision taken because of an IT incident
+    (the pattern in Colonial Pipeline, ICS-INC-0011) - it is still a loss of
+    production caused by the intrusion.
+  - >-
+    For any trip with no process cause, compare the safety controller's
+    programs with the approved project (ICS-PACK-0006) before restarting it
+    from a backup; a backup taken after the change reinstalls it.
+normal: >-
+  Every trip has an initiating process event in the SOE and historian, keys
+  are in RUN outside scheduled programming, and shutdowns follow process,
+  equipment or planned causes.
+suspicious: >-
+  A trip that follows an MP diagnostic failure with no process excursion; a
+  key switch in PROGRAM at the time; engineering-workstation activity toward
+  the safety controller near the trip; shutdowns that coincide with
+  ransomware or wiper activity on HMIs, historians or business systems.
+attack: [T0880, T0828]
+inferred: >-
+  Treating a trip with no process cause as a lead, and booking a precautionary
+  shutdown caused by an IT incident as a cyber impact, is this toolkit's
+  method. The sources report that TRITON's discovery came from such a trip
+  and that Colonial Pipeline stopped operations as a precaution; they do not
+  prescribe this hunt. Without an SOE or historised process data, the cause
+  of a trip cannot be shown, and the hunt is not evaluated for that trip.
+confidence: medium
+sources:
+  - title: Mandiant - Attackers Deploy New ICS Attack Framework TRITON, discovery
+    url: https://cloud.google.com/blog/topics/threat-intelligence/attackers-deploy-new-ics-attack-framework-triton/
+    accessed: "2026-11-08"
+    kind: researcher
+    quote: >-
+      During the incident, some SIS controllers entered a failed safe state,
+      which automatically shutdown the industrial process and prompted the
+      asset owner to initiate an investigation.
+    read: direct
+  - title: Mandiant - TRITON, MP diagnostic failure
+    url: https://cloud.google.com/blog/topics/threat-intelligence/attackers-deploy-new-ics-attack-framework-triton
+    accessed: "2026-11-08"
+    kind: researcher
+    quote: >-
+      The investigation found that the SIS controllers initiated a safe
+      shutdown when application code between redundant processing units
+      failed a validation check -- resulting in an MP diagnostic failure
+      message.
+    read: direct
+  - title: FBI PIN 20220324-001 - TRITON Malware Remains Threat to Global Critical Infrastructure ICS
+    url: https://www.ic3.gov/CSA/2022/220325.pdf
+    accessed: "2026-11-08"
+    kind: government
+    quote: >-
+      Operator stations should be configured to display an alarm whenever the
+      SIS safety controller key switch is in the “PROGRAM” mode.
+    read: direct
+  - title: Technical Product Guide for Tricon v10 Systems, distributor-hosted copy, Sequence of Events
+    url: https://www.rms-dcs.com/uploads/8312.pdf
+    accessed: "2026-11-08"
+    kind: vendor
+    quote: >-
+      When an event occurs, the MPs save the current variable state and time
+      stamp in the buffer of an SOE block.
+    read: direct
+  - title: Dragos - EKANS Ransomware and ICS Operations, ICS significance
+    url: https://www.dragos.com/blog/responding-to-solarwinds-compromise-in-industrial-environments/
+    accessed: "2026-11-08"
+    kind: vendor
+    quote: >-
+      While some organizations have the emergency recourse of falling back
+      into “manual mode” operations, the costs and inefficiencies of doing so
+      (if such a change-over happens absent friction) are still substantial.
+    read: direct
+  - title: CISA AA21-131A - DarkSide Ransomware, Best Practices for Preventing Business Disruption from Ransomware Attacks
+    url: https://www.cisa.gov/news-events/cybersecurity-advisories/aa21-131a
+    accessed: "2026-11-08"
+    kind: government
+    quote: >-
+      After gaining initial access to the pipeline company’s network, DarkSide
+      actors deployed DarkSide ransomware against the company’s IT network. In
+      response to the cyberattack, the company has reported that they
+      proactively disconnected certain OT systems to ensure the systems’
+      safety.
+    read: direct

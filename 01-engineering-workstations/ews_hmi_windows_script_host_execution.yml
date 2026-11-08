@@ -1,0 +1,40 @@
+title: Windows Script Host Runs a Script on an EWS, HMI or SCADA Server
+id: 53e1de2a-41ff-4e22-8d1b-2df373b0fa96
+status: experimental
+description: |
+  wscript.exe or cscript.exe started on an engineering workstation, HMI or
+  SCADA server. Two recorded destructive attacks on OT-adjacent Windows hosts
+  began this way. Mandiant: Sandworm's ISO on a MicroSCADA host led to
+  'wscript.exe "d:\pack\lun.vbs"', which ran a batch file that ran scilc.exe
+  to issue SCIL commands (mapped by Mandiant to Scripting, T0853). Cisco
+  Talos: PathWiper was delivered by a batch file running
+  'C:\WINDOWS\System32\WScript.exe C:\WINDOWS\TEMP\uacinstall.vbs', which
+  wrote and ran the wiper. Some HMI and SCADA products script internally
+  without starting wscript.exe or cscript.exe; others ship logon or
+  maintenance scripts that do. Baseline the scripts each host runs and treat
+  anything new - especially a script on a removable or optical drive, in a
+  Temp folder or under a user profile - as a lead. Needs process creation
+  (Sysmon Event ID 1, or Security 4688 with command-line auditing on).
+references:
+  - https://cloud.google.com/blog/topics/threat-intelligence/sandworm-disrupts-power-ukraine-operational-technology/
+  - https://blog.talosintelligence.com/pathwiper-targets-ukraine/
+  - https://learn.microsoft.com/windows-server/administration/windows-commands/wscript
+author: Raymond DePalma (ics-dfir-toolkit)
+date: 2026-11-08
+tags:
+  - attack.execution
+  - attack.t0853
+  - attack.t1059.005
+  - ics-dfir.ews-hmi
+logsource:
+  category: process_creation
+  product: windows
+detection:
+  selection:
+    Image|endswith:
+      - '\wscript.exe'
+      - '\cscript.exe'
+  condition: selection
+falsepositives:
+  - Vendor or site logon and maintenance scripts; suppress by script path once baselined per host
+level: medium

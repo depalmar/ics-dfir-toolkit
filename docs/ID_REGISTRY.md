@@ -219,8 +219,13 @@ Numbered by when they were added; each needs a README.md. Files are
 | ICS-HUNT-0010 | Unitronics PLC/HMI sessions on 20256 or 20257 from outside the site |
 | ICS-HUNT-0011 | New local administrators, logon-log enumeration and log clearing on EWS and HMIs |
 | ICS-HUNT-0012 | The owner's own address ranges in internet exposure data |
+| ICS-HUNT-0013 | Controller, relay, RTU and HMI restarts, stops and loss of communication |
+| ICS-HUNT-0014 | Breaker, valve and setpoint changes in the process record that no operator issued |
+| ICS-HUNT-0015 | Safety-system trips and unplanned process shutdowns with no process cause |
+| ICS-HUNT-0016 | Logins with vendor-default, built-in or unconfigured accounts on HMIs, controllers and devices |
+| ICS-HUNT-0017 | Credential dumping, kernel-driver abuse, staging and remote-session reuse on hosts next to OT |
 
-Next free: ICS-HUNT-0013.
+Next free: ICS-HUNT-0018.
 
 ## Detection packs (`ICS-PACK-NNNN`)
 
@@ -230,10 +235,12 @@ Next free: ICS-HUNT-0013.
 | ICS-PACK-0002 | AA25-343A - pro-Russia hacktivist intrusions into HMIs over VNC |
 | ICS-PACK-0003 | AA23-335A - CyberAv3ngers compromise of Unitronics Vision PLC/HMIs |
 | ICS-PACK-0004 | Intrusion on engineering workstations and HMIs, and theft of PLC project files |
+| ICS-PACK-0005 | Destructive attacks on engineering workstations, HMIs and substation devices |
+| ICS-PACK-0006 | Controller logic, tasking and firmware compared with a known-good copy |
 
-Next free: ICS-PACK-0005.
+Next free: ICS-PACK-0007.
 
 ## Suricata sids
 
-`02-ot-network/` uses the local range 9000001 upward: 9000001-9000014 are
-allocated. Next free: 9000015.
+`02-ot-network/` uses the local range 9000001 upward: 9000001-9000018 are
+allocated. Next free: 9000019.

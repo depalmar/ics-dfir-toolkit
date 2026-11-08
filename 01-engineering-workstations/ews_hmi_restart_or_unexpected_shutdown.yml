@@ -1,0 +1,57 @@
+title: Restart, Shutdown or Crash of an EWS, HMI or SCADA Server
+id: e1c02c41-c0ad-4592-a40d-4f558648ea66
+status: experimental
+description: |
+  System-log events that mark a restart or shutdown of an engineering
+  workstation, HMI, SCADA server or historian: 1074 from User32 ("The process
+  <Process Name> has initiated the restart of computer ..."), and the
+  unexpected-reboot trio Microsoft lists - 41 from Kernel-Power ("The system
+  has rebooted without cleanly shutting down first"), 6008 from EventLog
+  ("The previous system shutdown ... was unexpected") and 1001 from
+  WER-SystemErrorReporting ("The computer has rebooted from a bugcheck").
+  Microsoft: 1074 "is logged when an application is responsible for the
+  system shutdown or restart", and shutdown.exe records 1074 before the
+  machine goes down. Destructive tools restart hosts to finish the job:
+  DynoWiper version A calls ExitWindowsEx after wiping (CERT Polska),
+  GigaWiper "forces an immediate reboot by invoking Windows shutdown
+  functionality with restart and zero-delay options" and has a command that
+  forces a BSOD and prevents booting (Microsoft). An HMI that restarts takes
+  the operators' view with it. Escalate a 1074 whose process or user is not
+  Windows Update or an approved administrator, any 41/6008/1001 without a
+  known power or hardware cause, and several OT hosts restarting together. A
+  wiped host may never write the next boot's events; the last forwarded
+  events before silence are the evidence.
+references:
+  - https://learn.microsoft.com/troubleshoot/windows-server/performance/troubleshoot-unexpected-reboots-system-event-logs
+  - https://learn.microsoft.com/troubleshoot/windows-client/performance/event-id-41-restart
+  - https://cert.pl/uploads/docs/CERT_Polska_Energy_Sector_Incident_Report_2025.pdf
+  - https://www.microsoft.com/en-us/security/blog/2026/07/09/gigawiper-anatomy-of-a-destructive-backdoor-assembled-from-multiple-malware/
+author: Raymond DePalma (ics-dfir-toolkit)
+date: 2026-11-08
+tags:
+  - attack.inhibit-response-function
+  - attack.impact
+  - attack.t0816
+  - attack.t1529
+  - ics-dfir.ews-hmi
+logsource:
+  product: windows
+  service: system
+detection:
+  selection_initiated:
+    EventID: 1074
+    Provider_Name: 'User32'
+  selection_kernel_power:
+    EventID: 41
+    Provider_Name: 'Microsoft-Windows-Kernel-Power'
+  selection_unexpected:
+    EventID: 6008
+    Provider_Name: 'EventLog'
+  selection_bugcheck:
+    EventID: 1001
+    Provider_Name|contains: 'WER-SystemErrorReporting'
+  condition: 1 of selection_*
+falsepositives:
+  - Patching and planned restarts; correlate 1074 with the maintenance calendar and suppress Windows Update-initiated restarts inside approved windows
+  - Power loss, UPS faults and failing hardware (41, 6008)
+level: medium

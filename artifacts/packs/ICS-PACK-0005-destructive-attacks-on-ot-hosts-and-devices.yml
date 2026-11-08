@@ -1,0 +1,257 @@
+# Detection pack ICS-PACK-0005
+# Schema: ../schema/pack.schema.json
+# Research notes: docs/research/2026-11-08/detections-round3.md
+#
+# Detections of type "check" name an evaluation step for the triage engine,
+# which is not built yet (docs/ROADMAP.md); until then they are manual steps,
+# and the Sigma and Suricata files linked in "rules" are what can be deployed
+# today. A detection whose evidence was not collected is not evaluated.
+
+id: ICS-PACK-0005
+name: Destructive attacks on engineering workstations, HMIs, SCADA servers and substation devices
+platforms: [ICS-0010, ICS-0011, ICS-0012, ICS-0014]
+actors: [ICS-TA-0001, ICS-TA-0002, ICS-TA-0016, ICS-TA-0017]
+malware: [ICS-MAL-0004, ICS-MAL-0006, ICS-MAL-0012, ICS-MAL-0013, ICS-MAL-0014, ICS-MAL-0015, ICS-MAL-0016]
+incidents: [ICS-INC-0002, ICS-INC-0004, ICS-INC-0008]
+summary: >-
+  The traces destructive tools leave on the Windows hosts that run and
+  engineer the process, and on the relays and RTUs beside them. The recorded
+  families overwrite and delete files (DynoWiper, LazyWiper, PathWiper,
+  GigaWiper's ransomware-styled command, Industroyer's wiper module), destroy
+  disk structures (PathWiper's MBR and NTFS metadata, GigaWiper's partition
+  tables and raw disks), stop or kill the processes operators depend on
+  (EKANS, Industroyer2), are launched by scheduled tasks pushed through group
+  policy (Industroyer2 and CaddyWiper, TANKTRAP, the December 2025 Poland
+  GPO), and finish with a forced restart or crash (DynoWiper, GigaWiper). In
+  Poland the same operation deleted Relion relay system files over FTP with a
+  built-in account and reset RTUs after loading corrupted firmware (CERT
+  Polska; the firmware side is ICS-PACK-0006). EKANS deletes shadow copies
+  through WMI and most wipers start no Windows tool at all, so the command-line
+  detections here catch the hands-on and scripted routes; the file, restart
+  and service-termination detections are what see the malware itself. A host
+  already wiped may hold nothing: work from forwarded logs and EDR.
+confidence: high
+references:
+  - title: CERT Polska - Energy Sector Incident Report, 29 December 2025 (PDF)
+    url: https://cert.pl/uploads/docs/CERT_Polska_Energy_Sector_Incident_Report_2025.pdf
+    accessed: "2026-11-08"
+  - title: ESET - DynoWiper update, technical analysis and attribution
+    url: https://www.welivesecurity.com/en/eset-research/dynowiper-update-technical-analysis-attribution/
+    accessed: "2026-11-08"
+  - title: Cisco Talos - Newly identified wiper malware PathWiper targets critical infrastructure in Ukraine
+    url: https://blog.talosintelligence.com/pathwiper-targets-ukraine/
+    accessed: "2026-11-08"
+  - title: Microsoft - GigaWiper, anatomy of a destructive backdoor assembled from multiple malware
+    url: https://www.microsoft.com/en-us/security/blog/2026/07/09/gigawiper-anatomy-of-a-destructive-backdoor-assembled-from-multiple-malware/
+    accessed: "2026-11-08"
+  - title: Dragos - EKANS Ransomware and ICS Operations
+    url: https://www.dragos.com/blog/responding-to-solarwinds-compromise-in-industrial-environments/
+    accessed: "2026-11-08"
+  - title: Mandiant - Sandworm Disrupts Power in Ukraine Using a Novel Attack Against Operational Technology
+    url: https://cloud.google.com/blog/topics/threat-intelligence/sandworm-disrupts-power-ukraine-operational-technology/
+    accessed: "2026-11-08"
+  - title: ESET - Industroyer2, Industroyer reloaded
+    url: https://www.welivesecurity.com/2022/04/12/industroyer2-industroyer-reloaded/
+    accessed: "2026-11-08"
+  - title: MITRE ATT&CK for ICS - Data Destruction (T0809)
+    url: https://attack.mitre.org/techniques/T0809/
+    accessed: "2026-11-08"
+  - title: Sysmon v15.22 (Microsoft Sysinternals)
+    url: https://learn.microsoft.com/en-us/sysinternals/downloads/sysmon
+    accessed: "2026-11-08"
+  - title: Troubleshoot unexpected reboots using system event logs (Microsoft Learn)
+    url: https://learn.microsoft.com/troubleshoot/windows-server/performance/troubleshoot-unexpected-reboots-system-event-logs
+    accessed: "2026-11-08"
+  - title: 4698(S) A scheduled task was created (Microsoft Learn)
+    url: https://learn.microsoft.com/en-us/previous-versions/windows/it-pro/windows-10/security/threat-protection/auditing/event-4698
+    accessed: "2026-11-08"
+
+detect:
+  - id: destruct-backup-or-shadow-copy-deleted
+    title: Shadow copies, the backup catalog or system-state backups deleted, or SDelete run, on an EWS, HMI or SCADA server
+    type: check
+    check: windows_event_query
+    args:
+      channel: Microsoft-Windows-Sysmon/Operational
+      event_id: 1
+      commands: [vssadmin delete shadows, wbadmin delete catalog, wbadmin delete systemstatebackup, sdelete.exe, sdelete64.exe]
+    tier: likely
+    evidence_class: process
+    datasources: [ICS-DS-0006]
+    attack: [T0809, T1490]
+    rules: [01-engineering-workstations/ews_hmi_shadow_copy_or_backup_deleted.yml]
+    notes: >-
+      MITRE T0809 covers destroying backups "vital to recovery"; CERT Polska
+      recovered "vssadmin delete shadows" from the Poland intrusion. Does not
+      see EKANS, which removes shadow copies through WMI from its own code.
+
+  - id: destruct-file-shredding-blocked
+    title: Sysmon blocked file shredding on an EWS, HMI or SCADA server
+    type: check
+    check: windows_event_query
+    args:
+      channel: Microsoft-Windows-Sysmon/Operational
+      event_id: 28
+    tier: likely
+    evidence_class: filesystem
+    datasources: [ICS-DS-0006]
+    attack: [T0809]
+    rules: [01-engineering-workstations/ews_hmi_file_shredding_blocked.yml]
+    notes: >-
+      Only where the Sysmon configuration has a FileBlockShredding filter.
+      Whether DynoWiper, PathWiper or GigaWiper trip it was not tested; no
+      event is not evidence that no wiper ran.
+
+  - id: destruct-file-overwrite-or-rename-burst
+    title: One process creating, overwriting, renaming or deleting files across many directories within minutes
+    type: check
+    check: file_activity_burst
+    args:
+      channel: Microsoft-Windows-Sysmon/Operational
+      event_ids: [11, 23, 26]
+      group_by: [Computer, ProcessGuid]
+    tier: likely
+    evidence_class: filesystem
+    datasources: [ICS-DS-0006]
+    attack: [T0809]
+    notes: >-
+      The count-and-window logic Sigma cannot express. Recorded patterns:
+      DynoWiper overwrites then deletes files on fixed and removable drives,
+      skipping system folders (CERT Polska, ESET); GigaWiper's command 3
+      encrypts files and renames them .candy (Microsoft); EKANS appends a
+      random five-letter suffix to each encrypted file's extension (Dragos);
+      Industroyer's wiper overwrites ABB and SCL configuration files (ESET,
+      ICS-0014). Thresholds are a site baseline, not a published value.
+
+  - id: destruct-disk-structures-destroyed
+    title: Master boot record, partition table or NTFS metadata overwritten on a host that no longer boots
+    type: check
+    check: disk_layout_compare
+    tier: confirmed
+    evidence_class: filesystem
+    attack: [T1561.001, T0809]
+    notes: >-
+      Run on a forensic image of a failed host, never on a running HMI.
+      PathWiper overwrites the MBR and NTFS metadata files ($MFT, $MFTMirr,
+      $LogFile, $Boot, $Bitmap, $TxfLog, $Tops, $AttrDef) with random data
+      after trying to dismount volumes (Talos); GigaWiper removes partition metadata with
+      IOCTL_DISK_CREATE_DISK and overwrites raw disk content (Microsoft). An
+      image with an intact layout has not been shown clean; file-level wiping
+      leaves the layout alone.
+
+  - id: destruct-scheduled-task-on-ews-hmi
+    title: Scheduled task created on an EWS, HMI or SCADA server
+    type: check
+    check: windows_event_query
+    args:
+      channel: Security
+      event_id: 4698
+    tier: possible
+    evidence_class: persistence
+    datasources: [ICS-DS-0006]
+    attack: [T1053.005]
+    rules: [01-engineering-workstations/ews_hmi_scheduled_task_created.yml]
+    notes: >-
+      Industroyer2 and CaddyWiper (ESET), TANKTRAP's CaddyWiper tasks
+      (Mandiant), the Poland GPO task that deletes itself (CERT Polska) and
+      GigaWiper's "OneDrive Update" (Microsoft) all ran this way. Likely when
+      the task's command points at a file just copied from a share or into
+      C:\Windows, or when the same task appears on many OT hosts at once.
+
+  - id: destruct-ot-service-terminated
+    title: HMI, SCADA, historian or licensing service terminated unexpectedly
+    type: check
+    check: windows_event_query
+    args:
+      channel: System
+      event_id: 7034
+      provider: Service Control Manager
+    tier: possible
+    evidence_class: process
+    datasources: [ICS-DS-0006]
+    attack: [T0881]
+    rules: [01-engineering-workstations/ews_hmi_service_terminated_unexpectedly.yml]
+    notes: >-
+      Sees EKANS-style process kills of service processes whatever tool did
+      them. Likely when several OT services on several hosts terminate within
+      minutes (ICS-HUNT-0013).
+
+  - id: destruct-service-stop-command
+    title: net stop, sc stop or disable, taskkill or Stop-Service / Stop-Process on an EWS, HMI or SCADA server
+    type: check
+    check: windows_event_query
+    args:
+      channel: Microsoft-Windows-Sysmon/Operational
+      event_id: 1
+      commands: [net stop, sc stop, sc config start= disabled, taskkill, Stop-Service, Stop-Process]
+    tier: possible
+    evidence_class: process
+    datasources: [ICS-DS-0006]
+    attack: [T0881]
+    rules: [01-engineering-workstations/ews_hmi_service_or_process_stop_command.yml]
+
+  - id: destruct-host-restart-or-crash
+    title: Restart initiated by an unexpected process, or an unexpected shutdown or bugcheck, on an EWS, HMI or SCADA server
+    type: check
+    check: windows_event_query
+    args:
+      channel: System
+      event_ids: [1074, 41, 6008, 1001]
+    tier: possible
+    evidence_class: system-logs
+    datasources: [ICS-DS-0006]
+    attack: [T0816]
+    rules: [01-engineering-workstations/ews_hmi_restart_or_unexpected_shutdown.yml]
+    notes: >-
+      DynoWiper version A ends with ExitWindowsEx (CERT Polska); GigaWiper
+      forces a zero-delay reboot and has a BSOD command (Microsoft). Likely
+      when it follows any other detection in this pack on the same host.
+
+  - id: destruct-script-host-on-ews-hmi
+    title: Windows Script Host runs a script on an EWS, HMI or SCADA server
+    type: check
+    check: windows_event_query
+    args:
+      channel: Microsoft-Windows-Sysmon/Operational
+      event_id: 1
+      images: [wscript.exe, cscript.exe]
+    tier: possible
+    evidence_class: process
+    datasources: [ICS-DS-0006]
+    attack: [T0853]
+    rules: [01-engineering-workstations/ews_hmi_windows_script_host_execution.yml]
+    notes: >-
+      PathWiper's loader was WScript running C:\WINDOWS\TEMP\uacinstall.vbs
+      (Talos); Sandworm's MicroSCADA attack began with wscript.exe running
+      lun.vbs from an ISO (Mandiant).
+
+  - id: destruct-ied-ftp-session
+    title: FTP session to a relay or RTU from outside HOME_NET, or between OT hosts
+    type: network
+    tier: possible
+    evidence_class: network
+    datasources: [ICS-DS-0002, ICS-DS-0001]
+    attack: [T0809, T0816, T0812]
+    rules: [02-ot-network/relay_and_rtu_service_sessions.rules]
+    notes: >-
+      CERT Polska: the attacker used a Relion 650 v1.1 built-in account with
+      default credentials over FTP "to delete files essential for device
+      operation", so the relay shut down and could not restart. sids 9000017
+      and 9000018. Likely when the source is not the engineering host or the
+      session falls outside disturbance-record readout or approved work; read
+      Zeek ftp.log for the commands.
+
+  - id: destruct-rtu-reset-after-transfer
+    title: RTU500 event log records a manual reset or RTU restart
+    type: log_regex
+    tier: possible
+    evidence_class: audit-trail
+    datasources: [ICS-DS-0013]
+    pattern: 'Manual Reset|Gateway/RTU restarted'
+    attack: [T0816]
+    notes: >-
+      Event texts from the RTU560 event-log excerpt CERT Polska printed (5110
+      "Manual Reset", 5160 "Gateway/RTU restarted"), recorded in ICS-0014;
+      confirm the forwarded format before relying on the pattern. Likely when
+      it follows a login by a default account or a firmware transfer
+      (ICS-PACK-0006) within minutes.

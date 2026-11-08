@@ -1,0 +1,41 @@
+title: Sysmon Blocked File Shredding on an EWS or HMI
+id: 5982c94f-01d5-4a33-98f4-41cad4fdbf8a
+status: experimental
+description: |
+  Sysmon Event ID 28 (FileBlockShredding) on an engineering workstation, HMI
+  or SCADA server. Microsoft: "This event is generated when Sysmon detects and
+  blocks file shredding from tools such as SDelete." The wipers recorded in
+  this knowledge base destroy files by overwriting them before deletion:
+  DynoWiper overwrites files with a 16-byte random buffer and then deletes
+  them (ESET, CERT Polska), PathWiper "destroys files on disk by overwriting
+  them with randomized bytes" (Talos), and GigaWiper's ransomware-styled
+  command encrypts and then removes files (Microsoft). Whether each of these
+  trips Sysmon's shredding detection was not tested, so silence from this
+  rule is not evidence that no wiper ran. The event exists only where the
+  Sysmon configuration includes a FileBlockShredding filter; it is listed in
+  Sysmon's filter table, not described as on by default. A wiper that writes
+  to the raw disk (GigaWiper, PathWiper's MBR and NTFS overwrite) bypasses
+  file-level events entirely.
+references:
+  - https://learn.microsoft.com/en-us/sysinternals/downloads/sysmon
+  - https://attack.mitre.org/techniques/T0809/
+  - https://blog.talosintelligence.com/pathwiper-targets-ukraine/
+  - https://www.welivesecurity.com/en/eset-research/dynowiper-update-technical-analysis-attribution/
+author: Raymond DePalma (ics-dfir-toolkit)
+date: 2026-11-08
+tags:
+  - attack.inhibit-response-function
+  - attack.impact
+  - attack.t0809
+  - attack.t1485
+  - ics-dfir.ews-hmi
+logsource:
+  product: windows
+  service: sysmon
+detection:
+  selection:
+    EventID: 28
+  condition: selection
+falsepositives:
+  - Approved secure-deletion of sensitive files by an administrator under a change record
+level: high

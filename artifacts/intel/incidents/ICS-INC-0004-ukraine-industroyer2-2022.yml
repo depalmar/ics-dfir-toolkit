@@ -23,6 +23,8 @@ platforms:
   - ICS-0014
 protocols:
   - ICS-PROTO-0007
+hunts: [ICS-HUNT-0014]
+packs: [ICS-PACK-0005]
 summary: >-
   Sandworm (CERT-UA's UAC-0082) planned to switch off several high-voltage substations at a Ukrainian
   energy company with Industroyer2, an IEC 60870-5-104-only rebuild of Industroyer compiled on 2022-03-23

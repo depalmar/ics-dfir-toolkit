@@ -2,8 +2,9 @@
 
 Platforms: `ICS-0010` (engineering workstation), `ICS-0011` (HMI / SCADA server).
 Data source: `ICS-DS-0006` (Windows Security, Sysmon and PowerShell logs).
-Detection packs: `ICS-PACK-0002`, `ICS-PACK-0004`. Hunts: `ICS-HUNT-0002`,
-`ICS-HUNT-0004`, `ICS-HUNT-0008`, `ICS-HUNT-0011`.
+Detection packs: `ICS-PACK-0002`, `ICS-PACK-0004`, `ICS-PACK-0005`,
+`ICS-PACK-0006`. Hunts: `ICS-HUNT-0002`, `ICS-HUNT-0004`, `ICS-HUNT-0008`,
+`ICS-HUNT-0011`, `ICS-HUNT-0013`, `ICS-HUNT-0014`, `ICS-HUNT-0017`.
 
 ## Rules
 
@@ -17,6 +18,17 @@ Detection packs: `ICS-PACK-0002`, `ICS-PACK-0004`. Hunts: `ICS-HUNT-0002`,
 | `ews_hmi_local_administrators_member_added.yml` | Security 4732 | Member added to BUILTIN\Administrators (S-1-5-32-544) | Microsoft 4732 guidance; ASD/CISA logging guidance |
 | `ews_hmi_security_log_cleared.yml` | Security 1102 | Security audit log cleared | Microsoft 1102 guidance; ASD/CISA logging guidance |
 | `ews_hmi_event_log_logon_enumeration.yml` | Sysmon 1 / 4688 | wevtutil / Get-EventLog / Get-WinEvent against Security or 4624 | ASD/CISA logging guidance (Volt Typhoon case study) |
+| `ews_hmi_shadow_copy_or_backup_deleted.yml` | Sysmon 1 / 4688 | vssadmin delete shadows, wbadmin delete catalog or systemstatebackup, SDelete | MITRE T0809; CERT Polska; Mandiant (TANKTRAP with SDelete); Microsoft vssadmin/wbadmin docs |
+| `ews_hmi_file_shredding_blocked.yml` | Sysmon 28 (FileBlockShredding) | Sysmon blocked file shredding | Microsoft Sysmon documentation; wiper reports (ESET, CERT Polska, Talos, Microsoft) |
+| `ews_hmi_scheduled_task_created.yml` | Security 4698 | Scheduled task created | Microsoft 4698 guidance; ESET Industroyer2, Mandiant TANKTRAP, CERT Polska GPO task, Microsoft GigaWiper |
+| `ews_hmi_service_terminated_unexpectedly.yml` | System 7034 (Service Control Manager) | OT service terminated unexpectedly, e.g. its process was killed | Microsoft 7034/7036 troubleshooting text; Dragos EKANS; ESET Industroyer2; Microsoft GigaWiper |
+| `ews_hmi_service_or_process_stop_command.yml` | Sysmon 1 / 4688 | net stop, sc stop or start= disabled, taskkill, Stop-Service / Stop-Process | Dragos EKANS, ESET Industroyer2, Microsoft GigaWiper (built-in-tool route only) |
+| `ews_hmi_restart_or_unexpected_shutdown.yml` | System 1074, 41, 6008, 1001 | Restart initiated by a process, unclean shutdown or bugcheck | Microsoft reboot troubleshooting; CERT Polska (DynoWiper); Microsoft GigaWiper |
+| `ews_hmi_lsass_dump_via_comsvcs_minidump.yml` | Sysmon 1 / 4688 | comsvcs.dll MiniDump of LSASS | AA24-038A |
+| `ews_hmi_windows_script_host_execution.yml` | Sysmon 1 / 4688 | wscript.exe or cscript.exe started | Mandiant (Sandworm lun.vbs); Talos (PathWiper uacinstall.vbs) |
+| `scada_microscada_scilc_program_executed.yml` | Sysmon 1 / 4688 | MicroSCADA scilc.exe -do running an external SCIL program | Mandiant (Sandworm 2022 MicroSCADA attack) |
+| `ews_hmi_asrock_vulnerable_driver_loaded.yml` | Sysmon 6 (driver loaded) | AsrDrv103.sys loaded (CVE-2020-15368) | AA22-103A |
+| `ews_snap7_library_loaded.yml` | Sysmon 7 (image loaded) | snap7.dll loaded by any process | AA26-231A |
 
 ## Deploying
 
@@ -29,8 +41,12 @@ Detection packs: `ICS-PACK-0002`, `ICS-PACK-0004`. Hunts: `ICS-HUNT-0002`,
   unless "Include command line in process creation events" is enabled, and
   Sysmon's network connection event (ID 3) is disabled by default. The two
   Sysmon network rules need a configuration that includes the controller and
-  VNC ports. A rule that cannot see its event says nothing, which is not the
-  same as passing (ICS-DS-0006).
+  VNC ports. Sysmon image loads (ID 7) are disabled by default, and driver
+  loads (ID 6) and FileBlockShredding (ID 28) appear only for what the
+  configuration includes; 4698 needs the "Audit Other Object Access Events"
+  subcategory, and the System-log rules need the System channel forwarded. A
+  rule that cannot see its event says nothing, which is not the same as
+  passing (ICS-DS-0006).
 - **Field names** follow Sysmon and the Sigma taxonomy (`Image`,
   `CommandLine`, `Initiated`, `SourceIp`, `DestinationPort`) and Microsoft's
   event XML (`LogonType`, `IpAddress`, `TargetSid`, `SubjectUserName`).

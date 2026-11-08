@@ -1,0 +1,45 @@
+title: Scheduled Task Created on an EWS or HMI
+id: 40ae92b9-f666-4cbb-a2af-500b2cfc5ef5
+status: experimental
+description: |
+  Security event 4698 ("A scheduled task was created") on an engineering
+  workstation, HMI or SCADA server. Microsoft: "We recommend monitoring all
+  scheduled task creation events, especially on critical computers or
+  devices", and new tasks in the Task Scheduler Library root node (TaskName
+  like '\TASK_NAME') deserve particular attention. Scheduled tasks launched
+  the destructive stages of several recorded OT attacks: ESET's Industroyer2
+  timeline has a Sandworm operator create "the scheduled task to launch
+  Industroyer2", with CaddyWiper scheduled on the same machine; Mandiant
+  reports TANKTRAP group policies that "schedule a task to run the copied
+  file at a particular time" to launch CaddyWiper; CERT Polska describes the
+  December 2025 GPO script defining a ScheduledTask that runs as NT
+  AUTHORITY\SYSTEM and deletes itself with "schtasks.exe /delete"; and
+  GigaWiper creates a task named "OneDrive Update" (Microsoft). A task pushed
+  by group policy is created on each host and logs 4698 there. Requires the
+  "Audit Other Object Access Events" subcategory; the task's command line is
+  in TaskContent.
+references:
+  - https://learn.microsoft.com/en-us/previous-versions/windows/it-pro/windows-10/security/threat-protection/auditing/event-4698
+  - https://www.welivesecurity.com/2022/04/12/industroyer2-industroyer-reloaded/
+  - https://cloud.google.com/blog/topics/threat-intelligence/sandworm-disrupts-power-ukraine-operational-technology/
+  - https://cert.pl/uploads/docs/CERT_Polska_Energy_Sector_Incident_Report_2025.pdf
+  - https://www.microsoft.com/en-us/security/blog/2026/07/09/gigawiper-anatomy-of-a-destructive-backdoor-assembled-from-multiple-malware/
+author: Raymond DePalma (ics-dfir-toolkit)
+date: 2026-11-08
+tags:
+  - attack.execution
+  - attack.persistence
+  - attack.t1053.005
+  - ics-dfir.ews-hmi
+logsource:
+  product: windows
+  service: security
+detection:
+  selection:
+    EventID: 4698
+    Provider_Name: 'Microsoft-Windows-Security-Auditing'
+  condition: selection
+falsepositives:
+  - Software installation, vendor updates and Windows maintenance tasks; baseline the task names each EWS and HMI build creates and suppress them by TaskName
+  - Group-policy tasks pushed under a change record
+level: medium

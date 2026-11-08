@@ -1,0 +1,173 @@
+# Detection pack ICS-PACK-0006
+# Schema: ../schema/pack.schema.json
+# Research notes: docs/research/2026-11-08/detections-round3.md
+#
+# Detections of type "check" and "logic_compare" name evaluation steps for the
+# triage engine, which is not built yet (docs/ROADMAP.md); until then they are
+# manual steps. A controller whose logic, tasking or firmware was not compared
+# with a trusted known-good copy has not been shown to be unmodified: the
+# detection is not evaluated, never passed.
+
+id: ICS-PACK-0006
+name: Controller logic, tasking and firmware integrity against a known-good baseline
+platforms: [ICS-0001, ICS-0002, ICS-0003, ICS-0004, ICS-0005, ICS-0007, ICS-0008, ICS-0009, ICS-0014]
+actors: [ICS-TA-0004, ICS-TA-0018, ICS-TA-0005]
+malware: [ICS-MAL-0005, ICS-MAL-0007]
+incidents: [ICS-INC-0003, ICS-INC-0008, ICS-INC-0013]
+summary: >-
+  Most of what an attacker changes on a controller is visible only by
+  comparing it with a copy the owner trusts. TRITON appended a program to a
+  Triconex execution table and patched in-memory firmware (Mandiant, CISA);
+  INCONTROLLER's tools upload configuration and code and can modify
+  controller tasking (CISA AA22-103A); AA26-231A's actors wrote to S7 data
+  blocks with snap7-based scripts (mapped by the agencies to Modify
+  Controller Tasking); in Poland the attacker loaded a corrupted RTU560
+  firmware image that reported a version no site ran and left the RTUs in a
+  reboot loop (CERT Polska). The agencies' own remedies are comparison: verify
+  firmware "against backup gold copy", "Evaluate for ladder logic changes in
+  online/offline modes" (AA26-231A), "Implement integrity checks of
+  controller process logic against a known good baseline" (AA24-038A), and
+  hash firmware and controller configuration files (AA22-103A). This pack
+  states those comparisons as detections, adds the controller-log entries
+  that record a firmware transfer, and the host-side trace of the snap7
+  library. Uploading running logic or reading firmware from a controller is
+  an online-vendor-tool action that needs operations approval; the
+  comparison itself is done offline.
+confidence: high
+references:
+  - title: CISA AA26-231A - Defending Against an Active Threat to Siemens S7 Series PLCs
+    url: https://www.cisa.gov/news-events/cybersecurity-advisories/aa26-231a
+    accessed: "2026-11-08"
+  - title: CISA, NSA, FBI et al. - AA24-038A PRC State-Sponsored Actors Compromise and Maintain Persistent Access to U.S. Critical Infrastructure
+    url: https://www.cisa.gov/news-events/cybersecurity-advisories/aa24-038a
+    accessed: "2026-11-08"
+  - title: CISA AA22-103A - APT Cyber Tools Targeting ICS/SCADA Devices
+    url: https://www.cisa.gov/news-events/cybersecurity-advisories/aa22-103a
+    accessed: "2026-11-08"
+  - title: CERT Polska - Energy Sector Incident Report, 29 December 2025 (PDF)
+    url: https://cert.pl/uploads/docs/CERT_Polska_Energy_Sector_Incident_Report_2025.pdf
+    accessed: "2026-11-08"
+  - title: Mandiant - Attackers Deploy New ICS Attack Framework TRITON
+    url: https://cloud.google.com/blog/topics/threat-intelligence/attackers-deploy-new-ics-attack-framework-triton/
+    accessed: "2026-11-08"
+  - title: Logix 5000 Controllers Information and Status Programming Manual (1756-PM015, Rockwell Automation)
+    url: https://literature.rockwellautomation.com/idc/groups/literature/documents/pm/1756-pm015_-en-p.pdf
+    accessed: "2026-11-08"
+  - title: Modicon Platform Cybersecurity User Guide (EIO0000001999, Schneider Electric)
+    url: https://download.se.com/files?p_Doc_Ref=EIO0000001999&p_enDocType=User+guide
+    accessed: "2026-11-08"
+
+detect:
+  - id: integrity-running-logic-differs-from-known-good
+    title: Running logic, tasks or blocks differ from the offline known-good project with no change record
+    type: logic_compare
+    tier: likely
+    evidence_class: control-logic
+    datasources: [ICS-DS-0007]
+    attack: [T0821, T0843, T0889]
+    notes: >-
+      Compare tasks, programs, organization blocks or equivalent scheduling
+      objects, routines, data blocks and I/O configuration - not only the
+      main program. Vendor paths recorded in the platform records: TIA Portal
+      online/offline comparison (ICS-0003), Logix Designer upload into a new
+      project (ICS-0001), CODESYS login comparison and Application
+      Information (ICS-0009), Sysmac Studio verification (ICS-0008),
+      MicroLogix Program Compare (ICS-0002). Upload from an engineering host
+      the investigation trusts, into an empty project. A difference with no
+      change record is likely tampering; it is confirmed when the changed
+      object is attacker logic. Without a trusted offline copy this is not
+      evaluated. Offline evaluation: `python -m icstriage logic-diff
+      --baseline <known-good export> --current <uploaded export>` compares
+      Rockwell L5X and PLCopen TC6 XML (CODESYS) exports and classifies
+      logic, AOI, tasking, interface, value and module differences
+      (docs/logic-compare.md). Siemens TIA Portal, L5K and ACD files are not
+      supported yet; use the vendor comparison for those.
+
+  - id: integrity-sis-execution-table-extra-program
+    title: Safety controller runs a program or function not in the approved TriStation project
+    type: logic_compare
+    tier: likely
+    evidence_class: control-logic
+    datasources: [ICS-DS-0007]
+    attack: [T0821, T0843]
+    notes: >-
+      Mandiant: TRITON "added an attacker-provided program to the execution
+      table of the Triconex controller" and left the legitimate programs in
+      place (ICS-0007). Reading the controller needs TriStation online with
+      operations approval; do not move the key switch to PROGRAM to
+      investigate. An MP diagnostic failure or unexplained trip is the cue
+      (ICS-HUNT-0015).
+
+  - id: integrity-logix-audit-value-changed
+    title: Logix Change Detection AuditValue differs from the value recorded after the last approved download
+    type: check
+    check: logix_audit_value_compare
+    tier: likely
+    evidence_class: integrity
+    datasources: [ICS-DS-0008]
+    attack: [T0843, T0889]
+    notes: >-
+      Rockwell 1756-PM015: the AuditValue is regenerated when a monitored
+      change occurs (ICS-DS-0008). Read from FactoryTalk AssetCentre where it
+      is collected; reading it online is an online-vendor-tool step. Not
+      available on 1769-L3x/L4x CompactLogix or before Logix Designer v20; a
+      changed ChangesToDetect mask can hide later changes (ICS-PACK-0001
+      detects the mask change).
+
+  - id: integrity-firmware-differs-from-inventory
+    title: Controller, relay or RTU firmware version or image differs from the asset inventory or gold copy
+    type: check
+    check: firmware_version_compare
+    args:
+      reference: asset inventory and vendor-signed gold images
+    tier: likely
+    evidence_class: firmware
+    datasources: [ICS-DS-0013, ICS-DS-0008, ICS-DS-0009]
+    attack: [T0857]
+    notes: >-
+      AA26-231A: "Verify current firmware versions ... against backup gold
+      copy"; AA22-103A: hash firmware and controller configuration files to
+      validate backups. CERT Polska's Poland RTUs ran 12.6.6.0, 12.7.3.0,
+      13.1.1.0 and 13.5.2.0, and the attacker's image reported 13.5.3.0
+      (ICS-0014) - a version not deployed anywhere in the fleet is the lead.
+      A unit in a reboot loop cannot report its version; keep it for vendor
+      analysis. TRITON's firmware change was in memory only and would not
+      change a reported version (ICS-MAL-0005), so a matching version does
+      not clear a controller.
+
+  - id: integrity-firmware-transfer-logged
+    title: Controller or RTU log records a firmware update, a rejected firmware or a firmware transfer
+    type: log_regex
+    tier: possible
+    evidence_class: firmware
+    datasources: [ICS-DS-0008, ICS-DS-0013]
+    pattern: 'Firmware update|Invalid firmware update|FIRMWARE_UPDATE|Firmware transferred to the device successfully'
+    attack: [T0857]
+    notes: >-
+      Entry texts as recorded in the data-source and platform records:
+      Rockwell controller log "Firmware update" (ICS-DS-0008); Modicon M580
+      "Firmware update" and "Invalid firmware update", MSGID FIRMWARE_UPDATE
+      (ICS-DS-0013, ICS-0005 - confirm exact strings against live messages);
+      RTU500 13400 "Firmware transferred to the device successfully" from
+      CERT Polska's event-log excerpt (ICS-0014). Likely outside a patch
+      window, after a login by a default account, or when followed by a reset.
+
+  - id: integrity-snap7-library-loaded
+    title: Snap7 S7 communication library loaded by a process on a Windows host
+    type: check
+    check: windows_event_query
+    args:
+      channel: Microsoft-Windows-Sysmon/Operational
+      event_id: 7
+      image_loaded: snap7.dll
+    tier: likely
+    evidence_class: process
+    datasources: [ICS-DS-0006]
+    attack: [T0834, T0849]
+    rules: [01-engineering-workstations/ews_snap7_library_loaded.yml]
+    notes: >-
+      AA26-231A: snap7.dll/python-snap7 tools mimicking OT monitoring software
+      read and write S7 memory, configuration and ladder logic. Sysmon image
+      loads must be configured. A hit is a reason to run
+      integrity-running-logic-differs-from-known-good on every S7 controller
+      the host reached.

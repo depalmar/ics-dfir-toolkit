@@ -1,0 +1,47 @@
+title: Service Terminated Unexpectedly on an EWS, HMI or Historian
+id: 1afe108c-9483-4b71-a568-cd55d0dc6526
+status: experimental
+description: |
+  Service Control Manager event 7034 ("The <name> service terminated
+  unexpectedly. It has done this N time(s).") in the System log of an
+  engineering workstation, HMI, SCADA server or historian. Microsoft's
+  troubleshooting guidance shows 7034 when SQL Server "shuts down
+  unexpectedly", gives termination "by using Task Manager" as an example of a
+  forced shutdown, and shows 7036 ("entered the stopped state") for an orderly
+  stop. That a killed service process logs 7034 is this project's reading of
+  that guidance, not a Microsoft statement for every service. EKANS "force stops
+  ('kills') processes listed by process name in a hard-coded list", including
+  GE Proficy historian server processes, GE Fanuc licensing and Honeywell
+  HMIWeb (Dragos); Industroyer2 "terminates a legitimate process that is used
+  in standard daily operations" before connecting to its targets (ESET); and
+  GigaWiper carries process-kill and service-stop commands (Microsoft). Dragos
+  notes that killing historian processes "would induce a loss of view
+  condition". This rule sees the kill whatever tool did it, but only for
+  processes that run as services; a killed interactive HMI client is not a
+  service and logs nothing here (Sysmon Event ID 5 records the termination
+  but not who caused it). Several 7034 events across OT hosts within minutes
+  of each other is the pattern to escalate (ICS-HUNT-0013).
+references:
+  - https://learn.microsoft.com/troubleshoot/sql/database-engine/availability-groups/troubleshooting-availability-group-failover
+  - https://www.dragos.com/blog/responding-to-solarwinds-compromise-in-industrial-environments/
+  - https://www.welivesecurity.com/2022/04/12/industroyer2-industroyer-reloaded/
+  - https://www.microsoft.com/en-us/security/blog/2026/07/09/gigawiper-anatomy-of-a-destructive-backdoor-assembled-from-multiple-malware/
+author: Raymond DePalma (ics-dfir-toolkit)
+date: 2026-11-08
+tags:
+  - attack.inhibit-response-function
+  - attack.impact
+  - attack.t0881
+  - attack.t1489
+  - ics-dfir.ews-hmi
+logsource:
+  product: windows
+  service: system
+detection:
+  selection:
+    EventID: 7034
+    Provider_Name: 'Service Control Manager'
+  condition: selection
+falsepositives:
+  - Application crashes and faulty vendor services; baseline per host and escalate when several OT services stop together or the host also logs a restart, a scheduled task or a remote logon in the same window
+level: medium

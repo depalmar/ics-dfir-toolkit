@@ -1,0 +1,189 @@
+# ICS hunt ICS-HUNT-0013
+# Schema: ../schema/hunt.schema.json
+# Research notes: docs/research/2026-11-08/detections-round3.md
+
+id: ICS-HUNT-0013
+title: Controller, relay, RTU and HMI restarts, stops and loss of communication outside planned work
+platforms: [ICS-0001, ICS-0003, ICS-0005, ICS-0008, ICS-0011, ICS-0012, ICS-0014]
+protocols: [ICS-PROTO-0007]
+actors: [ICS-TA-0010]
+malware: [ICS-MAL-0004, ICS-MAL-0006, ICS-MAL-0007, ICS-MAL-0008, ICS-MAL-0010, ICS-MAL-0012, ICS-MAL-0013, ICS-MAL-0016]
+incidents: [ICS-INC-0002, ICS-INC-0008]
+hypothesis: >-
+  A device that supervises or controls the process - a controller, protection
+  relay, RTU, HMI or historian - was crashed, restarted, shut down or had its
+  services stopped on purpose, so that operators lost view or the ability to
+  send commands, and the event was booked as a fault.
+data: [controller-audit, syslog, historian, alarm-events, windows-events, ics-network-capture, netflow]
+datasources: [ICS-DS-0008, ICS-DS-0009, ICS-DS-0013, ICS-DS-0011, ICS-DS-0010, ICS-DS-0006, ICS-DS-0001, ICS-DS-0002, ICS-DS-0003]
+data_detail: >-
+  Historian tag history with quality or system states (for AVEVA PI, values
+  replaced by system digital states such as I/O Timeout, and stale tags); the
+  HMI alarm journal's communication-failure alarms; controller logs already
+  collected - S7 diagnostic buffer exports (operating-mode transitions with
+  their cause), Modicon M580 syslog (operating mode change, reboot, hardware
+  change), Logix controller log entries, OMRON event logs (Power Interrupted,
+  Memory All Cleared); relay and RTU security logs already forwarded (Relion
+  670 security events, RTU500 event archive, SIPROTEC 5 security log); the
+  System log of every Windows EWS, HMI, SCADA server and historian (1074, 41,
+  6008, 1001, 7034, 7036); Zeek conn.log and protocol logs, flow records and
+  Suricata alerts for the same window. Event names come from the platform and
+  data-source records; nothing in this hunt queries a device.
+method:
+  - >-
+    Build a timeline of loss-of-communication evidence: historian tags that
+    went to a communication-error state (PI's I/O Timeout) or went stale, HMI
+    communication alarms, polling sessions in Zeek or flow data that stop
+    being answered, and controllers or relays that stop sending syslog. Group
+    by minute and by site. Dragos's EKANS guidance is to look for "multiple
+    endpoints" that "cease communication and reporting to the historian at
+    approximately the same time"; CERT Polska's Poland report shows RTU damage
+    as exactly this - stations that lost communication with the DSO.
+  - >-
+    For each device in the timeline, pull its own record of the stop or
+    restart: S7 operating-mode transitions and their cause (STEP 7, HMI, web
+    server, mode selector); M580 operating mode changes and reboots; OMRON
+    Power Interrupted or Memory All Cleared; RTU500 "Manual Reset" and
+    "Gateway/RTU restarted"; Relion 670 device reset to factory default
+    (1710). A STOP or restart caused by an engineering tool or the web server,
+    or a reset just after a firmware or configuration transfer, needs an
+    owner.
+  - >-
+    On Windows OT hosts, list System events 1074 (with the process and user
+    that asked for the restart), 41, 6008 and 1001, and Service Control
+    Manager 7034 (service terminated unexpectedly) and 7036 for HMI, SCADA,
+    historian and licensing services. Several hosts restarting, or several OT
+    services dying, within minutes is the destructive pattern (DynoWiper's
+    shutdown call, GigaWiper's zero-delay reboot and forced BSOD, EKANS's
+    process kills); see the rules listed below.
+  - >-
+    For protection relays, check the capture for sessions to UDP 50000 on
+    SIPROTEC devices (the CVE-2015-5374 denial of service Industroyer
+    carried, which leaves the relay unresponsive until a manual reboot) and
+    for FTP sessions to IEDs just before a relay went silent (ICS-HUNT-0016,
+    ICS-PACK-0005).
+  - >-
+    Put every stop, restart and communication loss next to the maintenance
+    calendar, power and network events (UPS, switch, radio or cellular
+    outages) and operator logs. Escalate what none of them explains, and
+    anything that coincides with a remote session (ICS-HUNT-0004) or a
+    controller change (ICS-HUNT-0003). A device that will not restart is
+    evidence: keep it for vendor analysis, and do not power-cycle it
+    repeatedly to "see if it comes back" without operations.
+normal: >-
+  Restarts and mode changes line up with work orders, patching or a known
+  power or network fault; communication losses affect one link or one site
+  at a time and recover with the link.
+suspicious: >-
+  Several controllers, relays, RTUs or HMIs stopping or going silent within
+  minutes; a relay that needs a manual reboot after traffic to UDP 50000; a
+  controller STOP caused by STEP 7 or the web server with no work planned; an
+  RTU reset minutes after a firmware transfer; HMI or historian services
+  terminating on several hosts together; Windows restarts initiated by an
+  unexpected process or account.
+attack: [T0816, T0814, T0813, T0881]
+rules:
+  - 01-engineering-workstations/ews_hmi_restart_or_unexpected_shutdown.yml
+  - 01-engineering-workstations/ews_hmi_service_terminated_unexpectedly.yml
+  - 01-engineering-workstations/ews_hmi_service_or_process_stop_command.yml
+  - 02-ot-network/relay_and_rtu_service_sessions.rules
+inferred: >-
+  Correlating loss-of-communication evidence across historian, alarm, network
+  and device logs, and treating near-simultaneous stops as the destructive
+  pattern, is this toolkit's method, built from the sources' descriptions of
+  effects. CISA tells owners to investigate denial-of-service symptoms;
+  Dragos recommends the historian check; the event meanings come from the
+  vendor documentation quoted here and in the platform records.
+confidence: high
+sources:
+  - title: CISA AA22-103A - APT Cyber Tools Targeting ICS/SCADA Devices, mitigations
+    url: https://www.cisa.gov/news-events/cybersecurity-advisories/aa22-103a
+    accessed: "2026-11-08"
+    kind: government
+    quote: >-
+      Investigate symptoms of a denial of service or connection severing,
+      which exhibit as delays in communications processing, loss of function
+      requiring a reboot, and delayed actions to operator comments as signs of
+      potential malicious activity.
+    read: direct
+  - title: CISA AA22-103A, APT tool for Schneider Electric devices
+    url: https://www.cisa.gov/news-events/cybersecurity-advisories/aa22-103a
+    accessed: "2026-11-08"
+    kind: government
+    quote: >-
+      Conduct a ‘packet of death’ attack to crash the PLC until a power cycle
+      and configuration recovery is conducted
+    read: direct
+  - title: CERT Polska - Energy Sector Incident Report, 29 December 2025 (PDF), renewable energy plants
+    url: https://cert.pl/uploads/docs/CERT_Polska_Energy_Sector_Incident_Report_2025.pdf
+    accessed: "2026-11-08"
+    kind: government
+    quote: >-
+      The damage to RTU controllers, described further, was the direct cause
+      of the loss of communication between the facility and the DSO and
+      prevented remote control, but did not affect the ongoing electricity
+      generation.
+    read: direct
+  - title: CERT Polska - Energy Sector Incident Report (PDF), ATT&CK for ICS mapping
+    url: https://cert.pl/uploads/docs/CERT_Polska_Energy_Sector_Incident_Report_2025.pdf
+    accessed: "2026-11-08"
+    kind: government
+    quote: >-
+      Device Restart/Shutdown | T0816 | Shutdown of compromised industrial
+      automation devices
+    read: direct
+  - title: Dragos - EKANS Ransomware and ICS Operations, host mitigations
+    url: https://www.dragos.com/blog/responding-to-solarwinds-compromise-in-industrial-environments/
+    accessed: "2026-11-08"
+    kind: vendor
+    quote: >-
+      organizations can potentially identify a disruptive attack in progress
+      by implementing logic or monitoring on their historian (such as GE
+      Proficy in this case) to identify cases where multiple endpoints cease
+      communication and reporting to the historian at approximately the same
+      time.
+    read: direct
+  - title: Find and view stale and bad points (AVEVA PI System Management Tools documentation)
+    url: https://docs.aveva.com/bundle/pi-server-l-da-smt/page/1022841.html
+    accessed: "2026-11-08"
+    kind: vendor
+    quote: >-
+      For example, a state of I/O Timeout is a common symptom when a PI
+      interface determines it has lost contact with the device it is
+      configured to read.
+    read: direct
+  - title: Find and view stale and bad points (AVEVA), stale state
+    url: https://docs.aveva.com/bundle/pi-server-l-da-smt/page/1022841.html
+    accessed: "2026-11-08"
+    kind: vendor
+    quote: >-
+      The Stale state indicates that the PI point has not updated within a
+      specified time. By default, a tag is stale if the current value is over
+      four hours in the past.
+    read: direct
+  - title: Troubleshoot unexpected reboots using system event logs (Microsoft Learn)
+    url: https://learn.microsoft.com/troubleshoot/windows-server/performance/troubleshoot-unexpected-reboots-system-event-logs
+    accessed: "2026-11-08"
+    kind: vendor
+    quote: >-
+      The typical event IDs that indicate a normal reboot are Event ID 1074
+      followed by Event ID 13 and Event ID 6009. An unexpected reboot is
+      denoted by Event ID 41 and Event ID 6008.
+    read: direct
+  - title: CISA ICSA-15-202-01 - Siemens SIPROTEC Denial-of-Service Vulnerability
+    url: https://www.cisa.gov/news-events/ics-advisories/icsa-15-202-01
+    accessed: "2026-11-08"
+    kind: government
+    quote: >-
+      Specially crafted packets sent to Port 50000/UDP could cause a denial of
+      service of the affected device. A manual reboot is required to return
+      the device to service.
+    read: direct
+  - title: Operating mode transitions - Manual Collection S7-1500/ET 200MP (Siemens), causes of a transition
+    url: https://docs.tia.siemens.cloud/r/simatic_s7_1500_et_200mp_manual_collection_enus_20/basic-information/automation-system/commissioning/operating-modes/operating-mode-transitions
+    accessed: "2026-11-08"
+    kind: vendor
+    quote: >-
+      Via STP instruction, mode selector switch/button, display, STEP 7, HMI,
+      web server or SAT tool
+    read: direct

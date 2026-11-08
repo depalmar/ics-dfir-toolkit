@@ -48,6 +48,9 @@ RENDERED_HOSTS = {
     "docs.tia.siemens.cloud", "support.industry.siemens.com", "sieportal.siemens.com",
     "www.industry-mobile-support.siemens-info.com", "docs.aveva.com", "www.se.com",
     "x.com", "twitter.com", "www.linkedin.com", "web.archive.org",
+    # Run 2 (2026-11-08): every quote from two justice.gov press releases and from
+    # cert.gov.ua scored closest 0.0 - the plain fetch gets a bot-wall shell, not the article.
+    "www.justice.gov", "cert.gov.ua",
 }
 TR = str.maketrans({"‘": "'", "’": "'", "“": '"', "”": '"', "–": "-", "—": "-",
                     "‐": "-", "‑": "-", " ": " ", " ": " ", " ": " ", "​": ""})
@@ -128,7 +131,10 @@ def page_texts(urls: list[str], getter=None, workers: int = 8) -> dict[str, tupl
             return u, (None, f"unfetched: {type(e).__name__}: {str(e)[:80]}")
         if raw[:5] == b"%PDF-":
             t = pdf_text(raw)
-            return u, (norm(t), "ok") if t is not None else (None, "unfetched: PDF and no pdftotext")
+            if t is not None:
+                return u, (norm(t), "ok")
+            reason = "PDF and no pdftotext" if not shutil.which("pdftotext") else "pdftotext could not read the PDF"
+            return u, (None, f"unfetched: {reason}")
         return u, (norm(text_of(raw)), "ok")
 
     with ThreadPoolExecutor(max_workers=workers) as ex:

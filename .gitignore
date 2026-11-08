@@ -11,3 +11,5 @@ dist/
 cases/
 # Generated site, once a generator exists; never committed
 docs/site/
+# Playwright MCP session output (page snapshots, console logs); never committed
+.playwright-mcp/

@@ -52,6 +52,23 @@ FORMAT_LIMITS = {
         "available from a controller is the Archive.prj someone last placed there (ICS-0009), not a "
         "reconstruction of the running application; use the platform record's login comparison for that question.",
     ],
+    "SimaticML": [
+        "SimaticML elements read follow Siemens' TIA Portal Openness system manual (11/2023, V19) and its V20 online "
+        "edition. SCL networks are rendered from the documented token elements and compared line by line, STL "
+        "statement by statement, with comments compared separately; LAD, FBD and GRAPH networks are compared by "
+        "content hash. The rendering is canonical text for comparison, not a byte-exact copy of the editor view.",
+        "A know-how-protected block exported without unlocking holds only its public interface (Siemens: \"If the "
+        "block is exported without unlocking, only the public block interface will be exported.\"); its code is not "
+        "in the export and is listed as not evaluated.",
+        "Openness exports blocks from a project opened in TIA Portal (\"PLC is not online\" is a documented "
+        "requirement). The export shows the CPU only if that project was filled by \"Upload from device (software)\" "
+        "into a new, empty project (online-vendor-tool impact, ICS-0003).",
+        "Siemens states that in LAD/FBD exports \"the order of wires and references is still not reliable\". Wires "
+        "are sorted before hashing, but other export-order effects can still change a network hash without a logic "
+        "change.",
+        "Which attributes an export holds depends on its ExportOptions (read-only values such as OB priority only "
+        "with WithReadOnly). Exports made with different options show attributes as added or removed.",
+    ],
 }
 
 

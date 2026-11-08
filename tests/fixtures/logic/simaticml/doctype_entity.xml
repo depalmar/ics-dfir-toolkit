@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Synthetic hostile-input fixture: a DTD with an external entity must be refused before parsing. -->
+<!DOCTYPE Document [
+  <!ENTITY ext SYSTEM "file:///etc/hostname">
+]>
+<Document>
+  <Engineering version="V19" />
+  <SW.Blocks.FC ID="0">
+    <AttributeList>
+      <Name>&ext;</Name>
+      <ProgrammingLanguage>SCL</ProgrammingLanguage>
+    </AttributeList>
+  </SW.Blocks.FC>
+</Document>

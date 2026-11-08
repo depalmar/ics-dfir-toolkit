@@ -78,10 +78,12 @@ detect:
       object is attacker logic. Without a trusted offline copy this is not
       evaluated. Offline evaluation: `python -m icstriage logic-diff
       --baseline <known-good export> --current <uploaded export>` compares
-      Rockwell L5X and PLCopen TC6 XML (CODESYS) exports and classifies
-      logic, AOI, tasking, interface, value and module differences
-      (docs/logic-compare.md). Siemens TIA Portal, L5K and ACD files are not
-      supported yet; use the vendor comparison for those.
+      Rockwell L5X, PLCopen TC6 XML (CODESYS) and Siemens TIA Portal Openness
+      (SimaticML) exports - a file or a directory of block exports - and
+      classifies logic, AOI/FB, tasking (OB priority and events), interface,
+      value and module differences (docs/logic-compare.md). Know-how-protected
+      Siemens blocks export only their interface and are reported as not
+      evaluated. L5K and ACD files are not supported; use the vendor comparison.
 
   - id: integrity-sis-execution-table-extra-program
     title: Safety controller runs a program or function not in the approved TriStation project

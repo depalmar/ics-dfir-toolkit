@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Synthetic test fixture for icstriage logic-diff: written from scratch with placeholder names. Not a Siemens sample. -->
+<Document>
+  <Engineering version="V19" />
+  <DocumentInfo>
+    <Created>2026-11-08T08:30:00.0000000Z</Created>
+    <ExportSetting>WithReadOnly</ExportSetting>
+  </DocumentInfo>
+  <SW.Types.PlcStruct ID="0">
+    <AttributeList>
+      <Interface>
+        <Sections xmlns="http://www.siemens.com/automation/Openness/SW/Interface/v5">
+          <Section Name="None">
+            <Member Name="Enable" Datatype="Bool" />
+            <Member Name="Delay" Datatype="Time">
+              <StartValue>T#5S</StartValue>
+            </Member>
+          </Section>
+        </Sections>
+      </Interface>
+      <Name>UDT_ExampleCfg</Name>
+    </AttributeList>
+  </SW.Types.PlcStruct>
+</Document>

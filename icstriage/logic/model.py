@@ -1,4 +1,4 @@
-"""Normalised project model shared by the L5X and PLCopen readers.
+"""Normalised project model shared by the L5X, PLCopen and SimaticML readers.
 
 A project is reduced to three things the comparison understands:
 
@@ -63,6 +63,7 @@ class Unit:
     raw: str            # text as exported, for the report
     doc: str = ""       # rung comment (documentation-only)
     attrs: dict = field(default_factory=dict)
+    opaque: bool = False   # a whole graphical network compared by hash (SimaticML LAD/FBD/GRAPH)
 
 
 @dataclass

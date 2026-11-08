@@ -108,7 +108,11 @@ the file and in NOTICE. Copyleft content (e.g. EUPL) is pointed to, not copied.
 **Defensive content only.** No working exploit, no attack tool, no protocol
 command sequence that would stop a controller or change a setpoint. Describing
 which function code a malware family used (so a defender can detect it) is
-fine; packaging it so it can be replayed is not.
+fine; packaging it so it can be replayed is not. Do not reproduce vendor
+default credentials; a government advisory's own instruction to change a named
+default (CISA on Unitronics' "1111") is quoted as the authority wrote it.
+Indicator values (addresses, domains, hashes) live only in `artifacts/intel/iocs/`
+sets parsed from the publisher's file - never retyped into prose.
 
 **Synthetic data only.** Fixtures and examples use documentation address
 ranges (192.0.2.0/24, 198.51.100.0/24, 203.0.113.0/24) and placeholder names.
@@ -175,7 +179,8 @@ precise as the source, and `earliest_words` must sit inside the quote.
 
 `icstriage logic-diff` reads files an engineer exported; it never talks to a
 controller. Element and attribute names come only from the format's public
-documentation (Rockwell 1756-RM014, PLCopen TC6 XML); anything undocumented or
+documentation (Rockwell 1756-RM014, PLCopen TC6 XML, the Siemens TIA Portal
+Openness system manual and FAQ 109480446 for SimaticML); anything undocumented or
 encrypted is compared by hash and reported as such, never parsed by guess.
 Input files are hostile: DOCTYPE and ENTITY declarations are refused before
 parsing, and size and element counts are capped. Documentation-only changes

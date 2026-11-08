@@ -92,9 +92,19 @@ Ordered by value. The knowledge base comes first because every later layer
 - ~~Static site~~ - `build_site.py` and the Pages workflow. Next: technique
   names in the coverage view, cross-library search, "last changed" dates.
 - ~~Logic comparison~~ - `icstriage logic-diff`, the first triage-engine
-  component (L5X, PLCopen TC6 XML). Next: Siemens TIA Portal exports
-  (TIA Openness / SimaticML, from public documentation only), L5K, and a
-  `logic_compare` runner the analyzer can call per pack detection.
+  component (L5X, PLCopen TC6 XML; Siemens SimaticML added in round 5 from
+  the Openness system manual). Still open: Rockwell L5K (1756-RM014's L5K
+  chapters were not read, so it is not built), and a `logic_compare` runner
+  the analyzer can call per pack detection.
+- **Detection gaps 16 → 3** in round 5 (Stuxnet from Symantec's dossier,
+  Havex OPC enumeration, removable media, inbound scanning); the three left
+  are adversary-side capability development (T1587.004, T1588.007,
+  T1596.005) that an owner's data never shows.
+- **Hygiene from the consistency audit:** CVEs named only in prose
+  (ICS-0014, ICS-PROTO-0012, ICS-MAL-0001, ICS-HUNT-0013/0017) should move
+  to structured `cves` fields so the advisory watch sees them; decide whether
+  host-role platforms (ICS-0010/0011/0012) belong in the `platforms` lists of
+  the protocol records they cite.
 - Windows data source: add System 7045 (service installation) once read from
   Microsoft documentation.
 4. **Indicator sets.** Parse CISA's STIX bundles (AA26-097A, AA23-335A,

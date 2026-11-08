@@ -5,6 +5,7 @@ from __future__ import annotations
 import hashlib
 import json
 import re
+import shutil
 import subprocess
 import sys
 from pathlib import Path
@@ -22,7 +23,9 @@ from icstriage.logic.safexml import load  # noqa: E402
 FIX = ROOT / "tests" / "fixtures" / "logic"
 L5X = FIX / "l5x"
 PLC = FIX / "plcopen"
+SML = FIX / "simaticml"
 BASE = L5X / "baseline.L5X"
+SBASE = SML / "baseline"
 
 
 def run(base: Path, cur: Path) -> dict:
@@ -294,3 +297,300 @@ def test_cli_exit_codes(tmp_path):
     assert clobber.returncode == 1
     usage = cli("logic-diff", "--baseline", str(BASE))
     assert usage.returncode == 1
+
+
+# ---- Siemens SimaticML (TIA Portal Openness exports)
+
+def sml_dir(tmp_path: Path, edits: dict, src: Path = SBASE, name: str = "current") -> Path:
+    """Copy a fixture directory and apply exact, single-occurrence edits per file."""
+    dst = tmp_path / name
+    shutil.copytree(src, dst)
+    for fname, pairs in edits.items():
+        p = dst / fname
+        text = p.read_text(encoding="utf-8")
+        for old, new in pairs:
+            assert text.count(old) == 1, old
+            text = text.replace(old, new)
+        p.write_text(text, encoding="utf-8")
+    return dst
+
+
+def keyset(rep: dict, flag: bool = True) -> set:
+    return {(d["class"], d["change"], d["path"], d["field"]) for d in rep["differences"] if d["counted"] is flag}
+
+
+def test_siemens_same_directory_twice_has_no_differences():
+    rep = run(SBASE, SBASE)
+    assert rep["verdict"] == NONE_FOUND and rep["differences"] == []
+    assert rep["inputs"]["baseline"]["format"] == "SimaticML"
+
+
+def test_siemens_identical_project_new_export_time_is_informational_only():
+    rep = run(SBASE, SML / "current_identical")
+    assert rep["verdict"] == NONE_FOUND and counted(rep) == []
+    assert {(d["class"], d["field"]) for d in rep["differences"]} == {("metadata", "sha256")}
+    assert all(d["path"].startswith("File:") for d in rep["differences"])
+
+
+def test_siemens_scl_network_change_in_ob_is_logic(tmp_path):
+    cur = sml_dir(tmp_path, {"Main.xml": [(
+        '<Access Scope="GlobalVariable" UId="22"><Symbol><Component Name="Example_Speed" /></Symbol></Access>',
+        '<Access Scope="LiteralConstant" UId="22"><Constant><ConstantValue>0.0</ConstantValue></Constant></Access>')]})
+    rep = run(SBASE, cur)
+    assert rep["verdict"] == DIFFERENCES
+    (d,) = counted(rep)
+    assert (d["class"], d["change"], d["path"], d["field"]) == ("logic", "changed", "Block:Main/Networks", "network 2 line 1")
+    assert '"Example_Speed"' in d["baseline"] and "0.0" in d["current"]
+    assert d["attack_candidates"] == ["T0889"]
+
+
+def test_siemens_scl_change_in_fb_is_reusable_module_class(tmp_path):
+    cur = sml_dir(tmp_path, {"FB_ExampleValve.xml": [('<ConstantValue UId="67">1</ConstantValue>',
+                                                      '<ConstantValue UId="67">5</ConstantValue>')]})
+    (d,) = counted(run(SBASE, cur))
+    assert (d["class"], d["path"], d["field"]) == ("aoi", "Block:FB_ExampleValve/Networks", "network 1 line 4")
+    assert d["baseline"] == "#OpenCount := #OpenCount + 1;" and d["current"] == "#OpenCount := #OpenCount + 5;"
+
+
+def test_siemens_interface_member_added_is_interface(tmp_path):
+    cur = sml_dir(tmp_path, {"FB_ExampleValve.xml": [(
+        '<Member Name="Limit" Datatype="Real" Accessibility="Public">',
+        '<Member Name="Bypass" Datatype="Bool" Accessibility="Public" />\n'
+        '            <Member Name="Limit" Datatype="Real" Accessibility="Public">')]})
+    rep = run(SBASE, cur)
+    assert keyset(rep) == {("interface", "added", "Block:FB_ExampleValve/Static.Bypass", "member"),
+                           ("interface", "changed", "Block:FB_ExampleValve", "MemberOrder:Static")}
+
+
+def test_siemens_start_value_changes_are_value_t0836(tmp_path):
+    cur = sml_dir(tmp_path, {"DB_ExampleData.xml": [("<StartValue>90.0</StartValue>", "<StartValue>150.0</StartValue>"),
+                                                    ("<StartValue>20</StartValue>", "<StartValue>25</StartValue>")],
+                             "FB_ExampleValve.xml": [("<StartValue>1000</StartValue>", "<StartValue>1</StartValue>")]})
+    rep = run(SBASE, cur)
+    assert keyset(rep) == {("value", "changed", "Block:DB_ExampleData/Static.Limit", "StartValue"),
+                           ("value", "changed", "Block:DB_ExampleData/Static.Steps", "StartValue[1]"),
+                           ("value", "changed", "Block:FB_ExampleValve/Constant.MaxCount", "StartValue")}
+    assert all(d["attack_candidates"] == ["T0836"] for d in counted(rep))
+    const = [d for d in counted(rep) if d["path"].endswith("MaxCount")][0]
+    assert const["note"] == "constant"
+
+
+def test_siemens_ob_priority_change_is_tasking_t0821(tmp_path):
+    cur = sml_dir(tmp_path, {"Main.xml": [('<PriorityNumber ReadOnly="true">1</PriorityNumber>',
+                                           '<PriorityNumber ReadOnly="true">2</PriorityNumber>')]})
+    (d,) = counted(run(SBASE, cur))
+    assert (d["class"], d["path"], d["field"], d["baseline"], d["current"]) == ("tasking", "Block:Main", "PriorityNumber", "1", "2")
+    assert d["attack_candidates"] == ["T0821"]
+
+
+def test_siemens_ob_without_tasking_attributes_is_not_evaluated(tmp_path):
+    strip = [('      <PriorityNumber ReadOnly="true">1</PriorityNumber>\n', ""),
+             ("      <SecondaryType>Example_ProgramCycle</SecondaryType>\n", "")]
+    b = variant(tmp_path, "b.xml", *strip, src=SBASE / "Main.xml")
+    c = variant(tmp_path, "c.xml", *strip, src=SBASE / "Main.xml")
+    rep = run(b, c)
+    assert rep["verdict"] == NONE_FOUND
+    assert any("OB tasking was not compared" in n for n in rep["not_evaluated"])
+
+
+def test_siemens_lad_network_change_is_opaque_logic(tmp_path):
+    cur = sml_dir(tmp_path, {"Main.xml": [('<Component Name="Example_Run" />', '<Component Name="Example_Bypass" />')]})
+    (d,) = counted(run(SBASE, cur))
+    assert (d["class"], d["path"], d["field"], d["opaque"]) == ("logic", "Block:Main/Networks", "network 1", True)
+    assert "not shown" in d["note"] and "sha256" in d["current"]
+
+
+def test_siemens_lad_wire_order_alone_is_not_a_difference(tmp_path):
+    w25 = '<Wire UId="25"><Powerrail /><NameCon UId="23" Name="in" /></Wire>'
+    w26 = '<Wire UId="26"><IdentCon UId="21" /><NameCon UId="23" Name="operand" /></Wire>'
+    cur = sml_dir(tmp_path, {"Main.xml": [(w25 + "\n                " + w26,
+                                           w26.replace('"26"', '"25"') + "\n                " + w25.replace('"25"', '"26"'))]})
+    rep = run(SBASE, cur)
+    assert rep["verdict"] == NONE_FOUND and counted(rep) == []
+
+
+def test_siemens_uid_renumbering_in_scl_is_not_a_difference(tmp_path):
+    cur = sml_dir(tmp_path, {"FB_ExampleValve.xml": [('<Token Text="IF" UId="23" />', '<Token Text="IF" UId="923" />')]})
+    assert counted(run(SBASE, cur)) == []
+
+
+def test_siemens_documentation_only_changes_are_not_counted(tmp_path):
+    cur = sml_dir(tmp_path, {"FB_ExampleValve.xml": [
+        ("<Text> Example valve permissive</Text>", "<Text> Example valve permissive (reviewed)</Text>"),
+        ("<Text>Valve logic</Text>", "<Text>Valve logic, rev B</Text>"),
+        ('<MultiLanguageText Lang="en-US">Open command</MultiLanguageText>',
+         '<MultiLanguageText Lang="en-US">Open command from HMI</MultiLanguageText>'),
+        ("<Text>Example valve block (synthetic)</Text>", "<Text>Example valve block</Text>")]})
+    rep = run(SBASE, cur)
+    assert rep["verdict"] == NONE_FOUND and counted(rep) == []
+    docs = {(d["path"], d["field"]) for d in rep["differences"] if d["class"] == "documentation-only"}
+    assert docs == {("Block:FB_ExampleValve/Networks", "comments in code"),
+                    ("Block:FB_ExampleValve/Networks", "network 1 title"),
+                    ("Block:FB_ExampleValve/Input.Open", "Comment"),
+                    ("Block:FB_ExampleValve", "Comment")}
+
+
+def test_siemens_stl_statements_compared_and_empty_statements_skipped(tmp_path):
+    m = load_model(str(SBASE / "FC_ExampleScale.xml"))
+    assert [u.code for u in m.routines["Block:FC_ExampleScale/Networks"].units] == ["L #In", "L Int#10", "*I", "T #Out"]
+    cur = sml_dir(tmp_path, {"FC_ExampleScale.xml": [("<ConstantValue>10</ConstantValue>", "<ConstantValue>100</ConstantValue>")]})
+    (d,) = counted(run(SBASE, cur))
+    assert (d["class"], d["field"], d["current"]) == ("aoi", "network 1 statement 2", "L Int#100")
+
+
+def test_siemens_know_how_protected_interface_only_is_not_evaluated():
+    rep = run(SBASE, SBASE)
+    assert any("FC_ExampleProtected" in n and "not compared" in n for n in rep["not_evaluated"])
+    assert any("only the public block interface will be exported" in n for n in rep["notes"])
+
+
+def test_siemens_know_how_protected_content_compared_by_hash(tmp_path):
+    body = ('      <SW.Blocks.CompileUnit ID="3" CompositionName="CompileUnits">\n'
+            '        <AttributeList><NetworkSource><StructuredText><Access Scope="LocalVariable"><Symbol>'
+            '<Component Name="Y" /></Symbol></Access><Token Text=":=" /><Access Scope="LocalVariable"><Symbol>'
+            '<Component Name="X" /></Symbol></Access><Token Text=";" /></StructuredText></NetworkSource>'
+            '<ProgrammingLanguage>SCL</ProgrammingLanguage></AttributeList>\n      </SW.Blocks.CompileUnit>\n'
+            '    </ObjectList>\n  </SW.Blocks.FC>')
+    b = variant(tmp_path, "khp_b.xml", ("    </ObjectList>\n  </SW.Blocks.FC>", body), src=SBASE / "FC_ExampleProtected.xml")
+    c = variant(tmp_path, "khp_c.xml", ('<Token Text=":=" />', '<Token Text=":= -" />'), src=b)
+    rep = run(b, c)
+    (d,) = counted(rep)
+    assert (d["class"], d["path"], d["field"], d["opaque"]) == ("aoi", "Block:FC_ExampleProtected/Code", "content", True)
+    assert "know-how-protected" in d["note"]
+
+
+def test_siemens_tag_table_changes(tmp_path):
+    cur = sml_dir(tmp_path, {"Example_Tags.xml": [
+        ("<LogicalAddress>%Q0.0</LogicalAddress>", "<LogicalAddress>%Q0.1</LogicalAddress>"),
+        ("<Value>1500</Value>", "<Value>3000</Value>"),
+        ('      <SW.Tags.PlcUserConstant ID="6"',
+         '      <SW.Tags.PlcTag ID="9" CompositionName="Tags">\n        <AttributeList>\n'
+         '          <DataTypeName>Bool</DataTypeName>\n          <LogicalAddress>%M10.0</LogicalAddress>\n'
+         '          <Name>Example_Bypass</Name>\n        </AttributeList>\n      </SW.Tags.PlcTag>\n'
+         '      <SW.Tags.PlcUserConstant ID="6"')]})
+    rep = run(SBASE, cur)
+    assert keyset(rep) == {("interface", "changed", "TagTable:Example_Tags/PlcTag:Example_MotorOn", "LogicalAddress"),
+                           ("interface", "added", "TagTable:Example_Tags/PlcTag:Example_Bypass", "tag"),
+                           ("value", "changed", "TagTable:Example_Tags/PlcUserConstant:Example_MaxSpeed", "Value")}
+
+
+def test_siemens_block_missing_from_directory_is_removed(tmp_path):
+    cur = sml_dir(tmp_path, {})
+    (cur / "FC_ExampleScale.xml").unlink()
+    rep = run(SBASE, cur)
+    got = keyset(rep)
+    assert ("aoi", "removed", "Block:FC_ExampleScale", "FC") in got
+    assert ("aoi", "removed", "Block:FC_ExampleScale/Networks", "routine") in got
+    assert ("metadata", "removed", "File:FC_ExampleScale.xml", "file") in keyset(rep, False)
+
+
+def test_siemens_single_files_and_scope_note():
+    f = SBASE / "FB_ExampleValve.xml"
+    assert run(f, f)["differences"] == []
+    rep = run(f, SBASE)
+    assert any("export scopes differ" in n for n in rep["notes"])
+
+
+def test_siemens_doctype_refused_in_file_and_directory(tmp_path):
+    with pytest.raises(UnsafeInputError, match="DOCTYPE or ENTITY"):
+        load_model(str(SML / "doctype_entity.xml"))
+    d = sml_dir(tmp_path, {})
+    shutil.copy(SML / "doctype_entity.xml", d / "zz_hostile.xml")
+    with pytest.raises(UnsafeInputError):
+        load_model(str(d))
+
+
+def test_siemens_directory_lists_what_it_could_not_read(tmp_path):
+    d = sml_dir(tmp_path, {})
+    shutil.copy(BASE, d / "other.xml")
+    (d / "README.txt").write_text("placeholder", encoding="utf-8")
+    rep = run(SBASE, d)
+    assert any("other.xml: not a SimaticML PLC export" in n for n in rep["not_evaluated"])
+    assert any("README.txt" in n for n in rep["not_evaluated"])
+
+
+def test_siemens_duplicate_object_in_directory_refused(tmp_path):
+    d = sml_dir(tmp_path, {})
+    shutil.copy(d / "FB_ExampleValve.xml", d / "FB_copy.xml")
+    with pytest.raises(InputFormatError, match="defined twice"):
+        load_model(str(d))
+
+
+def test_siemens_unknown_scl_element_is_kept_and_noted(tmp_path):
+    b = variant(tmp_path, "u_b.xml", ('<Token Text="END_IF" UId="86" />', '<Token Text="END_IF" UId="86" /><Placeholder Kind="a" />'),
+                src=SBASE / "FB_ExampleValve.xml")
+    c = variant(tmp_path, "u_c.xml", ('<Placeholder Kind="a" />', '<Placeholder Kind="b" />'), src=b)
+    rep = run(b, c)
+    (d,) = counted(rep)
+    assert d["field"] == "network 1 line 7" and 'Kind="b"' in d["current"]
+    assert any("Placeholder" in n for n in rep["notes"])
+
+
+def test_siemens_interface_snapshot_values(tmp_path):
+    doc = ('<?xml version="1.0" encoding="utf-8"?>\n<Document>\n<Engineering version="V19" />\n'
+           '<SW.Blocks.InterfaceSnapshot ID="0"><AttributeList><Name>DB_ExampleData</Name><Snapshot ReadOnly="true">'
+           '<SnapshotValues><Value Path="Speed" Type="Real">{v}</Value></SnapshotValues></Snapshot>'
+           '<SnapshotDate ReadOnly="true">{t}</SnapshotDate></AttributeList></SW.Blocks.InterfaceSnapshot>\n</Document>\n')
+    b, c = tmp_path / "s_b.xml", tmp_path / "s_c.xml"
+    b.write_text(doc.format(v="12.5", t="2026-01-01T00:00:00Z"), encoding="utf-8")
+    c.write_text(doc.format(v="99.0", t="2026-11-08T00:00:00Z"), encoding="utf-8")
+    rep = run(b, c)
+    assert keyset(rep) == {("value", "changed", "Snapshot:DB_ExampleData", "Value:Speed")}
+    assert ("metadata", "changed", "Snapshot:DB_ExampleData", "SnapshotDate") in keyset(rep, False)
+
+
+def test_format_is_detected_by_content_not_extension(tmp_path):
+    for src, name, fmt in ((BASE, "export.dat", "L5X"), (PLC / "baseline.xml", "project.bin", "PLCopen TC6 XML"),
+                           (SBASE / "FB_ExampleValve.xml", "block.txt", "SimaticML")):
+        dst = tmp_path / name
+        shutil.copy(src, dst)
+        assert load_model(str(dst)).fmt == fmt
+    text = tmp_path / "notxml.L5X"
+    text.write_text("placeholder text, not markup\n", encoding="utf-8")
+    with pytest.raises(InputFormatError, match="not an XML export"):
+        load_model(str(text))
+    hmi = tmp_path / "hmi.xml"
+    hmi.write_text('<Document><Hmi.Screen.Screen ID="0" /></Document>', encoding="utf-8")
+    with pytest.raises(InputFormatError, match="HMI"):
+        load_model(str(hmi))
+
+
+def test_siemens_compared_with_l5x_is_refused():
+    with pytest.raises(FormatMismatch):
+        compare(load_model(str(SBASE)), load_model(str(BASE)))
+
+
+def test_siemens_report_limits_and_no_clean_wording(tmp_path):
+    cur = sml_dir(tmp_path, {"Main.xml": [('<PriorityNumber ReadOnly="true">1</PriorityNumber>',
+                                           '<PriorityNumber ReadOnly="true">2</PriorityNumber>')]})
+    rep = run(SBASE, cur)
+    md, js = to_markdown(rep), to_json(rep)
+    assert "know-how-protected" in md and "Upload from device (software)" in md and "WithReadOnly" in md
+    assert not re.search(r"\bclean\b", md + js, re.I)
+
+
+def test_siemens_cli_exit_codes(tmp_path):
+    same = cli("logic-diff", "--baseline", str(SBASE), "--current", str(SML / "current_identical"))
+    assert same.returncode == 0 and "NO-DIFFERENCES-FOUND" in same.stdout
+    cur = sml_dir(tmp_path, {"Main.xml": [('<Component Name="Example_Run" />', '<Component Name="Example_Bypass" />')]})
+    diff = cli("logic-diff", "--baseline", str(SBASE), "--current", str(cur), "--format", "json")
+    assert diff.returncode == 10 and json.loads(diff.stdout)["verdict"] == DIFFERENCES
+    bad = cli("logic-diff", "--baseline", str(SBASE / "Main.xml"), "--current", str(SML / "doctype_entity.xml"))
+    assert bad.returncode == 1 and "refused" in bad.stderr
+    inside = cli("logic-diff", "--baseline", str(SBASE), "--current", str(cur), "--out", str(cur / "report.md"))
+    assert inside.returncode == 1 and "inside an input directory" in inside.stderr
+
+
+def test_siemens_hostile_counts_and_nesting(tmp_path):
+    # a huge NewLine/Blank count is capped, and deep token nesting is refused cleanly, never a traceback
+    b = variant(tmp_path, "n.xml", ('<NewLine UId="22" />', '<NewLine Num="4000000000" UId="22" /><Blank Num="99999999" />'),
+                src=SBASE / "FB_ExampleValve.xml")
+    assert counted(run(SBASE / "FB_ExampleValve.xml", b)) == []
+    deep = "".join('<Access Scope="LocalVariable"><Symbol><Component Name="a">' for _ in range(80))
+    deep += "".join("</Component></Symbol></Access>" for _ in range(80))
+    d = variant(tmp_path, "deep.xml", ('<Token Text="END_IF" UId="86" />', '<Token Text="END_IF" UId="86" />' + deep),
+                src=SBASE / "FB_ExampleValve.xml")
+    try:
+        load_model(str(d))
+    except UnsafeInputError as exc:
+        assert "nest" in str(exc)

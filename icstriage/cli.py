@@ -3,6 +3,10 @@
     python -m icstriage logic-diff --baseline good.L5X --current suspect.L5X \
         [--format md|json] [--out report.md] [--max-size-mb 200]
 
+Inputs are Rockwell L5X, PLCopen TC6 XML or Siemens SimaticML files, or a
+directory of SimaticML files (TIA Portal Openness writes one file per block).
+The format is detected from the content, not the extension.
+
 Exit codes: 0 no counted differences, 10 differences found, 1 error (refused
 or unreadable input, unsupported or mismatched formats, bad arguments).
 """
@@ -28,10 +32,11 @@ def _parser() -> argparse.ArgumentParser:
     p = _Parser(prog="icstriage", description="Offline ICS/OT triage helpers. Never connects to a controller.")
     p.add_argument("--version", action="version", version=f"icstriage {__version__}")
     sub = p.add_subparsers(dest="command", required=True, parser_class=_Parser)
-    d = sub.add_parser("logic-diff", help="compare two exported controller projects (L5X or PLCopen TC6 XML)",
+    d = sub.add_parser("logic-diff", help="compare two exported controller projects (L5X, PLCopen TC6 XML or SimaticML)",
                        description="Compare a known-good export with an export under review. Verdicts: "
                                    "DIFFERENCES-FOUND or NO-DIFFERENCES-FOUND (with stated limits).")
-    d.add_argument("--baseline", required=True, help="known-good export (.L5X or PLCopen .xml)")
+    d.add_argument("--baseline", required=True,
+                   help="known-good export: L5X, PLCopen TC6 XML or SimaticML file, or a directory of SimaticML files")
     d.add_argument("--current", required=True, help="export under review, same format as the baseline")
     d.add_argument("--format", choices=("md", "json"), default="md", help="report format (default md)")
     d.add_argument("--out", help="write the report here instead of standard output")
@@ -50,6 +55,10 @@ def _logic_diff(args) -> int:
         if out_real in (os.path.realpath(args.baseline), os.path.realpath(args.current)):
             print("icstriage: error: --out would overwrite an input file", file=sys.stderr)
             return EXIT_ERROR
+        for src in (args.baseline, args.current):
+            if os.path.isdir(src) and os.path.commonpath([out_real, os.path.realpath(src)]) == os.path.realpath(src):
+                print("icstriage: error: --out must not be inside an input directory", file=sys.stderr)
+                return EXIT_ERROR
     try:
         limit = args.max_size_mb * 1024 * 1024
         base = load_model(args.baseline, max_bytes=limit)

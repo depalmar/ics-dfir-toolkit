@@ -115,9 +115,15 @@ Next free: ICS-TA-0020.
 | ICS-MAL-0010 | Fuxnet | sensor gateways, Modbus / M-Bus |
 | ICS-MAL-0011 | IOCONTROL | embedded Linux IoT/OT |
 | ICS-MAL-0012 | EKANS / Snake | ICS-aware ransomware |
+| ICS-MAL-0013 | DynoWiper | Poland, December 2025 |
+| ICS-MAL-0014 | LazyWiper | Poland, December 2025 |
+| ICS-MAL-0015 | PathWiper | Ukrainian critical infrastructure, 2025 |
+| ICS-MAL-0016 | GigaWiper / BLUERABBIT | Windows destructive tool; PYROXENE link per Dragos |
 
-Next free: ICS-MAL-0013 (2025-2026 families such as the ELECTRUM and BAUXITE
-wipers take numbers from here).
+BAUXITE's two June 2025 wipers and ELECTRUM's unnamed December 2025 variant
+have no record: no primary source names and describes them yet.
+
+Next free: ICS-MAL-0017.
 
 ## Incidents (`ICS-INC-NNNN`)
 
@@ -132,8 +138,14 @@ wipers take numbers from here).
 | ICS-INC-0007 | Pro-Russia hacktivist HMI intrusions at water utilities, 2024 |
 | ICS-INC-0008 | Poland distributed-energy attack (ELECTRUM), December 2025 |
 | ICS-INC-0009 | Iranian-affiliated exploitation of internet-facing PLCs (AA26-097A), 2025-2026 |
+| ICS-INC-0010 | US water-sector MicroLogix 1100/1400 lockout campaign, July 2026 |
+| ICS-INC-0011 | Colonial Pipeline, May 2021 (IT incident, precautionary OT shutdown) |
+| ICS-INC-0012 | Florida water treatment sodium hydroxide setpoint change, February 2021 |
 
-Next free: ICS-INC-0010.
+ICS-INC-0010 is separate from ICS-INC-0009 because CISA and the FBI neither
+attribute the July 2026 campaign nor link it to AA26-097A.
+
+Next free: ICS-INC-0013.
 
 ## Visibility data sources (`ICS-DS-NNNN`)
 

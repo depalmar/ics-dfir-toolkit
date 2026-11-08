@@ -19,6 +19,7 @@
       "description": "ours: provenance of the link between this cluster and the activity; one reporting party is medium however authoritative"
     },
     "stated_confidence": {"type": "string", "description": "the attributing party's own words, verbatim, with who said them"},
+    "unverified": {"type": "boolean", "description": "required when link_confidence is low"},
     "state_nexus": {"type": "string", "description": "as the reporter assesses it, with the reporter named"},
     "motivation": {"enum": ["espionage", "disruption", "prepositioning", "hacktivism", "financial", "mixed", "unknown"]},
     "summary": {"type": "string"},

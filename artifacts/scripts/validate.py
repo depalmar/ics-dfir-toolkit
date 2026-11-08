@@ -110,9 +110,12 @@ def walk(node, path=()):
 
 def check_low_confidence(doc, where: str) -> None:
     for path, node in walk(doc):
-        if isinstance(node, dict) and node.get("confidence") == "low" and not node.get("unverified"):
-            loc = "/".join(str(x) for x in path) or "<root>"
-            err(f"{where}: {loc}: confidence low requires unverified: true")
+        if not isinstance(node, dict) or node.get("unverified"):
+            continue
+        for key in ("confidence", "link_confidence"):
+            if node.get(key) == "low":
+                loc = "/".join(str(x) for x in path) or "<root>"
+                err(f"{where}: {loc}: {key} low requires unverified: true")
 
 
 def check_sources(doc, where: str) -> None:

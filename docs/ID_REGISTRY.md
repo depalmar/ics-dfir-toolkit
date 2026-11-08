@@ -75,7 +75,7 @@ never merge clusters the reporters do not equate.
 | ICS-TA-0001 | Sandworm Team / APT44 | US Government, Mandiant, ESET, CERT-UA |
 | ICS-TA-0002 | ELECTRUM | Dragos |
 | ICS-TA-0003 | KAMACITE | Dragos |
-| ICS-TA-0004 | XENOTIME / TEMP.Veles (TRITON) | Dragos; Mandiant |
+| ICS-TA-0004 | XENOTIME (TRITON) | Dragos |
 | ICS-TA-0005 | CHERNOVITE (PIPEDREAM) | Dragos |
 | ICS-TA-0006 | VOLTZITE | Dragos |
 | ICS-TA-0007 | Volt Typhoon | US Government, Microsoft |
@@ -89,8 +89,15 @@ never merge clusters the reporters do not equate.
 | ICS-TA-0015 | AZURITE | Dragos |
 | ICS-TA-0016 | PYROXENE | Dragos |
 | ICS-TA-0017 | Dragonfly / Energetic Bear (Havex) | Symantec, US Government |
+| ICS-TA-0018 | TEMP.Veles (TRITON) | Mandiant |
+| ICS-TA-0019 | Unnamed Iranian-affiliated APT actors (AA26-097A) | US Government |
 
-Next free: ICS-TA-0018.
+ICS-TA-0004 and ICS-TA-0018 are separate because neither Dragos nor Mandiant
+equates XENOTIME with TEMP.Veles. ICS-TA-0019 is separate from CyberAv3ngers
+because AA26-097A attributes to "a group of Iranian-affiliated APT actors" and
+cites CyberAv3ngers only as similar historical activity.
+
+Next free: ICS-TA-0020.
 
 ## Malware (`ICS-MAL-NNNN`)
 

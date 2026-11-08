@@ -44,7 +44,7 @@ tradecraft:
   - "Hands-on operator (Mandiant): 'TEMP.Veles’ lateral movement activities used a publicly-available PowerShell-based tool, WMImplant'. When it failed, a customised version was re-tested in the malware-testing environment and tried again the next day."
   - "Hands-on operator / tooling (Mandiant): cryptcat builds modified to lower AV detection; 'Custom payloads utilized by TEMP.Veles ... are typically weaponized versions of legitimate open-source software, retrofitted with code used for command and control'."
   - "Persistence (Mandiant): CATRUNNER installer with a scheduled task masquerading as 'ProgramDataUpdater'."
-  - "Infrastructure (Mandiant): IP address 87.245.143.140, 'registered to CNIIHM', used to monitor open-source coverage of TRITON, for network reconnaissance, and for activity in support of the intrusion."
+  - "Infrastructure (Mandiant): an IP address 'registered to CNIIHM' (the value is in Mandiant's report and is not retyped here; indicators belong in ICS-IOC sets), used to monitor open-source coverage of TRITON, for network reconnaissance, and for activity in support of the intrusion."
 first_seen: "2014 (Mandiant: cryptcat files 'tested in 2014', one of which 'was deployed in a TEMP.Veles target’s network')"
 references:
   - title: Mandiant (FireEye Intelligence) - TRITON Attribution, Russian Government-Owned Lab Most Likely Built Custom Intrusion Tools for TRITON Attackers (23 October 2018)
@@ -72,7 +72,7 @@ notes: >-
   link_confidence is medium: the TEMP.Veles-to-TRITON link rests on Mandiant
   alone. The US Government statements corroborate the TsNIIKhM nexus for the
   attack, not Mandiant's cluster boundary. The Treasury quote keeps the page's
-  stray '**' markup as rendered. The '87.245.143.140' address is quoted from
+  stray '**' markup as rendered. The CNIIHM-registered address (not retyped here) is quoted from
   Mandiant as context, not as an indicator; indicators belong in an ICS-IOC set
   parsed from the publisher's file. 'Mandiant' is FireEye Intelligence's
   publication, now hosted on Google Cloud.

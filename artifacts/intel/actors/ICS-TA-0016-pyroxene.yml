@@ -41,7 +41,7 @@ stage_basis: >-
   with low confidence' that PYROXENE surveyed OT networks consistent with Stage 2;
   that is not used here.
 platforms: []
-malware: []
+malware: [ICS-MAL-0016]
 incidents: []
 tradecraft:
   - "Hands-on operator (Dragos): 'Stages recruitment-themed social engineering campaigns using social media profiles'; patient engagement 'over extended periods before delivering tailored malware or attempting credential theft'."
@@ -74,3 +74,9 @@ notes: >-
   looks like a template error and is not relied on. PARISITE is another Dragos
   group with no record in this toolkit yet. The year of the June wiper deployment
   is inferred from the report's 2025 scope; the press release says only 'in June'.
+  ICS-MAL-0016 (GigaWiper / BLUERABBIT) is listed because Dragos's PYROXENE page
+  states the group 'Builds custom RAT malware (MINIBIKE) and destructive wiper
+  malware (BLUERABBIT)' and Microsoft states GigaWiper is tracked by GTIG and
+  Binary Defense as BLUERABBIT (both quoted on that record); the tradecraft line
+  saying no malware id was assigned predates that record (consistency audit,
+  2026-11-08).

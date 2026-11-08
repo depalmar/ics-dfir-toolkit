@@ -6,7 +6,7 @@ id: ICS-DS-0010
 name: SCADA / HMI application audit trail and alarm-event journal
 category: alarm-event
 purdue_levels: ["2", "3"]
-platforms: [ICS-0011]
+platforms: [ICS-0011, ICS-0002, ICS-0007, ICS-0012, ICS-0014, ICS-0015]
 location: >-
   Held by the SCADA/HMI application, usually in a SQL database or the
   product's internal store. In Inductive Automation Ignition (the product
@@ -70,6 +70,17 @@ events:
   - event: Logins, failed logins and configuration changes on OT systems
     value: The joint ASD/CISA guidance lists these, with safety and availability data, as real-time alerts defenders should use in OT.
     basis: government
+  - event: OPC UA audit events AuditOpenSecureChannel, AuditCreateSession and AuditActivateSession (OPC 10000-3 and 10000-5), with AuditEntryId, client certificate and user identity, delivered to a subscribed audit client or persisted by the server
+    value: >-
+      Which OPC UA client applications and users opened sessions on the
+      server and which activations failed. Sessions from an unknown client
+      certificate or user, or bursts of failed activations, are the trace of
+      TAGRUN-style enumeration and credential brute force (ICS-HUNT-0020,
+      ICS-0015). Exists only where an audit client was subscribed or the
+      server persists audit events.
+    attack: [T0861, T0859]
+    seen_in: [INCONTROLLER (TAGRUN)]
+    basis: standard
 tooling:
   - name: Inductive Automation Ignition (audit profiles and alarm journal)
     url: https://www.docs.inductiveautomation.com/docs/8.1/platform/audit-log-and-profiles.md
@@ -201,4 +212,20 @@ sources:
     quote: >-
       High volume of failed logon attempts followed by a successful one from a
       suspicious user, host, or timeframe
+    read: direct
+  - title: OPC 10000-3 Address Space Model - 9.5 AuditEventType (OPC Foundation online reference)
+    url: https://reference.opcfoundation.org/specs/OPC-10000-3/9.5
+    accessed: "2026-11-08"
+    kind: standard
+    quote: >-
+      The AuditEntryId typically contains who initiated the action and from
+      where it was initiated.
+    read: direct
+  - title: Mandiant - INCONTROLLER, discovery methods for TAGRUN
+    url: https://cloud.google.com/blog/topics/threat-intelligence/incontroller-state-sponsored-ics-tool/
+    accessed: "2026-11-08"
+    kind: researcher
+    quote: >-
+      Search for and investigate irregular connections to OPC UA endpoints and
+      enable robust audit logging for OPC UA applications.
     read: direct

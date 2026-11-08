@@ -42,7 +42,7 @@ parsers:
   - tool: Suricata (DNP3 app-layer parser and dnp3_* keywords; disabled by default in suricata.yaml)
     url: https://github.com/OISF/suricata/blob/main/doc/userguide/rules/dnp3-keywords.rst
     license: GPL-2.0
-platforms: [ICS-0014]
+platforms: [ICS-0014, ICS-0002]
 confidence: high
 sources:
   - title: Further Information Regarding the Release of DNP3 Secure Authentication Version 5 (DNP Users Group, 1 December 2011)

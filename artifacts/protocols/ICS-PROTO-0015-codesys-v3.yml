@@ -36,6 +36,7 @@ encryption: >-
   encryption (TLS 1.2).
 parsers: []
 platforms: [ICS-0009]
+malware: [ICS-MAL-0007]
 notes: >-
   No open-source Zeek or Suricata parser for the CODESYS V3 protocol was
   verified in this round. The runtime can also expose an OPC UA server on

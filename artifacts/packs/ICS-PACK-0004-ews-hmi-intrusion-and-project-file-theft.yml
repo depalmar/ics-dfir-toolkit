@@ -11,6 +11,7 @@ id: ICS-PACK-0004
 name: Intrusion on engineering workstations and HMIs, and theft of PLC project files
 platforms: [ICS-0010, ICS-0011]
 actors: [ICS-TA-0015, ICS-TA-0006, ICS-TA-0019]
+malware: [ICS-MAL-0016]
 incidents: [ICS-INC-0009]
 summary: >-
   Engineering workstations hold the plant's logic and the means to change

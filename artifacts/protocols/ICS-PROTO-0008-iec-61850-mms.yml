@@ -26,6 +26,7 @@ authentication:
 encryption: None documented for base MMS in the sources read; TLS under IEC 62351-3.
 parsers: []
 platforms: [ICS-0014]
+malware: [ICS-MAL-0004]
 notes: >-
   No open-source Zeek parser for IEC 61850 MMS was found in CISA's ICSNPP list
   or Malcolm's supported-protocol table in this round, so passive capture

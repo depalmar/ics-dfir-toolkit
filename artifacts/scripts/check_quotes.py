@@ -51,6 +51,11 @@ RENDERED_HOSTS = {
     # Run 2 (2026-11-08): every quote from two justice.gov press releases and from
     # cert.gov.ua scored closest 0.0 - the plain fetch gets a bot-wall shell, not the article.
     "www.justice.gov", "cert.gov.ua",
+    # Run 2 re-reads (2026-11-08): europol.europa.eu gives a plain fetch "Loading application.
+    # Please wait." (the Eastwood quote is verbatim once rendered), publisher.hitachienergy.com
+    # is a JavaScript app ("You need to enable JavaScript to run this app") and inria.hal.science
+    # answers with an Anubis proof-of-work challenge page instead of the PDF.
+    "www.europol.europa.eu", "publisher.hitachienergy.com", "inria.hal.science",
 }
 TR = str.maketrans({"‘": "'", "’": "'", "“": '"', "”": '"', "–": "-", "—": "-",
                     "‐": "-", "‑": "-", " ": " ", " ": " ", " ": " ", "​": ""})
@@ -62,6 +67,8 @@ def norm(t: str) -> str:
     t = html.unescape(t).translate(TR)
     t = re.sub("[-]", " ", t)        # PDF bullet glyphs live in the private-use area
     t = re.sub(r"[*_`]+", "", t)                  # markdown emphasis a reader may have kept or dropped
+    t = t.replace("|", " ")                       # cell borders of a table row copied from a rendered PDF or HTML page
+    t = re.sub(r"(?<=\w)-(?=\w)", "", t)          # "Modbus-Umas" broken at a line end comes out of pdftotext as "ModbusUmas"
     t = " ".join(t.split())
     t = re.sub(r"\s+([),.;:!?])", r"\1", t)       # "(AA26-097A )" from a link boundary
     t = re.sub(r"([(\[])\s+", r"\1", t)
@@ -141,18 +148,33 @@ def page_texts(urls: list[str], getter=None, workers: int = 8) -> dict[str, tupl
         return dict(ex.map(one, sorted(set(urls))))
 
 
+ELLIPSIS = re.compile(r"\s*(?:\.\.\.|…)\s*")
+
+
+def missing_fragment(quote: str, text: str) -> str | None:
+    """A quote may splice passages with " ... ". Each fragment must then be on the page, in the
+    page's order. Returns the first (normalised) fragment that is not, or None when all are."""
+    pos = 0
+    for f in (norm(x) for x in ELLIPSIS.split(quote) if x.strip()):
+        i = text.find(f, pos)
+        if i < 0:
+            return f
+        pos = i + len(f)
+    return None
+
+
 def check(sources: list[dict], getter=None) -> list[dict]:
     pages = page_texts([s["url"] for s in sources], getter)
     res = []
     for s in sources:
         text, st = pages[s["url"]]
-        q = norm(s["quote"])
-        row = {**s, "status": st if text is None else ("ok" if q in text else "missing")}
+        gone = None if text is None else missing_fragment(s["quote"], text)
+        row = {**s, "status": st if text is None else ("missing" if gone else "ok")}
         if row["status"] == "missing" and urlparse(s["url"]).netloc in RENDERED_HOSTS:
             row["status"] = "rendered"   # the text may only exist once a browser runs the page
         if row["status"] == "missing":
-            m = difflib.SequenceMatcher(None, text, q, autojunk=False).find_longest_match(0, len(text), 0, len(q))
-            row["closest"] = round(m.size / max(1, len(q)), 2)
+            m = difflib.SequenceMatcher(None, text, gone, autojunk=False).find_longest_match(0, len(text), 0, len(gone))
+            row["closest"] = round(m.size / max(1, len(gone)), 2)
         res.append(row)
     return res
 

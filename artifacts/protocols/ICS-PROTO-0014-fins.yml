@@ -35,6 +35,7 @@ parsers:
       - omron_fins_file.log
     license: BSD-3-Clause
 platforms: [ICS-0008]
+malware: [ICS-MAL-0007]
 notes: >-
   ICSNPP states the parser targets FINS commands for CV-Series, C-Series,
   SYSMAC LINK and SYSMAC NET PCs; coverage of FINS as implemented on Sysmac

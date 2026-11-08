@@ -43,6 +43,7 @@ parsers:
       - opcua_binary_status_code_detail.log
     license: BSD-3-Clause
 platforms: [ICS-0015, ICS-0003, ICS-0005, ICS-0009]
+malware: [ICS-MAL-0007]
 notes: >-
   Platform links: Schneider's Modicon cybersecurity guide lists OPC UA logins
   in M580 syslog events; the CODESYS security whitepaper lists an optional

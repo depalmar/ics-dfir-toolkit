@@ -30,6 +30,22 @@ def test_norm_forgives_only_typography():
     assert a == b
 
 
+def test_norm_forgives_table_borders_and_line_end_hyphenation():
+    # a table row copied from a rendered page keeps its cell borders; pdftotext prints the cells with spaces
+    assert cq.norm("| BMX P34 2020 | 2.60 | X | X | - |") == cq.norm("BMX P34 2020 2.60 X X -")
+    # a word hyphenated at a line end is joined without the hyphen by pdftotext
+    assert cq.norm("password through Modbus-Umas)") == cq.norm("password through ModbusUmas)")
+    assert cq.norm("read only") != cq.norm("read-only")   # dropping a hyphen never forgives a changed word
+
+
+def test_ellipsis_splices_match_each_fragment_in_the_page_order():
+    text = cq.norm("First the gateway is bricked. Later, the sensors are flooded with random data.")
+    assert cq.missing_fragment("the gateway is bricked ... flooded with random data.", text) is None
+    assert cq.missing_fragment("the gateway is bricked", text) is None                      # no ellipsis: whole quote
+    assert cq.missing_fragment("flooded with random data ... the gateway is bricked", text)  # out of order is not a match
+    assert cq.missing_fragment("the gateway is bricked ... not on the page", text) == cq.norm("not on the page")
+
+
 def test_check_matches_reports_missing_and_rendered():
     page = b"<html><body><p>The IP address and <b>program</b> are now erased.</p></body></html>"
     sources = [

@@ -38,6 +38,7 @@ parsers:
     url: https://github.com/cisagov/Malcolm
     license: Apache-2.0
 platforms: [ICS-0004]
+malware: [ICS-MAL-0001]
 notes: >-
   ICSNPP states S7comm is proprietary, so its coverage figures are based on
   traffic observed in test networks and public captures. CISA AA26-097A lists

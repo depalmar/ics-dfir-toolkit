@@ -37,7 +37,6 @@ controls:
       the architecture.
     blunts:
       - AA26-231A threat activity against Siemens S7 PLCs (2026)
-      - AA26-097A Iranian-affiliated exploitation of internet-facing PLCs (2025-2026)
     frameworks:
       - D3FEND D3-NI
     confidence: high

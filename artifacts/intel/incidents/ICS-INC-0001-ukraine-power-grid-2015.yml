@@ -18,7 +18,6 @@ victim: >-
   further organizations were intruded upon without operational impact.
 actors:
   - ICS-TA-0001
-  - ICS-TA-0002
   - ICS-TA-0003
 malware:
   - ICS-MAL-0003
@@ -69,7 +68,9 @@ chain:
     what: >-
       The US Government (July 2021 update) attributes the activity to Russian nation-state cyber actors;
       the US DOJ indictment names GRU Unit 74455 (tracked as Sandworm Team) for the December 2015 to
-      December 2016 attacks on Ukraine's grid; Dragos attributes the 2015 attack to its ELECTRUM cluster.
+      December 2016 attacks on Ukraine's grid. Dragos's ELECTRUM page says the cluster 'previously served as
+      a development group facilitating some of the earlier SANDWORM activity' - a development role, not an
+      attribution of the 2015 attack, so ELECTRUM is not listed as an actor here (2016 is ICS-INC-0002).
 lessons:
   - lesson: >-
       Contingency plans for safe operation or shutdown should "include the assumption that the ICS is
@@ -139,6 +140,6 @@ notes: >-
   "was not able to independently review technical evidence"; the account rests on interviews. Gaps the
   sources leave open: how the actors reached the distribution management / SCADA environment beyond VPN
   use with stolen credentials, and which ICS client software was used. KillDisk has no registry malware
-  id. The E-ISAC/SANS analysis was not read in this pass. ICS-TA-0001 (DOJ, Sandworm Team labels) and
-  ICS-TA-0002 (Dragos ELECTRUM) are separate clusters from separate reporters and are both listed, not
-  merged.
+  id. The E-ISAC/SANS analysis was not read in this pass. ICS-TA-0001 (DOJ, Sandworm Team labels) is listed;
+  ICS-TA-0002 (Dragos ELECTRUM) was removed at the 2026-11-08 audit because no quoted Dragos text attributes
+  the 2015 attack to it (see the chain note above). KAMACITE (ICS-TA-0003) is listed on Dragos's own words.

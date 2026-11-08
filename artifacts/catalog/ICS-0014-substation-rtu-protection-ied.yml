@@ -70,7 +70,8 @@ integrity_features:
       from the IED with PCM600. Reading needs the SECAUD role or "Audit log
       read" right.
     versions: 670 series version 2.2 (guideline 1MRK 511 399-UEN); 650 v1.1 not read
-    confidence: high
+    confidence: medium
+    unverified: true
     sources:
       - title: 670 series Version 2.2 IEC Cybersecurity deployment guideline (Hitachi Energy, 1MRK 511 399-UEN)
         url: https://publisher.hitachienergy.com/download?DocumentID=1MRK511399-UEN&LanguageCode=en&DocumentPartId=&Action=download&DocumentRevisionId=Y&parentURL=68747470733a2f2f7075626c69736865722e68697461636869656e657267792e636f6d2f646f63756d656e74733f6369643d39414146343032303838
@@ -269,7 +270,13 @@ notes: >-
   because it varies: Mikronika RTUs expose a root SSH console (CERT Polska),
   the others only web, FTP or vendor-tool access. Vendor default credentials
   are documented in the guidelines read but are deliberately not reproduced
-  here; check that the factory default user is removed or changed.
+  here; check that the factory default user is removed or changed. The 670
+  series 2.2 guideline link (1MRK511399-UEN, DocumentRevisionId=Y) now opens
+  Hitachi Energy's "the linked document cannot open as it does not exist
+  anymore" page (rendered read, 2026-11-08), so its four quotes are kept as
+  read on 2026-11-08 but the feature and the two artifacts they support are
+  marked unverified at medium until the current revision is located and
+  re-read; the collection methods that cite it carry the same caveat.
 response: baseline
 artifacts:
   - locator: RTU500 (RTU560) event log / security event archive - RTU web server, archives on CompactFlash
@@ -317,7 +324,8 @@ artifacts:
     retention: Up to 10240 events on the IED, oldest overwritten; not resent after a server outage
     forensic_value: high
     evidence_type: [initial-access, credential-access, inhibit-response-function, impair-process-control, evasion, timeline, attribution]
-    confidence: high
+    confidence: medium
+    unverified: true
     collection_impact: online-vendor-tool
     description: >-
       Numbered events include 1110 login successful; 1120, 1130 and 1170 login
@@ -440,7 +448,8 @@ artifacts:
     retention: Ring buffer on the relay; oldest records deleted automatically when full
     forensic_value: high
     evidence_type: [impact, impair-process-control, timeline]
-    confidence: high
+    confidence: medium
+    unverified: true
     collection_impact: online-vendor-tool
     description: >-
       Analog and binary recordings around a fault or trip. SIPROTEC 5 exports

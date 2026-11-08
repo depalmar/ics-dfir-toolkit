@@ -37,7 +37,7 @@ stage_basis: >-
   is 'Executed control system portion of 2016 Ukraine power event, deployed
   CRASHOVERRIDE designed to manipulate electric transmission equipment'.
 platforms: [ICS-0014]
-malware: [ICS-MAL-0004]
+malware: [ICS-MAL-0004, ICS-MAL-0015]
 incidents: [ICS-INC-0002, ICS-INC-0008]
 tradecraft:
   - "Hands-on operator (Dragos): 'used Microsoft SQL database servers as the gateway that bridges both the business and industrial control networks, to successfully compromise industrial control systems where they used stolen credentials to execute code'."
@@ -85,4 +85,8 @@ notes: >-
   'Dragonfly' cluster (ICS-TA-0017). The three attributions diverge, and the
   toolkit prefers none. Protocols are named in text only until protocol records exist. Dragos
   publishes full TTPs only to WorldView customers, so tradecraft here is limited to
-  public pages.
+  public pages. ICS-MAL-0015 (PathWiper) is listed because Dragos's 2026 Year in
+  Review states "PathWiper linked to ELECTRUM appeared in the wild" (quoted on that
+  record); the Poland wipers ICS-MAL-0013 and ICS-MAL-0014 are not listed here
+  because the Dragos pages read name ELECTRUM for the operation, not for those
+  families (consistency audit, 2026-11-08).

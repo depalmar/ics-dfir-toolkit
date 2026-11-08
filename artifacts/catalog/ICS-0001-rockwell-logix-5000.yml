@@ -11,7 +11,7 @@ products:
   - GuardLogix 5570 / 5580 and Compact GuardLogix 5370 / 5380
 asset_class: plc
 purdue_levels: ["1"]
-protocols: [ICS-PROTO-0004]
+protocols: [ICS-PROTO-0004, ICS-PROTO-0005]
 os_base: Proprietary controller firmware; Rockwell does not publish its internals
 filesystem: >-
   No customer-visible filesystem. Removable media (SD card, CompactFlash on
@@ -203,7 +203,7 @@ volatility:
     off, the buffer is circular and the oldest entries are discarded.
   - The Audit Value is shown only while online; record it with a timestamp each time it is read.
   - Total Entry Count can be set to any value with an SSV instruction, so a low count is not proof of few events.
-datasources: [ICS-DS-0008, ICS-DS-0001, ICS-DS-0007, ICS-DS-0004, ICS-DS-0014]
+datasources: [ICS-DS-0008, ICS-DS-0001, ICS-DS-0007, ICS-DS-0004, ICS-DS-0014, ICS-DS-0013]
 confidence: high
 references:
   - title: Logix 5000 Controllers Information and Status Programming Manual (1756-PM015)

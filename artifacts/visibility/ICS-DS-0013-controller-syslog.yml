@@ -6,7 +6,7 @@ id: ICS-DS-0013
 name: Controller syslog and event logs (e.g. Modicon M580, S7-1500 syslog)
 category: controller-onboard
 purdue_levels: ["1"]
-platforms: [ICS-0005, ICS-0003, ICS-0001]
+platforms: [ICS-0005, ICS-0003, ICS-0001, ICS-0009, ICS-0014]
 protocols: [ICS-PROTO-0001, ICS-PROTO-0004, ICS-PROTO-0006, ICS-PROTO-0007, ICS-PROTO-0010, ICS-PROTO-0012, ICS-PROTO-0019]
 location: >-
   Generated on the controller (or its communication module) and sent as
@@ -116,8 +116,8 @@ sources:
     accessed: "2026-11-08"
     kind: vendor
     quote: >-
-      Operating mode change | Program operating mode change (Run, Stop, Init,
-      Halt) Mode maintenance / SafeRun / Stop SAFE task
+      Program operating mode change (Run, Stop, Init, Halt) ... Mode
+      maintenance / SafeRun / Stop SAFE task
     read: direct
   - title: Modicon Platform Cybersecurity User Guide (EIO0000001999 v15) - Setting Up Syslog Clients
     url: https://download.se.com/files?p_Doc_Ref=EIO0000001999&p_enDocType=User+guide

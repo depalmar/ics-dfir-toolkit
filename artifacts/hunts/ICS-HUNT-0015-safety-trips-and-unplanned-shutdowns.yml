@@ -6,8 +6,8 @@ id: ICS-HUNT-0015
 title: Safety-system trips and unplanned process shutdowns with no process cause
 platforms: [ICS-0007, ICS-0011, ICS-0012, ICS-0010]
 protocols: [ICS-PROTO-0016]
-actors: [ICS-TA-0004, ICS-TA-0018, ICS-TA-0010]
-malware: [ICS-MAL-0005, ICS-MAL-0011, ICS-MAL-0012]
+actors: [ICS-TA-0004, ICS-TA-0018]
+malware: [ICS-MAL-0005, ICS-MAL-0012]
 incidents: [ICS-INC-0003, ICS-INC-0011]
 hypothesis: >-
   A safety instrumented system tripped, or a process or service was shut

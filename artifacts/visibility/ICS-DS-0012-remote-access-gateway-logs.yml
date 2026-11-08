@@ -6,7 +6,7 @@ id: ICS-DS-0012
 name: Cellular and industrial remote-access gateway logs
 category: remote-access
 purdue_levels: ["1", "2", "3.5"]
-platforms: [ICS-0013]
+platforms: [ICS-0013, ICS-0002]
 location: >-
   On the cellular modem or industrial router itself (small local log), on a
   remote syslog server if one was configured, and in the vendor's

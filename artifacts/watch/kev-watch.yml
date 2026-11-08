@@ -36,7 +36,7 @@ platforms:
   ICS-0014: {vendor: '^(Siemens|ABB|Hitachi Energy|Schweitzer Engineering Laboratories|SEL|GE|GE Vernova)$', product: 'SIPROTEC|SICAM|RTU|Relion|MiCOM|SEL-[0-9]|Protection Relay'}
   ICS-0015: {vendor: '.', product: 'OPC UA|OPC Unified|KEPServerEX|Kepware'}
 
-# No indicator sets exist yet.
+# Indicator sets live in artifacts/intel/iocs/; their publisher-file hashes are in upstream below.
 # sha256 of each publisher file as last parsed (artifacts/scripts/parse_iocs.py);
 # a change means re-parse and re-validate the indicator set.
 upstream:

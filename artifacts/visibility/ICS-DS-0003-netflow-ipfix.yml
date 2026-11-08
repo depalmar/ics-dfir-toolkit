@@ -52,6 +52,19 @@ events:
   - event: Suricata eve.json event_type "flow" - pkts_toserver, pkts_toclient, bytes_toserver, bytes_toclient
     value: Flow summaries from a passive sensor where routers cannot export flows.
     basis: vendor
+  - event: One internal host sending connection attempts to 135/tcp (then to dynamic high ports), to 137-139/445, or ICMP echo, across many control-network hosts in a short window
+    value: >-
+      Port-level shape of Windows-network and DCOM enumeration: CISA describes
+      Havex's payload enumerating "all connected network resources" and
+      querying OPC Classic servers over DCOM, and Microsoft documents that an
+      RPC client reaches the endpoint mapper on 135 and is then sent to a
+      dynamic port. Reading that as a fan-out in flow data is this toolkit's
+      inference (ICS-HUNT-0020); domain controllers, management servers and
+      SCADA servers polling many OPC servers do the same and must be
+      suppressed by address.
+    attack: [T0840, T0846]
+    seen_in: [Havex]
+    basis: toolkit
 tooling:
   - name: Suricata (EVE flow records)
     url: https://suricata.io/
@@ -167,4 +180,25 @@ sources:
       Identifies suspicious outbound traffic volume mismatches from processes that
       typically do not generate network activity, particularly over C2 protocols
       like HTTPS, DNS, or custom TCP/UDP ports, following file or data access.
+    read: direct
+  - title: CISA ICS-ALERT-14-176-02A - ICS Focused Malware (Update A), Havex payload
+    url: https://www.cisa.gov/news-events/ics-alerts/ics-alert-14-176-02a
+    accessed: "2026-11-08"
+    kind: government
+    quote: >-
+      F-Secure and ICS-CERT identified and analyzed one payload that
+      enumerates all connected network resources such as computers or shared
+      resources, and uses the classic DCOM-based (Distributed Component Object
+      Model) version of the Open Platform Communications (OPC) standard to
+      gather information about connected control system resources within the
+      network.
+    read: direct
+  - title: Microsoft Learn - Troubleshoot network security group misconfigurations, Windows management tools that require RPC and DCOM
+    url: https://learn.microsoft.com/en-us/troubleshoot/azure/virtual-network/virtual-network-troubleshoot-nsg-blocking-traffic
+    accessed: "2026-11-08"
+    kind: vendor
+    quote: >-
+      The Remote Procedure Call (RPC) client first connects to the RPC
+      Endpoint Mapper on TCP port 135. The endpoint mapper then directs the
+      client to a dynamically assigned TCP port on the remote VM.
     read: direct

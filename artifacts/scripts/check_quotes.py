@@ -151,6 +151,27 @@ def check(sources: list[dict], getter=None) -> list[dict]:
     return res
 
 
+MAX_PER_PAGE = 8
+
+
+def grouped(rows: list[dict], detail=None) -> list[str]:
+    """One bullet per page with its quotes beneath: when a page changes, every quote taken
+    from it goes with it, so grouping keeps a 700-quote report readable (and inside GitHub's
+    issue-body limit)."""
+    by_page: dict[str, list[dict]] = {}
+    for r in rows:
+        by_page.setdefault(r["url"], []).append(r)
+    out: list[str] = []
+    for url, rs in sorted(by_page.items(), key=lambda kv: (-len(kv[1]), kv[0])):
+        extra = detail(rs[0]) if detail else ""
+        out.append(f"- {url} ({len(rs)} quote{'s' if len(rs) != 1 else ''}{extra})")
+        out += [f"  - {r['file']} `{r['record']}`" + (f" closest {r['closest']}" if "closest" in r else "")
+                for r in rs[:MAX_PER_PAGE]]
+        if len(rs) > MAX_PER_PAGE:
+            out.append(f"  - and {len(rs) - MAX_PER_PAGE} more from this page")
+    return out
+
+
 def report(res: list[dict]) -> str:
     miss = [r for r in res if r["status"] == "missing"]
     rendered = [r for r in res if r["status"] == "rendered"]
@@ -164,16 +185,16 @@ def report(res: list[dict]) -> str:
          f"## No longer on the page ({len(miss)})", ""]
     if miss:
         L += ["`closest` is the longest run of the quote found on the page. Near 1.0 is usually a small edit; "
-              "near 0 means the passage is gone or the page now builds its text in the browser.", "",
-              "| File | Record | Page | closest |", "|---|---|---|---|"]
-        L += [f"| {r['file']} | {r['record']} | {r['url']} | {r['closest']} |" for r in miss]
+              "near 0 means the passage is gone or the page now builds its text in the browser. Grouped by page, "
+              "pages with the most quotes first.", ""]
+        L += grouped(miss)
     else:
         L.append("None.")
     L += ["", f"## Needs a rendered check ({len(rendered)})", "",
-          "These hosts build their text in the browser. Read them with a rendering fetch before relying on them."]
-    L += [""] + [f"- {r['file']} {r['record']}: {r['url']}" for r in rendered] if rendered else ["", "None."]
+          "These hosts build their text in the browser. Read them with a rendering fetch before relying on them.", ""]
+    L += grouped(rendered) or ["None."]
     L += ["", f"## Could not be fetched ({len(unf)})", ""]
-    L += [f"- {r['file']} {r['record']}: {r['url']} ({r['status'][11:]})" for r in unf] or ["None."]
+    L += grouped(unf, lambda r: f"; {r['status'][11:]}") or ["None."]
     L += ["", f"## Read through a summariser, now matched word for word ({len(upgrade)})", ""]
     L += [f"- {r['file']} {r['record']}: {r['url']} - can become `read: direct`" for r in upgrade] or ["None."]
     return "\n".join(L) + "\n"

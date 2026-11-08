@@ -43,18 +43,32 @@ jobs:
           if [ "$code" -eq 1 ]; then exit 1; fi
           echo "changed=$([ "$code" -eq 10 ] && echo true || echo false)" >> "$GITHUB_OUTPUT"
           cat report.md >> "$GITHUB_STEP_SUMMARY"
+          cat report.md
+      - name: Keep the full report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: quote-check-report
+          path: report.md
+          if-no-files-found: ignore
       - name: Open or update the quote-check issue
         if: steps.check.outputs.changed == 'true'
         env:
           GH_TOKEN: ${{ github.token }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
         run: |
+          # GitHub caps an issue body at 65,536 characters. The full report is the run's
+          # artifact and its job summary; the issue carries as much as fits.
+          { head -c 60000 report.md
+            printf '\n\n_Truncated here if the report is longer. The full report is the `quote-check-report` artifact of %s._\n' "$RUN_URL"
+          } > issue.md
           gh label create quote-check --color FBCA04 \
             --description "A quoted source no longer carries its quote" 2>/dev/null || true
           num=$(gh issue list --label quote-check --state open --json number --jq '.[0].number')
           if [ -n "$num" ]; then
-            gh issue edit "$num" --body-file report.md
+            gh issue edit "$num" --body-file issue.md
             gh issue comment "$num" --body "Re-run $(date -u +%Y-%m-%d): report updated in the issue body."
           else
             gh issue create --title "Quote check: quoted sources no longer match their page" \
-              --label quote-check --body-file report.md
+              --label quote-check --body-file issue.md
           fi

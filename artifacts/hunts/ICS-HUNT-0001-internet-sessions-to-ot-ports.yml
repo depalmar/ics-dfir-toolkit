@@ -1,0 +1,117 @@
+# ICS hunt ICS-HUNT-0001
+# Schema: ../schema/hunt.schema.json
+# Research notes: docs/research/2026-11-08/detections.md
+
+id: ICS-HUNT-0001
+title: Sessions to PLC protocol ports from internet or hosting-provider addresses
+platforms: [ICS-0001, ICS-0003, ICS-0005, ICS-0013]
+protocols: [ICS-PROTO-0004, ICS-PROTO-0001]
+actors: [ICS-TA-0019]
+incidents: [ICS-INC-0009]
+seen_in: [AA26-097A]
+hypothesis: >-
+  An actor on leased, third-party hosted infrastructure reached an
+  internet-facing PLC over its native protocol port with the manufacturer's
+  programming software, or reached the cellular modem in front of it over
+  SSH.
+data: [firewall, netflow, ics-network-capture]
+datasources: [ICS-DS-0004, ICS-DS-0003, ICS-DS-0001, ICS-DS-0002]
+data_detail: >-
+  Boundary and internet-edge firewall logs with allowed as well as denied
+  sessions; flow records from the internet or cellular edge; Zeek conn.log
+  and the ICSNPP cip, enip, s7comm and modbus logs from a sensor that sees
+  the boundary; Suricata alerts from the 02-ot-network rules. An IP-to-ASN
+  or hosting-provider enrichment source of the owner's choosing. The
+  AA26-097A addresses, parsed from CISA's STIX files with their association
+  months, are indicator set ICS-IOC-0001; CISA gives no role for any of
+  them. Port 102 carries S7comm, S7comm-plus and IEC 61850 MMS, so it is not
+  mapped to one protocol id.
+method:
+  - >-
+    List every session, allowed or denied, whose destination is 44818/tcp or
+    udp, 2222, 102 or 502 on an owner address, and every session to 22/tcp on
+    a modem or gateway, whose source is outside the owner's ranges and is not
+    the approved remote-access broker.
+  - >-
+    Enrich the sources with ASN and organisation and flag hosting, VPS and
+    VPN providers, foreign ones first (AA26-097A asks for traffic "especially
+    traffic originating from foreign hosting providers").
+  - >-
+    Separate probing from access: a denied attempt or a SYN with no answer
+    shows exposure being tested; a completed session with data both ways
+    (Zeek conn_state and history, or flow bytes in both directions) means the
+    device answered. A completed session from a hosting provider is the
+    finding.
+  - >-
+    For each completed session, pull the protocol log lines with the same
+    Zeek uid to see which services were used (CIP services, S7 functions,
+    Modbus functions), then the controller's own log for the same minutes
+    (ICS-HUNT-0003) - from copies already collected, never by connecting to
+    the controller.
+  - >-
+    Query the sources against ICS-IOC-0001 for each address's association
+    window. CISA asks owners to vet the addresses before acting on them; the
+    actors used leased infrastructure, so a match is a lead, not
+    attribution.
+  - >-
+    Load 02-ot-network/ot_protocol_inbound_from_unapproved_host.rules and
+    remote_access_inbound_to_ot.rules with HOME_NET set to the OT and modem
+    ranges so the same sessions alert as they happen.
+normal: >-
+  No session from an internet address reaches a controller port; remote
+  engineering arrives through the brokered gateway or VPN from known
+  addresses, and modem SSH is closed or limited to management addresses.
+suspicious: >-
+  Any completed session from a hosting-provider address to 44818, 2222, 102
+  or 502; SSH sessions to a modem from the internet; a run of denied attempts
+  followed by an allowed one; a source in the AA26-097A tables inside its
+  association window.
+attack: [T0883, T0885, T1219]
+rules:
+  - 02-ot-network/ot_protocol_inbound_from_unapproved_host.rules
+  - 02-ot-network/remote_access_inbound_to_ot.rules
+inferred: >-
+  Reading Zeek connection state to tell probing from access, and ASN
+  enrichment to recognise hosting providers, are this toolkit's method. CISA
+  names the ports, the modem port and "foreign hosting providers".
+confidence: high
+sources:
+  - title: CISA AA26-097A - Iranian-Affiliated Cyber Actors Exploit Programmable Logic Controllers Across US Critical Infrastructure (updated July 22, 2026), key actions
+    url: https://www.cisa.gov/news-events/cybersecurity-advisories/aa26-097a
+    accessed: "2026-11-08"
+    kind: government
+    quote: >-
+      Query available logs for the provided indicators of compromise (IOCs)
+      and check available logs for suspicious traffic on the ports associated
+      with OT devices, including `44818`, `2222`, `102`, and `502`, especially
+      traffic originating from foreign hosting providers.
+    read: direct
+  - title: CISA AA26-097A, initial access
+    url: https://www.cisa.gov/news-events/cybersecurity-advisories/aa26-097a
+    accessed: "2026-11-08"
+    kind: government
+    quote: >-
+      The actors used leased, third-party hosted infrastructure and
+      manufacturers’ PLC programming software to connect to misconfigured
+      victim PLCs. Inbound malicious traffic has been observed targeting PLC
+      devices on the following ports: `44818`, `2222`, `102`, and `502`, as
+      well as targeting modems on port `22`.
+    read: direct
+  - title: CISA AA26-097A, indicator disclaimer
+    url: https://www.cisa.gov/news-events/cybersecurity-advisories/aa26-097a
+    accessed: "2026-11-08"
+    kind: government
+    quote: >-
+      This data is being provided for customers to query against logs for
+      indications of historical targeting by the Iranian-affiliated APT
+      actors. The authoring agencies recommend organizations investigate or
+      vet these IP addresses prior to taking action, such as blocking.
+    read: direct
+  - title: Secure connectivity principles for Operational Technology (NCSC-UK with CISA, FBI, ASD's ACSC, Cyber Centre, BSI, NCSC-NL, NCSC-NZ)
+    url: https://www.ncsc.gov.uk/sites/default/files/documents/ncsc-secure-connectivity-for-operational-technology.pdf
+    accessed: "2026-11-08"
+    kind: government
+    quote: >-
+      All connections with the OT environment should be initiated as outbound
+      connections from within the OT environment.
+    read: direct

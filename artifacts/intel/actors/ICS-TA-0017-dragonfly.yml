@@ -1,0 +1,116 @@
+id: ICS-TA-0017
+name: Dragonfly / Energetic Bear
+aliases:
+  - name: Energetic Bear
+    by: "US DOJ, 2022 ('members of a Center 16 operational unit known among cybersecurity researchers as “Dragonfly,” “Berzerk Bear,” “Energetic Bear,” and “Crouching Yeti.”')"
+    equated: true
+  - name: Berzerk Bear
+    by: US DOJ, same statement
+    equated: true
+  - name: Crouching Yeti
+    by: US DOJ, same statement
+    equated: true
+  - name: Static Tundra
+    by: "CERT Polska ('the activity cluster publicly known as “Static Tundra” (Cisco), “Berserk Bear” (CrowdStrike), “Ghost Blizzard” (Microsoft), and “Dragonfly” (Symantec)'); Cisco's own statement was not read"
+    equated: true
+  - name: Ghost Blizzard
+    by: CERT Polska, same statement; Microsoft's own statement was not read
+    equated: true
+reported_by:
+  - Symantec
+  - US Department of Justice (2022 unsealed indictment of FSB Center 16 officers)
+  - DHS and FBI (TA18-074A)
+  - CERT Polska (December 2025 Poland energy incident, infrastructure overlap)
+link_confidence: high
+stated_confidence: >-
+  US DOJ (March 2022): the three defendants 'were members of a Center 16
+  operational unit known among cybersecurity researchers as “Dragonfly,” “Berzerk
+  Bear,” “Energetic Bear,” and “Crouching Yeti.”' DHS and FBI (TA18-074A, March
+  2018): 'DHS and FBI characterize this activity as a multi-stage intrusion
+  campaign by Russian government cyber actors'. They cite Symantec's Dragonfly
+  report as providing 'additional information about this ongoing campaign'.
+  Symantec (2017) made no attribution: 'While Symantec cannot definitively
+  determine Dragonfly’s origins, this is clearly an accomplished attack group.'
+  CERT Polska (January 2026, on the 29 December 2025 attacks), without confidence
+  wording: infrastructure analysis 'shows a high degree of overlap with the
+  infrastructure used by the activity cluster publicly known as “Static Tundra”
+  (Cisco), “Berserk Bear” (CrowdStrike), “Ghost Blizzard” (Microsoft), and
+  “Dragonfly” (Symantec)' and 'This is, however, the first publicly described
+  destructive activity attributed to this activity cluster.'
+state_nexus: >-
+  Russia: FSB Military Unit 71330, 'Center 16' (US DOJ 2022: defendants were
+  'officers in Military Unit 71330 or “Center 16” of the FSB').
+motivation: mixed
+summary: >-
+  Energy-sector intrusion group known to Symantec since at least 2011. DOJ
+  attributes it to FSB Center 16 and describes two phases. From 2012 to 2014
+  ('Dragonfly' or 'Havex') it compromised ICS/SCADA vendors and hid Havex in
+  legitimate software updates, then used it to backdoor victims and 'scan
+  victims’ networks for additional ICS/SCADA devices'. DOJ counts more than 17,000
+  devices infected. From 2014 to 2017 ('Dragonfly 2.0') it ran targeted
+  spearphishing and watering holes against energy firms and ICS engineers. DHS
+  and FBI found the actors in energy-generation networks opening ICS and SCADA
+  files, copying VNC profiles for ICS access, and viewing an HMI. CERT Polska ties
+  the infrastructure of the 29 December 2025 destructive attacks on Polish wind,
+  solar and CHP sites to this cluster. Motivation is mixed. DOJ describes
+  persistent access that 'would have provided the Russian government the ability
+  to, among other things, disrupt and damage such computer systems at a future
+  time of its choosing'. CERT Polska says the 2025 attacks 'had a purely
+  destructive objective'. Symantec calls it a cyber espionage group (see notes).
+ics_kill_chain_stage: unknown
+stage_basis: "None of the reporters cited uses the ICS Cyber Kill Chain for this group."
+platforms: []
+malware: [ICS-MAL-0002]
+incidents: [ICS-INC-0008]
+tradecraft:
+  - "Supply chain / malware (DOJ): 'compromising the computer networks of ICS/SCADA system manufacturers and software providers and then hiding malware – known publicly as “Havex” – inside legitimate software updates for such systems'."
+  - "Malware (DOJ): Havex was used to 'create backdoors into infected systems and scan victims’ networks for additional ICS/SCADA devices'."
+  - "Hands-on operator (DOJ): spearphishing 'targeting more than 3,300 users at more than 500 U.S. and international companies and entities', and watering holes on 'websites commonly visited by ICS/SCADA system and other energy sector engineers'."
+  - "Hands-on operator (TA18-074A): accessed corporate workstations and servers holding control-system output and ICS/SCADA files (e.g., 'SCADA WIRING DIAGRAM.pdf'); 'copying Virtual Network Connection (VNC) profiles that contained configuration information on accessing ICS systems'; DHS reconstructed 'screenshot fragments of a Human Machine Interface (HMI) that the threat actors accessed'."
+  - "Hands-on operator (TA18-074A): used staging targets (trusted third parties) as pivots and watering holes; credential harvesting via documents fetching a 'file://' resource over SMB; created local admin accounts; cleared System, Security, Terminal Services, Remote Services and Audit event logs."
+  - "Malware / operator (Symantec): backdoors Goodor, Karagany.B, Dorshel and Heriplor. Heriplor 'appears to be exclusively used by Dragonfly'. Screen captures named with machine descriptions containing 'cntrl', which Symantec reads as 'possibly indicating that these machines have access to operational systems'."
+sectors: [energy, nuclear, oil and gas, electric utilities and power transmission, water, aviation, critical manufacturing, commercial facilities]
+regions: [United States, Europe, Turkey, Switzerland, "more than 135 other countries (DOJ)"]
+first_seen: "2011 (Symantec: 'in operation since at least 2011')"
+last_seen: "2025-12 (CERT Polska, by infrastructure overlap); the charged conduct is 'between 2012 and 2017' (DOJ)"
+references:
+  - title: US DOJ - Four Russian Government Employees Charged in Two Historical Hacking Campaigns Targeting Critical Infrastructure Worldwide (24 March 2022)
+    url: https://www.justice.gov/archives/opa/pr/four-russian-government-employees-charged-two-historical-hacking-campaigns-targeting-critical
+    accessed: "2026-11-08"
+    kind: government
+    quote: "The FSB hackers, Pavel Aleksandrovich Akulov (Павел Александрович Акулов), 36, Mikhail Mikhailovich Gavrilov (Михаил Михайлович Гаврилов), 42, and Marat Valeryevich Tyukov (Марат Валерьевич Тюков), 39, were members of a Center 16 operational unit known among cybersecurity researchers as “Dragonfly,” “Berzerk Bear,” “Energetic Bear,” and “Crouching Yeti.”"
+    read: direct
+  - title: DHS and FBI - TA18-074A Russian Government Cyber Activity Targeting Energy and Other Critical Infrastructure Sectors (15 March 2018)
+    url: https://www.cisa.gov/news-events/alerts/2018/03/15/russian-government-cyber-activity-targeting-energy-and-other-critical-infrastructure-sectors
+    accessed: "2026-11-08"
+    kind: government
+    quote: "DHS observed the threat actors copying Virtual Network Connection (VNC) profiles that contained configuration information on accessing ICS systems."
+    read: direct
+  - title: CERT Polska - Energy Sector Incident Report, 29 December 2025 (30 January 2026)
+    url: https://cert.pl/en/posts/2026/01/incident-report-energy-sector-2025/
+    accessed: "2026-11-08"
+    kind: government
+    quote: "Analysis of the infrastructure used in the attack - including compromised VPS servers, routers, traffic patterns, and characteristics of anonymizing infrastructure - shows a high degree of overlap with the infrastructure used by the activity cluster publicly known as “Static Tundra” (Cisco), “Berserk Bear” (CrowdStrike), “Ghost Blizzard” (Microsoft), and “Dragonfly” (Symantec)."
+    read: direct
+  - title: Symantec - Dragonfly, Western energy sector targeted by sophisticated attack group (2017)
+    url: https://www.security.com/threat-intelligence/dragonfly-energy-sector-cyber-attacks
+    accessed: "2026-11-08"
+    kind: vendor
+    quote: "The Dragonfly group appears to be interested in both learning how energy facilities operate and also gaining access to operational systems themselves, to the extent that the group now potentially has the ability to sabotage or gain control of these systems should it decide to do so."
+    read: direct
+notes: >-
+  The reporters frame motivation differently. Symantec's page summary calls
+  Dragonfly a 'cyber espionage group' and emphasises sabotage potential. DOJ
+  describes persistent access for future disruption; the record follows DOJ. Symantec
+  declined to attribute and flagged possible false flags ('Some code strings in
+  the malware were in Russian. However, some were also in French'). The Russian
+  attribution here rests on DOJ and DHS/FBI. TA18-074A does not use the name
+  Dragonfly for the actors ('Russian government cyber actors'); it points to
+  Symantec's report for the same campaign. The December 2025 Poland attacks
+  (ICS-INC-0008) have three divergent attributions: CERT Polska says this cluster,
+  by infrastructure overlap and without confidence wording; ESET says Sandworm,
+  medium confidence, wiper only (ICS-TA-0001); Dragos says ELECTRUM (ICS-TA-0002).
+  None is preferred here. CERT Polska's full PDF report was not read; only its
+  summary post. Havex's OPC DA scanning is the malware
+  record's concern (ICS-MAL-0002). No platform id is listed: the sources name no
+  specific controller family.

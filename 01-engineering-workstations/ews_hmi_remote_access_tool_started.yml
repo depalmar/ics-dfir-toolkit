@@ -1,0 +1,54 @@
+title: Remote Access Tool Started on an EWS or HMI
+id: a402dd33-dc74-45fd-b22a-a8977ed97830
+status: experimental
+description: |
+  A remote-access product (AnyDesk, ScreenConnect, UltraVNC, or a TeamViewer
+  incoming session) started on an engineering workstation or HMI. CISA
+  AA26-097A asks owners to disable "unused or needed services such as ...
+  Remote Desktop Protocol (RDP), Virtual Network Computing (VNC)", AA25-343A
+  reports hacktivists using VNC to reach HMIs, and the joint ASD/CISA logging
+  guidance lists "abnormal use of vendor or third-party accesses, maintenance
+  methods, or remote monitoring" among OT anomalies. Remote tools that bypass
+  the brokered remote-access path also bypass its logging. The image names,
+  PE metadata and the TeamViewer incoming-session pattern are taken from the
+  SigmaHQ remote-access-tool rules listed in references (Detection Rule
+  License 1.1); the selection is narrowed to tools those rules document.
+  Deploy to the EWS and HMI host group only.
+references:
+  - https://www.cisa.gov/news-events/cybersecurity-advisories/aa26-097a
+  - https://www.cisa.gov/news-events/cybersecurity-advisories/aa25-343a
+  - https://www.cyber.gov.au/sites/default/files/2024-08/best-practices-for-event-logging-and-threat-detection.pdf
+  - https://github.com/SigmaHQ/sigma/blob/master/rules/windows/process_creation/proc_creation_win_remote_access_tools_anydesk.yml
+  - https://github.com/SigmaHQ/sigma/blob/master/rules/windows/process_creation/proc_creation_win_remote_access_tools_screenconnect.yml
+  - https://github.com/SigmaHQ/sigma/blob/master/rules/windows/process_creation/proc_creation_win_ultravnc.yml
+  - https://github.com/SigmaHQ/sigma/blob/master/rules/windows/process_creation/proc_creation_win_remote_access_tools_teamviewer_incoming_connection.yml
+author: Raymond DePalma (ics-dfir-toolkit)
+date: 2026-11-08
+tags:
+  - attack.command-and-control
+  - attack.persistence
+  - attack.t1219
+  - attack.t0822
+  - ics-dfir.ews-hmi
+logsource:
+  category: process_creation
+  product: windows
+detection:
+  selection_anydesk:
+    - Image|endswith:
+        - '\AnyDesk.exe'
+        - '\AnyDeskMSI.exe'
+    - Company: 'AnyDesk Software GmbH'
+  selection_screenconnect:
+    - Company: 'ScreenConnect Software'
+    - Product: 'ScreenConnect'
+  selection_ultravnc:
+    - Company: 'UltraVNC'
+  selection_teamviewer_incoming:
+    Image|endswith: '\TeamViewer_Desktop.exe'
+    ParentImage|endswith: '\TeamViewer_Service.exe'
+  condition: 1 of selection_*
+falsepositives:
+  - A vendor-approved remote support tool installed on the HMI by design; record it in the asset inventory and allowlist the host, image path and account
+  - Engineering laptops that also carry remote support tools; scope the rule to fixed EWS and HMI hosts
+level: medium

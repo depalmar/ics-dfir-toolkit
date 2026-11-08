@@ -1,0 +1,415 @@
+# Prevention and hardening - ICS-0003 Siemens SIMATIC S7-1200 / S7-1500
+# Schema: ../schema/hardening.schema.json
+#
+# Vendor sources: the TIA Portal V20 information system (docs.tia.siemens.cloud,
+# "Functional description of S7-1500 CPUs"), Siemens Industry Online Support
+# FAQ 109925755, Siemens ProductCERT SSB-104599 and the Siemens "Cybersecurity
+# for Industry Operational Guidelines" v2.2.1. Government sources: AA26-231A
+# (NSA, CISA, FBI, DOE, EPA, August 2026), which is specific to S7 PLCs, and
+# AA26-097A. Baseline controls (artifacts/hardening/baseline.yml) apply in
+# addition. The TIA pages were read for S7-1500; Siemens states the access-level
+# procedure applies to S7-1200/1500 CPUs.
+
+platform_id: ICS-0003
+name: Siemens SIMATIC S7-1200 / S7-1500
+summary: >-
+  S7-1200/1500 CPUs have real protection features - access levels with
+  passwords, user management from firmware V3.1 (S7-1500) / V4.7 (S7-1200),
+  PUT/GET disabled by default, TLS-based PG/HMI communication from TIA Portal
+  V17 - but they protect nothing until configured. AA26-231A (August 2026)
+  reports actors using AI-generated snap7 scripts against exposed or weakly
+  protected S7 PLCs on TCP 102.
+
+controls:
+  - id: s7-block-102-perimeter
+    control: Block S7comm (TCP 102) at the perimeter and remove any S7 CPU from networks with inadequate security
+    category: exposure
+    priority: critical
+    why: >-
+      AA26-231A's actors find S7 PLCs with internet scanning services and reach
+      them over S7comm on TCP 102. Siemens ProductCERT's bulletin for the same
+      threat starts with disconnecting devices from inadequately secured networks.
+    how: >-
+      Audit firewall rules for exposed TCP 102 and block it at perimeter firewalls
+      entirely; DMZ between IT and OT; check for unauthorised routing between
+      corporate and industrial networks. Siemens points to its Operational
+      Guidelines (cell protection concept, SCALANCE / Security Integrated CPs) for
+      the architecture.
+    blunts:
+      - AA26-231A threat activity against Siemens S7 PLCs (2026)
+      - AA26-097A Iranian-affiliated exploitation of internet-facing PLCs (2025-2026)
+    frameworks:
+      - D3FEND D3-NI
+    confidence: high
+    sources:
+      - title: NSA, CISA, FBI, DOE, EPA AA26-231A - Defending Against an Active Threat to Siemens S7 Series PLCs
+        url: https://www.cisa.gov/news-events/cybersecurity-advisories/aa26-231a
+        accessed: "2026-11-08"
+        kind: government
+        quote: "Block TCP port 102 at perimeter firewalls entirely"
+        read: direct
+      - title: Siemens ProductCERT SSB-104599 - Increasing Cyber Threats to Industrial Control Systems (V1.3, August 2026)
+        url: https://cert-portal.siemens.com/productcert/html/ssb-104599.html
+        accessed: "2026-11-08"
+        kind: vendor
+        quote: "Disconnect or remove any devices from networks with inadequate security level (internet, unmaintained internal networks, inadequate physically secured environments etc.) or install additional protection measures (e.g. firewalls)."
+        read: direct
+
+  - id: s7-access-levels
+    control: Set a CPU access level other than Full access and give each level a strong password
+    category: controller-protection
+    priority: critical
+    why: >-
+      With "Full access (no protection)" anyone who can reach the CPU can read
+      and write it. AA26-231A asks for PLC password protection and protection
+      levels on every S7 controller; AA26-097A asks for programming protection in
+      TIA Portal for devices with software key switching.
+    how: >-
+      In TIA Portal open the CPU properties in the inspector window,
+      "Protection & Security > Access control", select the access level (Read
+      access, HMI access or No access (complete protection)), enter the
+      mandatory password in the first row "Full access (no protection)" and any
+      further passwords, then download the hardware configuration. From firmware
+      V3.1 (S7-1500) / V4.7 (S7-1200) access is governed by users, roles and
+      function rights instead (FAQ 109925755).
+    operational_impact: >-
+      "No access (complete protection)" also blocks HMI access and disables the
+      PUT/GET server function; check HMI and peer-CPU connections before choosing
+      a level. Passwords must be held where engineering can reach them in an
+      incident.
+    blunts:
+      - AA26-231A threat activity against Siemens S7 PLCs (2026)
+    frameworks:
+      - D3FEND D3-CH
+    confidence: high
+    sources:
+      - title: Siemens TIA Portal V20 information system - Configuring access levels (S7-1500)
+        url: https://docs.tia.siemens.cloud/r/en-us/v20/functional-description-of-s7-1500-cpus-s7-1500/setting-the-operating-behavior-s7-1500/protection-security-s7-1500/settings-for-access-levels-s7-1500/configuring-access-levels-s7-1500
+        accessed: "2026-11-08"
+        kind: vendor
+        quote: "Open the \"Protection & Security > Access control\" entry in the area navigation."
+        read: direct
+      - title: Siemens TIA Portal V20 information system - Configuring access levels (S7-1500)
+        url: https://docs.tia.siemens.cloud/r/en-us/v20/functional-description-of-s7-1500-cpus-s7-1500/setting-the-operating-behavior-s7-1500/protection-security-s7-1500/settings-for-access-levels-s7-1500/configuring-access-levels-s7-1500
+        accessed: "2026-11-08"
+        kind: vendor
+        quote: "You must enter a password in the first row \"Full access (no protection)\". This enables unrestricted access to the CPU for those who know the password, regardless of the selected protection level."
+        read: direct
+      - title: NSA, CISA, FBI, DOE, EPA AA26-231A - Defending Against an Active Threat to Siemens S7 Series PLCs
+        url: https://www.cisa.gov/news-events/cybersecurity-advisories/aa26-231a
+        accessed: "2026-11-08"
+        kind: government
+        quote: "Configure protection levels (such as write protection and read/write protection) on Siemens S7 Series devices"
+        read: direct
+      - title: CISA AA26-097A - Iranian-Affiliated Cyber Actors Exploit Programmable Logic Controllers Across US Critical Infrastructure
+        url: https://www.cisa.gov/news-events/cybersecurity-advisories/aa26-097a
+        accessed: "2026-11-08"
+        kind: government
+        quote: "For devices that allow software key switching, enable programming protection in PLC configuration software (S7 TIA Portal) to limit who can modify PLCs remotely."
+        read: direct
+
+  - id: s7-put-get-disabled
+    control: Leave "Permit access with PUT/GET communication from remote partners" disabled unless a documented connection needs it
+    category: services
+    priority: high
+    why: >-
+      PUT/GET lets other devices read and write CPU data without any connection
+      configured on the CPU. Siemens disables it by default and warns that enabling
+      it reduces protection; AA26-231A asks defenders to alert on unauthorised
+      PUT/GET writes.
+    how: >-
+      CPU properties, "Protection & Security > Connection mechanisms": keep the
+      option cleared. From S7-1500 firmware V3.1 / S7-1200 V4.7 enabling it also
+      requires activating the "Anonymous" user with HMI, read or full access
+      rights (FAQ 109925755) - another reason to leave it off.
+    operational_impact: >-
+      Siemens lists what stops working with it disabled: PUT/GET, FETCH/WRITE or
+      FTP access via communication modules, PUT/GET access from other S7 CPUs, and
+      HMI access realised via PUT/GET. Identify those dependencies first.
+    blunts:
+      - AA26-231A threat activity against Siemens S7 PLCs (2026)
+    confidence: high
+    sources:
+      - title: Siemens TIA Portal V20 information system - Connection mechanisms (S7-1500)
+        url: https://docs.tia.siemens.cloud/r/en-us/v20/functional-description-of-s7-1500-cpus-s7-1500/setting-the-operating-behavior-s7-1500/protection-security-s7-1500/settings-for-access-levels-s7-1500/configuring-access-levels-s7-1500
+        accessed: "2026-11-08"
+        kind: vendor
+        quote: "By default, the \"Permit access with PUT/GET communication from remote partners (...)\" option is disabled."
+        read: direct
+      - title: Siemens Industry Online Support FAQ 109925755 - How do you activate PUT/GET access on an S7-1500 CPU from FW V3.1 or S7-1200 CPU from FW V4.7?
+        url: https://support.industry.siemens.com/cs/document/109925755/how-do-you-activate-put-get-access-on-an-s7-1500-cpu-from-fw-v3-1-or-s7-1200-cpu-from-fw-v4-7-?dti=0&lc=en-WW
+        accessed: "2026-11-08"
+        kind: vendor
+        quote: "Enabling PUT/GET communication reduces protection against unauthorized access from outside via the network to functions and data of this device."
+        read: direct
+      - title: NSA, CISA, FBI, DOE, EPA AA26-231A - Defending Against an Active Threat to Siemens S7 Series PLCs
+        url: https://www.cisa.gov/news-events/cybersecurity-advisories/aa26-231a
+        accessed: "2026-11-08"
+        kind: government
+        quote: "Alert on unauthorized PUT/GET operations, especially write commands to data blocks or configuration areas of memory"
+        read: direct
+
+  - id: s7-secure-pg-hmi-communication
+    control: Use TLS-based secure PG/PC and HMI communication with per-CPU certificates, and protect confidential PLC configuration data with a password
+    category: controller-protection
+    priority: high
+    why: >-
+      From TIA Portal V17, S7-1200/1500 CPUs can authenticate and encrypt
+      engineering and HMI sessions with TLS and individual certificates, closing
+      the plaintext path that legacy PG/HMI communication used.
+    how: >-
+      CPU properties, "Protection & Security > Connection mechanisms": enable
+      secure PG/PC and HMI communication and select the communication
+      certificates there. Siemens notes a compatibility mode that accepts legacy
+      and TLS-based communication at the same time; use it only during migration.
+      Set the optional password protecting confidential PLC configuration data.
+    operational_impact: Requires TIA Portal V17+ and compatible CPU firmware and HMIs; certificates must be managed and renewed.
+    confidence: high
+    sources:
+      - title: Siemens - Cybersecurity for Industry Operational Guidelines v2.2.1 (Secure PG/HMI communication with TIA Portal V17)
+        url: https://cert-portal.siemens.com/operational-guidelines-industrial-security.pdf
+        accessed: "2026-11-08"
+        kind: vendor
+        quote: "Supports unique identification of each PLC based on individual certificates (e.g. created via TIA Portal)"
+        read: direct
+      - title: Siemens - Cybersecurity for Industry Operational Guidelines v2.2.1 (Secure PG/HMI communication with TIA Portal V17)
+        url: https://cert-portal.siemens.com/operational-guidelines-industrial-security.pdf
+        accessed: "2026-11-08"
+        kind: vendor
+        quote: "Allows protection of sensitive configuration data in TIA Portal and PLCs via user-defined passwords (optional)"
+        read: direct
+      - title: Siemens TIA Portal V20 information system - Protection & Security settings (S7-1500)
+        url: https://docs.tia.siemens.cloud/r/en-us/v20/functional-description-of-s7-1500-cpus-s7-1500/setting-the-operating-behavior-s7-1500/protection-security-s7-1500/settings-for-access-levels-s7-1500/configuring-access-levels-s7-1500
+        accessed: "2026-11-08"
+        kind: vendor
+        quote: "Enable access via a PUT/GET communication or via secure PG/PC communication and HMI communication. For secure PG/PC communication and HMI communication you can select the communication certificates here."
+        read: direct
+
+  - id: s7-account-lockout
+    control: Enable runtime lockout of user accounts after repeated failed logons (S7-1500 firmware V4.0 and later)
+    category: identity
+    priority: medium
+    why: >-
+      AA26-231A's actors target devices with default or minimally configured
+      authentication; lockout limits password guessing against the CPU's own user
+      accounts.
+    how: >-
+      TIA Portal CPU protection settings, "Lockout of user account at runtime":
+      enable and set the number of failed attempts. Siemens documents it as of
+      firmware V4.0 for S7-1500; S7-1200 availability was not confirmed in the
+      pages read.
+    confidence: high
+    sources:
+      - title: Siemens TIA Portal V20 information system - Protection & Security settings (S7-1500)
+        url: https://docs.tia.siemens.cloud/r/en-us/v20/functional-description-of-s7-1500-cpus-s7-1500/setting-the-operating-behavior-s7-1500/protection-security-s7-1500/settings-for-access-levels-s7-1500/configuring-access-levels-s7-1500
+        accessed: "2026-11-08"
+        kind: vendor
+        quote: "Enable and configure the locking of user accounts that have made a certain number of failed logon attempts. As of firmware V4.0 (S7-1500)."
+        read: direct
+
+  - id: s7-restrict-engineering-access
+    control: Allow TIA Portal / STEP 7 connections only from authorised engineering workstations, and allowlist applications on those workstations
+    category: controller-protection
+    priority: high
+    why: >-
+      AA26-231A's tools mimic legitimate monitoring software and use snap7 from
+      Python; limiting which hosts may talk S7comm to the CPU, and what runs on
+      engineering workstations, removes both footholds.
+    how: >-
+      AA26-231A: MAC/IP allowlisting of engineering workstations on the PLC side,
+      application allowlisting on all engineering workstations, MFA for all remote
+      access to OT. On the network side Siemens describes port security with MAC
+      or IP access lists on SCALANCE switches. No TIA menu path for a CPU-side
+      allowlist was found in the pages read.
+    blunts:
+      - AA26-231A threat activity against Siemens S7 PLCs (2026)
+    frameworks:
+      - D3FEND D3-NAM
+    confidence: high
+    sources:
+      - title: NSA, CISA, FBI, DOE, EPA AA26-231A - Defending Against an Active Threat to Siemens S7 Series PLCs
+        url: https://www.cisa.gov/news-events/cybersecurity-advisories/aa26-231a
+        accessed: "2026-11-08"
+        kind: government
+        quote: "Restrict TIA Portal/STEP 7 access to authorized engineering workstations only by MAC/IP allowlisting on PLCs"
+        read: direct
+      - title: Siemens - Cybersecurity for Industry Operational Guidelines v2.2.1
+        url: https://cert-portal.siemens.com/operational-guidelines-industrial-security.pdf
+        accessed: "2026-11-08"
+        kind: vendor
+        quote: "Port Security with Switch Ports: MAC or IP access lists restrict access"
+        read: direct
+
+  - id: s7-disable-unused-services
+    control: Disable the CPU web server, unused protocols and default SNMP communities, and limit simultaneous S7comm sessions
+    category: services
+    priority: high
+    why: >-
+      AA26-231A's S7-specific hardening list; Siemens' own guidelines say only
+      required services should run and that default passwords must be changed at
+      commissioning.
+    how: >-
+      Disable the web server if not operationally required; disable Modbus TCP or
+      PROFINET where not required; remove or change default SNMP community
+      strings; configure connection resources to limit simultaneous S7comm
+      sessions. Menu paths for each are in the S7-1200/1500 manuals Siemens
+      references (documents 109977302, 109997791, 59191792), not read here.
+    operational_impact: Disabling PROFINET or SNMP can break I/O or network management; confirm what each CPU actually uses.
+    blunts:
+      - AA26-231A threat activity against Siemens S7 PLCs (2026)
+    frameworks:
+      - D3FEND D3-ACH
+    confidence: high
+    sources:
+      - title: NSA, CISA, FBI, DOE, EPA AA26-231A - Defending Against an Active Threat to Siemens S7 Series PLCs
+        url: https://www.cisa.gov/news-events/cybersecurity-advisories/aa26-231a
+        accessed: "2026-11-08"
+        kind: government
+        quote: "Disable web servers on Siemens S7 Series devices if not operationally required"
+        read: direct
+      - title: NSA, CISA, FBI, DOE, EPA AA26-231A - Defending Against an Active Threat to Siemens S7 Series PLCs
+        url: https://www.cisa.gov/news-events/cybersecurity-advisories/aa26-231a
+        accessed: "2026-11-08"
+        kind: government
+        quote: "Configure connection resources to limit simultaneous S7comm sessions"
+        read: direct
+      - title: Siemens - Cybersecurity for Industry Operational Guidelines v2.2.1
+        url: https://cert-portal.siemens.com/operational-guidelines-industrial-security.pdf
+        accessed: "2026-11-08"
+        kind: vendor
+        quote: "If predefined default passwords are present, they must be changed during system commissioning!"
+        read: direct
+
+  - id: s7-know-how-and-restart-protection
+    control: Enable know-how protection and "complete restart protection" where available, and check for logic changes between online and offline copies
+    category: integrity
+    priority: medium
+    why: >-
+      AA26-231A expects read access to be used to understand the target before
+      write operations; know-how protection limits what an upload reveals and the
+      online/offline comparison shows changed blocks.
+    how: >-
+      Per AA26-231A: TIA Portal/STEP 7 "complete restart protection" and
+      "know-how protection" where available; evaluate ladder logic changes in
+      online/offline modes. Siemens lists know-how and copy protection among its
+      integrated controller protections. The TIA menu path was not read.
+    confidence: high
+    sources:
+      - title: NSA, CISA, FBI, DOE, EPA AA26-231A - Defending Against an Active Threat to Siemens S7 Series PLCs
+        url: https://www.cisa.gov/news-events/cybersecurity-advisories/aa26-231a
+        accessed: "2026-11-08"
+        kind: government
+        quote: "Enable TIA Portal/STEP 7 “complete restart protection” and “know-how protection” features where available"
+        read: direct
+      - title: NSA, CISA, FBI, DOE, EPA AA26-231A - Defending Against an Active Threat to Siemens S7 Series PLCs
+        url: https://www.cisa.gov/news-events/cybersecurity-advisories/aa26-231a
+        accessed: "2026-11-08"
+        kind: government
+        quote: "Evaluate for ladder logic changes in online/offline modes"
+        read: direct
+
+  - id: s7-inventory-and-firmware
+    control: Inventory every S7 CPU and engineering workstation, then update CPU firmware and TIA Portal / STEP 7 after testing
+    category: patching
+    priority: high
+    why: >-
+      AA26-231A's actors look for PLCs running outdated software and exploit known
+      critical and high-severity S7 vulnerabilities; Siemens ProductCERT's first
+      security measure is keeping devices updated.
+    how: >-
+      Inventory all S7 CPUs and verify firmware against the backup gold copy; map
+      every workstation with TIA Portal or STEP 7; update firmware and engineering
+      software, internet-facing and DMZ controllers first; consult Siemens
+      ProductCERT advisories for fixes and workarounds; test in a development
+      environment first. Siemens notes SIMATIC Automation Tool or SINEC NMS can
+      distribute firmware updates.
+    operational_impact: Firmware updates need a downtime window and a compatibility check with TIA Portal versions and third-party integrations.
+    blunts:
+      - AA26-231A threat activity against Siemens S7 PLCs (2026)
+    frameworks:
+      - D3FEND D3-HCI
+      - D3FEND D3-SU
+    confidence: high
+    sources:
+      - title: NSA, CISA, FBI, DOE, EPA AA26-231A - Defending Against an Active Threat to Siemens S7 Series PLCs
+        url: https://www.cisa.gov/news-events/cybersecurity-advisories/aa26-231a
+        accessed: "2026-11-08"
+        kind: government
+        quote: "Verify current firmware versions for all S7-200, S7-300, S7-400, S7-1200, and S7-1500 controllers against backup gold copy"
+        read: direct
+      - title: NSA, CISA, FBI, DOE, EPA AA26-231A - Defending Against an Active Threat to Siemens S7 Series PLCs
+        url: https://www.cisa.gov/news-events/cybersecurity-advisories/aa26-231a
+        accessed: "2026-11-08"
+        kind: government
+        quote: "Update Siemens S7 Series PLC firmware to the latest versions that address known vulnerabilities"
+        read: direct
+      - title: Siemens ProductCERT SSB-104599 - Increasing Cyber Threats to Industrial Control Systems (V1.3, August 2026)
+        url: https://cert-portal.siemens.com/productcert/html/ssb-104599.html
+        accessed: "2026-11-08"
+        kind: vendor
+        quote: "Keep the devices and systems updated to the latest version to limit the attack vectors that might exploit known vulnerabilities."
+        read: direct
+
+  - id: s7-monitor-s7comm
+    control: Monitor S7comm on TCP 102 for connections outside maintenance windows, unauthorised PUT/GET writes and snap7 use
+    category: logging-monitoring
+    priority: high
+    why: >-
+      AA26-231A gives specific detection opportunities for this campaign: S7comm
+      from non-engineering hosts, writes outside change windows, sequential
+      scanning of port 102, and snap7 libraries on engineering workstations.
+    how: >-
+      ICS-aware passive monitoring of TCP 102; log every TIA Portal / STEP 7
+      connection with source IP and time; baseline legitimate behaviour and alert
+      on deviation; on engineering workstations watch for Python processes
+      importing snap7.dll.
+    blunts:
+      - AA26-231A threat activity against Siemens S7 PLCs (2026)
+    frameworks:
+      - D3FEND D3-PM
+      - D3FEND D3-NTA
+    confidence: high
+    sources:
+      - title: NSA, CISA, FBI, DOE, EPA AA26-231A - Defending Against an Active Threat to Siemens S7 Series PLCs
+        url: https://www.cisa.gov/news-events/cybersecurity-advisories/aa26-231a
+        accessed: "2026-11-08"
+        kind: government
+        quote: "Monitor all S7comm traffic on TCP port 102 for connections outside maintenance windows"
+        read: direct
+      - title: NSA, CISA, FBI, DOE, EPA AA26-231A - Defending Against an Active Threat to Siemens S7 Series PLCs
+        url: https://www.cisa.gov/news-events/cybersecurity-advisories/aa26-231a
+        accessed: "2026-11-08"
+        kind: government
+        quote: "Log all TIA Portal/STEP 7 connections to PLCs with timestamps and source IPs"
+        read: direct
+
+  - id: s7-protect-project-files
+    control: Protect TIA Portal project files at rest and in transit and keep them away from online scanning services
+    category: exposure
+    priority: medium
+    why: >-
+      Siemens notes project files carry know-how; AA26-097A reports actors using
+      TIA Portal among other tools to exfiltrate project files from PLCs, which
+      shows the value attackers place on them.
+    how: >-
+      File-system access rights or an encrypted container at rest; encrypted
+      transfer (encrypted email or archives); need-to-know access; configure
+      e-mail gateways, endpoint protection, DLP and IDS so project files are not
+      uploaded automatically to external scanning engines.
+    confidence: high
+    sources:
+      - title: Siemens - Cybersecurity for Industry Operational Guidelines v2.2.1
+        url: https://cert-portal.siemens.com/operational-guidelines-industrial-security.pdf
+        accessed: "2026-11-08"
+        kind: vendor
+        quote: "Protect project files at rest (e.g.: access protection using file system rights; storage in an encrypted drive container)"
+        read: direct
+
+notes: >-
+  The TIA Portal information system page for "Configuring access levels" also
+  rendered the neighbouring topics (Connection mechanisms, protection settings
+  table) on the same URL; those quotes are attributed to that URL. The S7-1200
+  and S7-1500 system manuals and the "Useful information on the local user
+  administration and access control" chapter were not read, so per-firmware
+  differences beyond those quoted are not recorded. Siemens SIOS restricted
+  documents (PCS 7 / PCS neo security concepts) were not attempted.

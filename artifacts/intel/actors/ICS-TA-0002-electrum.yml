@@ -1,0 +1,88 @@
+id: ICS-TA-0002
+name: ELECTRUM
+aliases:
+  - name: Sandworm
+    by: >-
+      Dragos ('ELECTRUM shares technical overlaps with Sandworm', 2026; the threat
+      page says 'Dragos associates ELECTRUM with the SANDWORM Advanced Persistent
+      Threat (APT)' and 'Assessed links with SANDWORM APT, now appears
+      independent'). Its own record, ICS-TA-0001 in this toolkit.
+    equated: false
+reported_by: [Dragos]
+link_confidence: medium
+stated_confidence: >-
+  Dragos gives no confidence language for the cluster. It states: 'ELECTRUM is the
+  activity group responsible for the 2016 power outage event caused by the ICS
+  malware CRASHOVERRIDE' and (2026 Year in Review) 'In December 2025, ELECTRUM
+  targeted combined heat and power (CHP) facilities and renewable energy
+  management systems in Poland with deliberate attempts to impact operational
+  assets'.
+state_nexus: >-
+  None stated. Dragos 'does not corroborate nor conduct political attribution to
+  threat activity'.
+motivation: disruption
+summary: >-
+  Dragos's cluster for the control-system part of the December 2016 Kyiv power
+  outage (CRASHOVERRIDE, which ESET calls Industroyer). Dragos says ELECTRUM moved
+  from a development role supporting earlier Sandworm activity into 'both a
+  development and operational role in the CRASHOVERRIDE incident'. Dragos's 2026
+  Year in Review reports 2025 destructive operations: an attack on eight Ukrainian
+  ISPs in May, new wiper variants, and the December 2025 targeting of Polish CHP
+  plants and renewable-energy management systems. Dragos calls that 'an expansion
+  beyond transmission infrastructure to the decentralized grid'. Dragos says
+  KAMACITE enables ELECTRUM's operations.
+ics_kill_chain_stage: unknown
+stage_basis: >-
+  The Dragos pages read give no stage label for ELECTRUM. The ICS impact they list
+  is 'Executed control system portion of 2016 Ukraine power event, deployed
+  CRASHOVERRIDE designed to manipulate electric transmission equipment'.
+platforms: [ICS-0014]
+malware: [ICS-MAL-0004]
+incidents: [ICS-INC-0002, ICS-INC-0008]
+tradecraft:
+  - "Hands-on operator (Dragos): 'used Microsoft SQL database servers as the gateway that bridges both the business and industrial control networks, to successfully compromise industrial control systems where they used stolen credentials to execute code'."
+  - "Hands-on operator (Dragos): 'The group does not rely on exploits or zero-day vulnerabilities and instead leverages common exploitation behaviors and methodology.'"
+  - "Malware (Dragos): CRASHOVERRIDE, 'designed to manipulate electric transmission equipment'. Dragos's CHERNOVITE page adds: 'CRASHOVERRIDE and the associated Activity Group, ELECTRUM, exploited the OPC-DA protocol to manipulate breakers and switch gear.'"
+  - "Malware (Dragos capabilities list): 'Unique RAT & malicious wiper modules'. 2025: 'deployment of new wiper malware variants'."
+  - "Infrastructure (Dragos): 'Leveraged servers hosting many additional services such as TOR'."
+sectors: [electric]
+regions: [Ukraine, Europe, Poland]
+first_seen: "2016 (Dragos: 'Since 2016')"
+last_seen: "2025-12 (Dragos: Poland CHP and renewable energy management systems)"
+references:
+  - title: Dragos - ELECTRUM threat group
+    url: https://www.dragos.com/threat/electrum
+    accessed: "2026-11-08"
+    kind: vendor
+    quote: "ELECTRUM previously served as a development group facilitating some of the earlier SANDWORM activity, but it moved into both a development and operational role in the CRASHOVERRIDE incident."
+    read: direct
+  - title: Dragos - 2026 OT Cybersecurity Report / Year in Review press release (17 February 2026)
+    url: https://www.dragos.com/resources/press-release/dragos-2026-year-in-review-new-ot-threats-ransomware
+    accessed: "2026-11-08"
+    kind: vendor
+    quote: "In December 2025, ELECTRUM targeted combined heat and power (CHP) facilities and renewable energy management systems in Poland with deliberate attempts to impact operational assets — an expansion beyond transmission infrastructure to the decentralized grid. ELECTRUM shares technical overlaps with Sandworm."
+    read: direct
+  - title: Dragos - CHERNOVITE threat group (for the CRASHOVERRIDE / OPC-DA statement)
+    url: https://www.dragos.com/threat/chernovite
+    accessed: "2026-11-08"
+    kind: vendor
+    quote: "CRASHOVERRIDE and the associated Activity Group, ELECTRUM, exploited the OPC-DA protocol to manipulate breakers and switch gear."
+    read: direct
+  - title: ESET - DynoWiper update, technical analysis and attribution (30 January 2026)
+    url: https://www.welivesecurity.com/en/eset-research/dynowiper-update-technical-analysis-attribution/
+    accessed: "2026-11-08"
+    kind: vendor
+    quote: "We attribute DynoWiper to Sandworm with medium confidence, in contrast to the ZOV wiper, which we attribute to Sandworm with high confidence."
+    read: direct
+notes: >-
+  ELECTRUM is not Sandworm. Dragos states overlap only, and its own pages differ
+  in emphasis: the threat page says 'now appears independent', the 2026 press
+  release 'shares technical overlaps with Sandworm'. Both are kept verbatim. For
+  the same Poland incident (December 2025), ESET attributes the DynoWiper
+  component to Sandworm with medium confidence. That is a different reporter's
+  cluster and is recorded on ICS-TA-0001, not here. CERT Polska, a third reporter,
+  ties the attack infrastructure to the 'Static Tundra' / 'Berserk Bear' /
+  'Dragonfly' cluster (ICS-TA-0017). The three attributions diverge, and the
+  toolkit prefers none. Protocols are named in text only until protocol records exist. Dragos
+  publishes full TTPs only to WorldView customers, so tradecraft here is limited to
+  public pages.

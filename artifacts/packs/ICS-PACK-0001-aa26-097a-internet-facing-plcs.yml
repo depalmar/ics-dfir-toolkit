@@ -1,0 +1,194 @@
+# Detection pack ICS-PACK-0001
+# Schema: ../schema/pack.schema.json
+# Research notes: docs/research/2026-11-08/detections.md
+#
+# Detections of type "check" name an evaluation step for the triage engine,
+# which is not built yet (docs/ROADMAP.md); until then they are manual steps,
+# and the Sigma and Suricata files linked in "rules" are what can be deployed
+# today. A detection whose evidence was not collected is not evaluated - it
+# has not passed.
+
+id: ICS-PACK-0001
+name: AA26-097A - Iranian-affiliated exploitation of internet-facing PLCs
+platforms: [ICS-0001, ICS-0003, ICS-0005, ICS-0013]
+protocols: [ICS-PROTO-0004, ICS-PROTO-0001]
+actors: [ICS-TA-0019]
+incidents: [ICS-INC-0009]
+summary: >-
+  CISA AA26-097A (April 7, 2026; updated July 22, 2026) reports actors on
+  leased, third-party hosted infrastructure using the manufacturers' own
+  programming software to reach internet-facing Rockwell CompactLogix and
+  Micro850, Schneider Modicon M340 and Siemens S7-1200 PLCs on 44818, 2222,
+  102 and 502, and modems on 22 through Dropbear SSH; exfiltrating project
+  files; modifying or deleting logic including Rockwell Add-On Instructions;
+  overriding the instructions that kept one victim's process inside safe
+  limits; disabling shutdown and alarm logic; and manipulating HMI and SCADA
+  displays. Because the actors ran the vendor software on their own
+  machines, the owner's engineering workstations may show nothing: the
+  evidence is at the boundary, in the modem's logs, in the controller's own
+  log, and above all in a comparison of the running logic with an offline
+  known-good copy. CISA names no CVE. The addresses CISA published are
+  indicator set ICS-IOC-0001.
+confidence: high
+references:
+  - title: CISA AA26-097A - Iranian-Affiliated Cyber Actors Exploit Programmable Logic Controllers Across US Critical Infrastructure (updated July 22, 2026)
+    url: https://www.cisa.gov/news-events/cybersecurity-advisories/aa26-097a
+    accessed: "2026-11-08"
+  - title: Secure connectivity principles for Operational Technology (NCSC-UK with CISA, FBI, ASD's ACSC, Cyber Centre, BSI, NCSC-NL, NCSC-NZ)
+    url: https://www.ncsc.gov.uk/sites/default/files/documents/ncsc-secure-connectivity-for-operational-technology.pdf
+    accessed: "2026-11-08"
+  - title: Dropbear SSH server source, src/svr-authpasswd.c (mkj/dropbear, master)
+    url: https://raw.githubusercontent.com/mkj/dropbear/master/src/svr-authpasswd.c
+    accessed: "2026-11-08"
+
+detect:
+  - id: aa26097a-inbound-plc-port-session
+    title: Completed session to 44818, 2222, 102 or 502 from a host outside the approved client list
+    type: network
+    tier: possible
+    evidence_class: network
+    datasources: [ICS-DS-0002, ICS-DS-0001]
+    attack: [T0883, T0885]
+    rules: [02-ot-network/ot_protocol_inbound_from_unapproved_host.rules]
+    notes: >-
+      sids 9000001-9000006 cover the four ports AA26-097A names; 9000007-9000009
+      cover other common industrial ports in the same file. The session
+      completed (the PLC answered), which is more than exposure; whether it
+      changed anything needs the protocol logs for the flow and the
+      controller's log. A source from a foreign hosting provider, or listed in
+      ICS-IOC-0001 within its association window, raises the session to a
+      lead worth an incident ticket.
+
+  - id: aa26097a-inbound-ssh-to-modem
+    title: SSH session into a modem or gateway in the OT range from outside
+    type: network
+    tier: possible
+    evidence_class: network
+    datasources: [ICS-DS-0002, ICS-DS-0004]
+    attack: [T1219, T0822]
+    rules: [02-ot-network/remote_access_inbound_to_ot.rules]
+    notes: >-
+      sid 9000011. AA26-097A: the actors deployed Dropbear SSH on victim
+      modems to gain remote access through port 22. Requires HOME_NET to
+      include the modems' addresses and a sensor that sees the modem's WAN
+      side, which many cellular installations lack.
+
+  - id: aa26097a-dropbear-login-on-modem
+    title: Dropbear SSH login succeeded on a modem or gateway
+    type: log_regex
+    tier: possible
+    evidence_class: auth-logs
+    datasources: [ICS-DS-0012]
+    pattern: "(Password|Pubkey) auth succeeded for '|Auth succeeded with blank password for '"
+    attack: [T1219, T0822]
+    rules: [03-remote-access/gateway_dropbear_ssh_auth_succeeded.yml]
+    notes: >-
+      Strings from Dropbear's current source. Possible on its own; likely when
+      the source address is a hosting provider or SSH was meant to be off.
+      Modem logs are small and volatile; only forwarded copies are reliable.
+
+  - id: aa26097a-gateway-exposes-controllers
+    title: Gateway configuration exposes controller ports or enables SSH outside the approved baseline
+    type: check
+    check: gateway_config_diff
+    args:
+      compare: [port_forwards, remote_management, ssh_service, user_accounts]
+      controller_ports: [44818, 2222, 102, 502]
+    tier: possible
+    evidence_class: config
+    datasources: [ICS-DS-0012]
+    attack: [T0883, T1219]
+    notes: >-
+      Compare the configuration as found (exported read-only through the
+      vendor interface) with the approved one. ICS-0013 and the Unitronics
+      guidance it quotes treat port forwards to automation equipment as the
+      usual route to an internet-facing PLC. Do not reboot or reset the
+      gateway to collect.
+
+  - id: aa26097a-logix-download-or-mode-change
+    title: Rockwell Logix controller log records a project download, online edit or remote mode change
+    type: log_regex
+    tier: possible
+    evidence_class: audit-trail
+    datasources: [ICS-DS-0008]
+    pattern: 'Project download|Online edits modified controller program|Remote mode change'
+    attack: [T0843, T0889, T0858]
+    notes: >-
+      Entry descriptions as recorded in ICS-DS-0008 from Rockwell 1756-PM015.
+      Read from AssetCentre, syslog (ControlLogix 5590) or card files already
+      copied - not by going online. The Windows user and workstation names in
+      the entry are supplied by the client, so an actor's own copy of Logix
+      Designer can claim any name. CISA does not say these entries were found
+      at victims; this is where a download by configuration software should
+      appear. Possible until matched against change records (ICS-HUNT-0003).
+
+  - id: aa26097a-logix-log-tamper
+    title: Rockwell Logix controller log cleared or change-detection mask altered
+    type: log_regex
+    tier: likely
+    evidence_class: audit-trail
+    datasources: [ICS-DS-0008]
+    pattern: 'Log Collected Data Cleared|The Changes To Detect value has changed'
+    attack: [T0872]
+    notes: >-
+      Both entries are in 1756-PM015's event list (ICS-DS-0008). Altering
+      ChangesToDetect can stop later changes from moving the AuditValue.
+      Likely anti-forensics unless a change record explains it.
+
+  - id: aa26097a-m580-transfer-or-mode-change
+    title: Modicon M580 syslog records an operating mode change or an application backup or restore
+    type: log_regex
+    tier: possible
+    evidence_class: audit-trail
+    datasources: [ICS-DS-0013]
+    pattern: 'Operating mode change|Backup operation\.|Restore operation\.'
+    attack: [T0858, T0843, T0845]
+    notes: >-
+      Message text as recorded in ICS-DS-0013 from Schneider EIO0000001999;
+      that record warns some identifiers were split by hyphenation in the PDF,
+      so confirm against live messages. Only where Event Logging was enabled
+      (cleared by default). AA26-097A names Modicon M340 targets; the M340's
+      logging was not documented in the sources read.
+
+  - id: aa26097a-aoi-differs-from-known-good
+    title: An Add-On Instruction, function block or I/O configuration differs from the offline known-good project
+    type: logic_compare
+    tier: likely
+    evidence_class: control-logic
+    datasources: [ICS-DS-0007]
+    attack: [T0889, T1565]
+    notes: >-
+      AA26-097A's July 2026 update asks owners to "check the AOIs for any
+      anomalous modifications" and to compare the running program with known
+      good logic using vendor integrity tools. Uploading the running logic is
+      an online-vendor-tool action (operations approval; upload into a new,
+      empty project). Without a trusted offline copy this detection is not
+      evaluated, and the controller has not been shown to be unmodified.
+
+  - id: aa26097a-safety-or-alarm-logic-overridden
+    title: Running logic adds instructions that override safe-limit logic, or disables shutdown or alarm logic, with no change record
+    type: logic_compare
+    tier: confirmed
+    evidence_class: control-logic
+    datasources: [ICS-DS-0007]
+    attack: [T0889, T0878, T0837]
+    notes: >-
+      The effect CISA reports: a downloaded project that "retained ladder
+      logic for downstream function but added logic that overrode specific
+      instruction sets responsible for maintaining safe operating parameters",
+      and changes that "disabled critical shutdown and alarm logic". Agree the
+      safe state with operations before touching the controller; do not
+      restore a backup taken after the change.
+
+  - id: aa26097a-excursion-without-alarm
+    title: Historian shows a process excursion beyond an alarm limit with no matching alarm
+    type: check
+    check: historian_excursion_without_alarm
+    tier: possible
+    evidence_class: process-data
+    datasources: [ICS-DS-0011, ICS-DS-0010]
+    attack: [T0878, T0832]
+    notes: >-
+      ICS-HUNT-0006. The comparison is this toolkit's method; CISA reports the
+      effect. A historian stores what a manipulated controller reports, so
+      agreement between historian and HMI clears neither.

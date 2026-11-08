@@ -1,0 +1,391 @@
+# Prevention and hardening - ICS-0013 cellular and industrial remote-access gateways
+# Schema: ../schema/hardening.schema.json
+#
+# Sources: AA26-097A (modem-specific mitigations, July 2026 update); Sierra
+# Wireless mitigations as republished by CISA in ICSA-23-026-04 and
+# ICSA-19-122-03 (Sierra's own bulletins on source.sierrawireless.com need a
+# login - the SWI-PSA-2023-006 PDF returned a sign-in page); Moxa's "Security
+# Hardening Guide for the OnCell Series" (August 2025); Teltonika Networks'
+# "Security Guidelines" wiki page; Unitronics' and Rockwell's notes on edge
+# routers in front of PLCs. Digi was not researched in this pass. Baseline
+# controls (artifacts/hardening/baseline.yml) apply in addition.
+
+platform_id: ICS-0013
+name: Cellular and industrial remote-access gateways (Sierra Wireless AirLink, Moxa, Teltonika, Digi)
+summary: >-
+  The gateway is often the only thing between a field PLC and the internet.
+  AA26-097A (July 2026) observed actors targeting modems on port 22 and, in one
+  case, running Dropbear SSH on victim modems for remote access. Vendors agree
+  on the basics: management off the WAN, strong unique credentials, HTTPS and
+  SSH only, current firmware, logs reviewed, and no port forwards to
+  controllers.
+
+controls:
+  - id: gw-no-wan-management
+    control: Disable gateway management (web UI, SSH, Telnet) on the WAN/cellular side, or restrict it to a private APN, VPN or trusted IPs
+    category: exposure
+    priority: critical
+    why: >-
+      A management interface reachable from the cellular network is an
+      internet-facing login on the device that fronts the PLC. Sierra Wireless,
+      Teltonika and Moxa all say to keep it off the WAN.
+    how: >-
+      Sierra Wireless AirLink: disable ACEManager access on the WAN and manage
+      through AirLink Management System (ALMS) or another platform; if WAN access
+      must remain, restrict it with a private APN, VPN or the ALEOS Trusted IP
+      feature. Teltonika: do not expose WebUI or SSH to the internet; use a VPN or
+      allowlist. Moxa OnCell: restrict console login to trusted interfaces (for
+      example allow Ethernet, block cellular) and set an IP allowlist.
+    blunts:
+      - CVE-2022-46649
+      - CVE-2022-46650
+    confidence: high
+    sources:
+      - title: CISA ICSA-23-026-04 - Sierra Wireless AirLink Router with ALEOS Software (vendor mitigations)
+        url: https://www.cisa.gov/news-events/ics-advisories/icsa-23-026-04
+        accessed: "2026-11-08"
+        kind: government
+        quote: "Disable access to ACEManager on the wide area network (WAN) and use the Sierra Wireless Airlink Management System (ALMS) or an alternative device management platform for remote management of ALEOS devices."
+        read: direct
+      - title: CISA ICSA-23-026-04 - Sierra Wireless AirLink Router with ALEOS Software (vendor mitigations)
+        url: https://www.cisa.gov/news-events/ics-advisories/icsa-23-026-04
+        accessed: "2026-11-08"
+        kind: government
+        quote: "If the ACEManager must remain accessible via the WAN, restrict access using measures such as Private APN, VPN, or the ALEOS Trusted IP feature (restricts access to specific hosts)."
+        read: direct
+      - title: Teltonika Networks Wiki - Security Guidelines
+        url: https://wiki.teltonika-networks.com/view/Security_Guidelines
+        accessed: "2026-11-08"
+        kind: vendor
+        quote: "Do not expose WebUI or SSH to the public internet. Use a VPN or allowlist IPs if remote access is needed."
+        read: direct
+      - title: Moxa - The Security Hardening Guide for the OnCell Series v1.0 (August 2025)
+        url: https://www.moxa.com/getmedia/293109b1-6b71-4734-899d-a6c6fbee1e6b/moxa-the-security-hardening-guide-for-oncell-series-tech-note-v1.0.pdf
+        accessed: "2026-11-08"
+        kind: vendor
+        quote: "Restrict interface access: Limit access to trusted interfaces only (e.g., allow login only via Ethernet and block cellular-based console access)."
+        read: direct
+
+  - id: gw-no-port-forwards
+    control: Remove port forwards and WAN-to-LAN firewall rules that expose controllers through the gateway
+    category: exposure
+    priority: critical
+    why: >-
+      A port forward on the cellular router puts the PLC on the internet as
+      surely as a public address does. Unitronics and Rockwell both point at the
+      edge router in their own exposure guidance.
+    how: >-
+      Audit the gateway's port-forwarding and firewall configuration; there
+      should be no rule allowing WAN-initiated connections to automation
+      equipment. Put remote access through a VPN instead.
+    confidence: high
+    sources:
+      - title: Unitronics - Cyber Protection - Vision and Samba Series
+        url: https://www.unitronicsplc.com/cyber_security_vision-samba/
+        accessed: "2026-11-08"
+        kind: vendor
+        quote: "Verify that there are no Port Forwarding settings exposing automation equipment directly to the public network."
+        read: direct
+      - title: Rockwell Automation SD1771 - Reiterates Customer Guidance to Disconnect Devices from the Internet and Harden PLCs (March 2026)
+        url: https://www.rockwellautomation.com/en-us/trust-center/security-advisories/advisory.SD1771.html
+        accessed: "2026-11-08"
+        kind: vendor
+        quote: "For example, customers should ensure that unauthenticated open ports are closed on edge router appliances."
+        read: direct
+
+  - id: gw-isolated-cellular-architecture
+    control: Carry field traffic over an isolated cellular architecture - private APN, PNI-NPN, cellular SD-WAN, ZTNA or site-to-site VPN
+    category: remote-access
+    priority: high
+    why: >-
+      Added to AA26-097A in July 2026 specifically to stop unauthorised access to
+      OT through cellular modems.
+    how: >-
+      Use one of the architectures AA26-097A lists so the modem has no publicly
+      reachable address; Teltonika names IPsec, OpenVPN and WireGuard; Moxa
+      recommends certificate-based or strong pre-shared-key VPN authentication.
+    blunts:
+      - AA26-097A Iranian-affiliated exploitation of internet-facing PLCs (2025-2026), including Dropbear SSH on victim modems
+    confidence: high
+    sources:
+      - title: CISA AA26-097A - Iranian-Affiliated Cyber Actors Exploit Programmable Logic Controllers Across US Critical Infrastructure
+        url: https://www.cisa.gov/news-events/cybersecurity-advisories/aa26-097a
+        accessed: "2026-11-08"
+        kind: government
+        quote: "To mitigate unauthorized access to OT via cellular modems, organizations should consider implementing isolated architectures, such as private Access Point Name (APN), 5G Public Network Integrated Non-Public Network (PNI-NPN), cellular Software-Defined Wide Area Network (SD-WAN), Zero Trust Network Access (ZTNA), or a site-to-site virtual private network (VPN)."
+        read: direct
+      - title: Teltonika Networks Wiki - Security Guidelines
+        url: https://wiki.teltonika-networks.com/view/Security_Guidelines
+        accessed: "2026-11-08"
+        kind: vendor
+        quote: "Use IPsec, OpenVPN, WireGuard or other reliable VPN service for remote access. Never expose management interfaces directly."
+        read: direct
+      - title: Moxa - The Security Hardening Guide for the OnCell Series v1.0 (August 2025)
+        url: https://www.moxa.com/getmedia/293109b1-6b71-4734-899d-a6c6fbee1e6b/moxa-the-security-hardening-guide-for-oncell-series-tech-note-v1.0.pdf
+        accessed: "2026-11-08"
+        kind: vendor
+        quote: "Certificates provide better scalability and security for enterprise deployments."
+        read: direct
+
+  - id: gw-strong-unique-credentials
+    control: Set strong, unique credentials on every gateway account, including console (Telnet/SSH) and application accounts, and rotate them
+    category: identity
+    priority: critical
+    why: >-
+      AA26-097A asks for modems secured with strong authentication. Sierra
+      Wireless calls out the console account used by Telnet/SSH and the ALEOS
+      Application Framework account as well as the web user.
+    how: >-
+      Sierra: strong password for the user account (NIST SP 800-63B memorized
+      secret guidance), the AAF user account if AAF is enabled, and the console
+      account if Telnet or SSH is enabled; ALEOS devices ship with unique random
+      credentials by default - keep them unique. Moxa: force password change on
+      first login, complexity checks, lockout after failed attempts. Teltonika:
+      at least 12 characters, key-based SSH where possible, rotate passwords and
+      SSH keys and revoke compromised ones immediately.
+    blunts:
+      - AA26-097A Iranian-affiliated exploitation of internet-facing PLCs (2025-2026), including Dropbear SSH on victim modems
+    confidence: high
+    sources:
+      - title: CISA ICSA-19-122-03 - Sierra Wireless AirLink ALEOS (Update B, vendor mitigations)
+        url: https://www.cisa.gov/news-events/ics-advisories/icsa-19-122-03
+        accessed: "2026-11-08"
+        kind: government
+        quote: "If Telnet or SSH is enabled, ensure a strong password is set for the console account."
+        read: direct
+      - title: CISA ICSA-23-026-04 - Sierra Wireless AirLink Router with ALEOS Software (vendor mitigations)
+        url: https://www.cisa.gov/news-events/ics-advisories/icsa-23-026-04
+        accessed: "2026-11-08"
+        kind: government
+        quote: "Always use strong, and ideally unique random credentials for devices. ALEOS devices ship with unique random credentials by default."
+        read: direct
+      - title: Moxa - The Security Hardening Guide for the OnCell Series v1.0 (August 2025)
+        url: https://www.moxa.com/getmedia/293109b1-6b71-4734-899d-a6c6fbee1e6b/moxa-the-security-hardening-guide-for-oncell-series-tech-note-v1.0.pdf
+        accessed: "2026-11-08"
+        kind: vendor
+        quote: "Force password change on first login: Require users to create a new password upon their first login to eliminate default or shared credentials."
+        read: direct
+      - title: Teltonika Networks Wiki - Security Guidelines
+        url: https://wiki.teltonika-networks.com/view/Security_Guidelines
+        accessed: "2026-11-08"
+        kind: vendor
+        quote: "Rotate credentials and SSH keys at regular intervals. Immediately revoke compromised credentials."
+        read: direct
+      - title: CISA AA26-097A - Iranian-Affiliated Cyber Actors Exploit Programmable Logic Controllers Across US Critical Infrastructure
+        url: https://www.cisa.gov/news-events/cybersecurity-advisories/aa26-097a
+        accessed: "2026-11-08"
+        kind: government
+        quote: "Ensure cellular modems, used for remote field connectivity and access, are secured with strong authentication and updated."
+        read: direct
+
+  - id: gw-https-ssh-only
+    control: Manage gateways over HTTPS and SSH only; disable HTTP and Telnet and use SNMPv3
+    category: services
+    priority: high
+    why: >-
+      Older ALEOS releases sent ACEManager authentication in plaintext XML
+      (CVE-2018-4069). All three vendors tell users to use encrypted management
+      protocols.
+    how: >-
+      Sierra: connect to ACEManager over HTTPS only, with a modern browser. Moxa
+      OnCell defaults: HTTPS and SSH enabled, HTTP and Telnet disabled; use HTTPS
+      for all management, TLS 1.2 or later, SNMPv3 only. Teltonika: HTTPS and SSH
+      only, avoid HTTP and Telnet.
+    blunts:
+      - CVE-2018-4069
+    confidence: high
+    sources:
+      - title: CISA ICSA-19-122-03 - Sierra Wireless AirLink ALEOS (Update B, vendor mitigations)
+        url: https://www.cisa.gov/news-events/ics-advisories/icsa-19-122-03
+        accessed: "2026-11-08"
+        kind: government
+        quote: "Use only HTTPS."
+        read: direct
+      - title: Moxa - The Security Hardening Guide for the OnCell Series v1.0 (August 2025)
+        url: https://www.moxa.com/getmedia/293109b1-6b71-4734-899d-a6c6fbee1e6b/moxa-the-security-hardening-guide-for-oncell-series-tech-note-v1.0.pdf
+        accessed: "2026-11-08"
+        kind: vendor
+        quote: "Use SNMPv3 only: Avoid using SNMPv1/v2c for network management, as they lack encryption and authentication."
+        read: direct
+      - title: Teltonika Networks Wiki - Security Guidelines
+        url: https://wiki.teltonika-networks.com/view/Security_Guidelines
+        accessed: "2026-11-08"
+        kind: vendor
+        quote: "Only use secure protocols ( HTTPS, SSH). Avoid the usage of HTTP, Telnet and other insecure protocols where available."
+        read: direct
+
+  - id: gw-disable-unused-services
+    control: Turn off unused gateway services and interfaces, including Wi-Fi, SMS management and vendor discovery services
+    category: services
+    priority: high
+    why: >-
+      Every listening service is another way onto the device that fronts the
+      PLC. Teltonika and Moxa both make this a top-level recommendation.
+    how: >-
+      Teltonika: disable unused interfaces such as Web CLI, Wi-Fi and SMS
+      utilities; keep SMS command features off unless required, with phone-number
+      allowlists and logging. Moxa: disable unused services; its OnCell default
+      service table lists HTTPS, SSH and the Moxa Service (UDP 40404) enabled by
+      default, so review the last one explicitly.
+    confidence: high
+    sources:
+      - title: Teltonika Networks Wiki - Security Guidelines
+        url: https://wiki.teltonika-networks.com/view/Security_Guidelines
+        accessed: "2026-11-08"
+        kind: vendor
+        quote: "Turn off unused interfaces like Web CLI, WiFi, SMS utilities, etc., to reduce the attack surface."
+        read: direct
+      - title: Moxa - The Security Hardening Guide for the OnCell Series v1.0 (August 2025)
+        url: https://www.moxa.com/getmedia/293109b1-6b71-4734-899d-a6c6fbee1e6b/moxa-the-security-hardening-guide-for-oncell-series-tech-note-v1.0.pdf
+        accessed: "2026-11-08"
+        kind: vendor
+        quote: "Disable unused services: Turn off any services or features that are not in use to minimize potential attack vectors."
+        read: direct
+
+  - id: gw-firmware-current
+    control: Keep gateway firmware current, prioritising releases that fix remotely exploitable flaws
+    category: patching
+    priority: critical
+    why: >-
+      AA26-097A asks for modems to be updated. Sierra Wireless's fixes for the
+      ALEOS command-injection and credential-exposure flaws were firmware
+      upgrades, and Sierra states ALEOS 4.17 (October 2023) remediated six further
+      vulnerabilities.
+    how: >-
+      Track vendor advisories and upgrade: for example ALEOS 4.16.0 or later on
+      MP70, RV50, RV50x, RV55, LX40, LX60 and 4.9.8 or later on ES450/GX450
+      (ICSA-23-026-04), and ALEOS 4.17 for the 2023 set (SWI-PSA-2023-006 landing
+      page). Back up the configuration and verify firmware integrity before
+      updating (Moxa).
+    operational_impact: A gateway update interrupts the site's remote connectivity; schedule it and keep a local fallback.
+    blunts:
+      - CVE-2022-46649
+      - CVE-2022-46650
+      - CVE-2018-4061
+      - CVE-2018-4063
+    confidence: high
+    sources:
+      - title: CISA ICSA-23-026-04 - Sierra Wireless AirLink Router with ALEOS Software (vendor mitigations)
+        url: https://www.cisa.gov/news-events/ics-advisories/icsa-23-026-04
+        accessed: "2026-11-08"
+        kind: government
+        quote: "Upgrade MP70, RV50, RV50x, RV55, LX 40, LX60 to ALEOS version 4.16.0 or later"
+        read: direct
+      - title: CISA ICSA-19-122-03 - Sierra Wireless AirLink ALEOS (Update B, vendor mitigations)
+        url: https://www.cisa.gov/news-events/ics-advisories/icsa-19-122-03
+        accessed: "2026-11-08"
+        kind: government
+        quote: "Sierra Wireless recommends users upgrade to the latest version of ALEOS for the products and versions below."
+        read: direct
+      - title: Sierra Wireless SWI-PSA-2023-006 - ALEOS Security Advisory (landing page; PDF requires sign-in)
+        url: https://source.sierrawireless.com/resources/security-bulletins/sierra-wireless-technical-bulletin---swi-psa-2023-006
+        accessed: "2026-11-08"
+        kind: vendor
+        quote: "The vulnerabilities are present in ALEOS 4.16 and earlier versions and have been remediated in ALEOS 4.17 released in October 2023."
+        read: direct
+      - title: CISA AA26-097A - Iranian-Affiliated Cyber Actors Exploit Programmable Logic Controllers Across US Critical Infrastructure
+        url: https://www.cisa.gov/news-events/cybersecurity-advisories/aa26-097a
+        accessed: "2026-11-08"
+        kind: government
+        quote: "Ensure cellular modems, used for remote field connectivity and access, are secured with strong authentication and updated."
+        read: direct
+
+  - id: gw-logging
+    control: Enable gateway, firewall and VPN session logging, forward it off the device and review it
+    category: logging-monitoring
+    priority: high
+    why: >-
+      AA26-097A asks owners to enable and review modem logs to detect intrusion
+      and speed up response; the gateway log may be the only record of who
+      reached a field PLC.
+    how: >-
+      Moxa: enable system logs, firewall event logging and VPN tunnel
+      establishment/failure logging; review regularly. Teltonika: monitor login
+      attempts and access logs, with Event Juggler alerts for critical changes.
+      Forward to a collector the gateway cannot alter.
+    blunts:
+      - AA26-097A Iranian-affiliated exploitation of internet-facing PLCs (2025-2026), including Dropbear SSH on victim modems
+    confidence: high
+    sources:
+      - title: CISA AA26-097A - Iranian-Affiliated Cyber Actors Exploit Programmable Logic Controllers Across US Critical Infrastructure
+        url: https://www.cisa.gov/news-events/cybersecurity-advisories/aa26-097a
+        accessed: "2026-11-08"
+        kind: government
+        quote: "Enable logs for connected modems and regularly review for suspicious activity to detect intrusions and improve incident response speed."
+        read: direct
+      - title: Moxa - The Security Hardening Guide for the OnCell Series v1.0 (August 2025)
+        url: https://www.moxa.com/getmedia/293109b1-6b71-4734-899d-a6c6fbee1e6b/moxa-the-security-hardening-guide-for-oncell-series-tech-note-v1.0.pdf
+        accessed: "2026-11-08"
+        kind: vendor
+        quote: "Monitor VPN session logs for abnormal usage: Log tunnel establishment and failure events to look out for anomalies and help analysis."
+        read: direct
+      - title: Teltonika Networks Wiki - Security Guidelines
+        url: https://wiki.teltonika-networks.com/view/Security_Guidelines
+        accessed: "2026-11-08"
+        kind: vendor
+        quote: "Regularly monitor login attempts and access logs. Enable Event Juggler alerts for critical changes."
+        read: direct
+
+  - id: gw-firewall-in-front-of-ot
+    control: Filter traffic between the gateway and the OT network with a stateful firewall and IP/MAC/port allowlists
+    category: segmentation
+    priority: high
+    why: >-
+      Some gateways (Moxa names its OnCell 3120-LTE-1) have no stateful firewall
+      of their own; others ship with filtering that must be configured.
+    how: >-
+      Moxa: place a dedicated firewall between the OnCell and the internal network
+      when the model lacks a stateful firewall; apply IP, MAC and port filtering
+      rules. Teltonika: restrict remote services by source IP with firewall rules
+      and audit them; do not rely on non-standard ports as the primary defence.
+    confidence: high
+    sources:
+      - title: Moxa - The Security Hardening Guide for the OnCell Series v1.0 (August 2025)
+        url: https://www.moxa.com/getmedia/293109b1-6b71-4734-899d-a6c6fbee1e6b/moxa-the-security-hardening-guide-for-oncell-series-tech-note-v1.0.pdf
+        accessed: "2026-11-08"
+        kind: vendor
+        quote: "In order to enhance the security of any underlying applications, a dedicated firewall should be placed between the OnCell Series and the internal network if the OnCell device does not support built-in stateful firewall functionality."
+        read: direct
+      - title: Teltonika Networks Wiki - Security Guidelines
+        url: https://wiki.teltonika-networks.com/view/Security_Guidelines
+        accessed: "2026-11-08"
+        kind: vendor
+        quote: "Avoid using non-standard ports as a primary defense. Use in conjunction with firewall rules."
+        read: direct
+
+  - id: gw-verified-firmware-and-backups
+    control: Install only signed, hash-verified firmware and packages, and keep verified configuration backups
+    category: supply-chain
+    priority: medium
+    why: >-
+      A tampered firmware image or restored configuration would carry the
+      attacker into the rebuilt gateway; both vendors provide integrity checks.
+    how: >-
+      Teltonika: install packages only from trusted sources, apply firmware with
+      verified SHA-256 hashes (not MD5/SHA-1), encrypt backups and validate them by
+      hash before restoring. Moxa: verify firmware integrity with checksums before
+      updating and back up configurations regularly.
+    confidence: high
+    sources:
+      - title: Teltonika Networks Wiki - Security Guidelines
+        url: https://wiki.teltonika-networks.com/view/Security_Guidelines
+        accessed: "2026-11-08"
+        kind: vendor
+        quote: "Encrypt backups. Use SHA-256/SHA-512 hashes to validate backups before restoring them. Store securely."
+        read: direct
+      - title: Moxa - The Security Hardening Guide for the OnCell Series v1.0 (August 2025)
+        url: https://www.moxa.com/getmedia/293109b1-6b71-4734-899d-a6c6fbee1e6b/moxa-the-security-hardening-guide-for-oncell-series-tech-note-v1.0.pdf
+        accessed: "2026-11-08"
+        kind: vendor
+        quote: "Pre-update backup and integrity check: Before updating firmware, back up the current configuration and verify update integrity of the firmware using checksums."
+        read: direct
+
+notes: >-
+  Sierra Wireless/Semtech security bulletins and ALEOS release notes on
+  source.sierrawireless.com require sign-in; Sierra's mitigation wording is taken
+  from CISA's republication of it. Digi (named in ICS-0013) was not researched in
+  this pass. Forescout's Sierra:21 research restates the vendor and CISA
+  mitigations and was not used as a source. The Teltonika quote (gw-https-ssh-only)
+  was re-read directly on 2026-11-08: the page wraps "HTTPS, SSH" in bold/italic
+  markup inside parentheses, and with the markup removed the rendered text
+  matches the quote.

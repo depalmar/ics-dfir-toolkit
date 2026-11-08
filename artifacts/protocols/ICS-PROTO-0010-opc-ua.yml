@@ -1,0 +1,79 @@
+# ICS protocol identity record
+# ICS-PROTO-0010 - OPC UA
+# Research notes: docs/research/2026-11-08/datasources.md
+# Identity only: operations (services and their effects) are deliberately omitted.
+
+id: ICS-PROTO-0010
+name: OPC UA
+slug: opc-ua
+aliases:
+  - OPC Unified Architecture
+  - OPC UA Binary (UA TCP)
+  - IEC 62541
+spec_owner: OPC Foundation
+transport:
+  - layer: tcp
+    port: 4840
+    notes: Default ICSNPP-OPCUA-Binary port; ICSNPP also registers 4843/tcp by default.
+  - layer: tcp
+    port: 4843
+authentication:
+  native: optional
+  detail: >-
+    Security is built into the protocol but selectable: OPC UA supports the
+    security modes "None", "Sign" and "SignAndEncrypt". Mode "None" can only
+    be used with security Profile None, which the specification says shall be
+    disabled by default. A server that still offers Profile None accepts
+    unsecured channels.
+  secure_variant: OPC UA security modes Sign and SignAndEncrypt (with a non-None security profile)
+encryption: >-
+  Only in SignAndEncrypt mode; Sign protects integrity without
+  confidentiality; None provides no security.
+parsers:
+  - tool: CISA ICSNPP-OPCUA-Binary (Zeek plugin)
+    url: https://github.com/cisagov/icsnpp-opcua-binary
+    logs:
+      - opcua_binary.log
+      - opcua_binary_opensecure_channel.log
+      - opcua_binary_create_session.log
+      - opcua_binary_activate_session.log
+      - opcua_binary_get_endpoints.log
+      - opcua_binary_read.log
+      - opcua_binary_write.log
+      - opcua_binary_status_code_detail.log
+    license: BSD-3-Clause
+platforms: [ICS-0015, ICS-0003, ICS-0005, ICS-0009]
+notes: >-
+  Platform links: Schneider's Modicon cybersecurity guide lists OPC UA logins
+  in M580 syslog events; the CODESYS security whitepaper lists an optional
+  OPC UA server on 4840/tcp; Siemens' S7-1500 diagnostics example shows an
+  OPC UA entry in the CPU's online diagnostics. ICSNPP targets the Binary
+  encoding only, not XML or JSON. When SignAndEncrypt is in use, a passive
+  parser can only log the unencrypted handshake (this project's inference).
+confidence: high
+sources:
+  - title: OPC 10000-2 OPC Unified Architecture Part 2 Security Model - 4.8 Security Mode settings
+    url: https://reference.opcfoundation.org/specs/OPC-10000-2/4.8
+    accessed: "2026-11-08"
+    kind: standard
+    quote: >-
+      OPC UA supports the selection of several security modes: "None", "Sign",
+      "SignAndEncrypt". Security mode "None" can only be used with security
+      Profile None. Security mode "none" is disabled for all other security
+      Profiles. Profile None shall be disabled by default.
+    read: direct
+  - title: ICSNPP-OPCUA_Binary README (cisagov/icsnpp-opcua-binary)
+    url: https://raw.githubusercontent.com/cisagov/icsnpp-opcua-binary/main/README.md
+    accessed: "2026-11-08"
+    kind: government
+    quote: >-
+      Port-based detection: TCP ports in `ICSNPP_OPCUA_Binary::ports` are
+      assigned directly to the analyzer. The defaults are `4840/tcp` and
+      `4843/tcp`.
+    read: direct
+  - title: CODESYS Security Whitepaper v10.0 - Network ports used by CODESYS
+    url: https://customers.codesys.com/fileadmin/data/customers/security/CODESYS-Security-Whitepaper.pdf
+    accessed: "2026-11-08"
+    kind: vendor
+    quote: "| 4840 | TCP/OPC UA Binary | CODESYS OPC UA Server | Yes |"
+    read: direct

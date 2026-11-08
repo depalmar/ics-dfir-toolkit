@@ -1,0 +1,97 @@
+# ICS visibility data source
+# ICS-DS-0012 - Cellular and industrial remote-access gateway logs
+# Research notes: docs/research/2026-11-08/datasources.md
+
+id: ICS-DS-0012
+name: Cellular and industrial remote-access gateway logs
+category: remote-access
+purdue_levels: ["1", "2", "3.5"]
+platforms: [ICS-0013]
+location: >-
+  On the cellular modem or industrial router itself (small local log), on a
+  remote syslog server if one was configured, and in the vendor's
+  fleet-management cloud where used. Carrier-side connection records are held
+  by the mobile network operator.
+enable: >-
+  CISA AA26-097A tells owners to enable logs for connected modems and review
+  them regularly. For Sierra Wireless AirLink devices, the ALEOS configuration
+  guide (distributor-hosted copy, read directly) places log
+  configuration under ACEmanager Admin > Log > Configure Logging, with
+  per-subsystem display filters. Forward logs off the device: the joint
+  ASD/CISA guidance notes network devices have limited local storage and lose
+  logs once it is exhausted. Moxa, Teltonika and Digi documentation was not
+  read in this round.
+retention: >-
+  Device-local logs are small and overwritten (the joint ASD/CISA guidance
+  on limited local storage); only forwarded copies are durable. Exact sizes
+  were not documented in sources read.
+collection:
+  - method: Export gateway logs already forwarded to a syslog server, SIEM or the vendor's management cloud
+    impact: passive
+    description: Copies existing records.
+    confidence: high
+  - method: Download the device's local log and running configuration through its vendor-documented web or management interface
+    impact: read-only
+    description: >-
+      Captures what is still in the device's buffer and the configuration as
+      found (including any added accounts, port forwards or services).
+    safety_note: >-
+      The gateway may be the only path to remote field sites; do not reboot,
+      factory-reset or change it during collection. A reboot clears volatile
+      logs. If the device is suspected compromised, the management session
+      itself is exposed to the attacker (this project's caution).
+    confidence: medium
+events:
+  - event: SSH service or logins on a modem that should not offer SSH (for example a Dropbear SSH server on port 22)
+    value: CISA AA26-097A reports actors deploying Dropbear SSH on victim modems to gain remote access through port 22.
+    attack: [T1219]
+    basis: government
+  - event: Administrative logins (web UI, SSH) and configuration changes on the gateway, with source address
+    value: Who managed the gateway and what they changed; logins from unexpected or foreign addresses are the first thing to look for (this project's inference from AA26-097A's emphasis on modem access).
+    basis: toolkit
+  - event: Port-forwarding or firewall rule changes exposing a PLC or HMI behind the gateway
+    value: An exposed controller behind a cellular router is how internet-facing PLCs typically arise; compare against the approved configuration (this project's inference).
+    basis: toolkit
+attack_data_components: [DC0002, DC0067, DC0082]
+gaps:
+  - Local logs are small and volatile; anything not forwarded before the incident may already be gone, and a reboot clears more.
+  - Vendor log names and fields were not verified in this round (for Sierra Wireless only the log configuration screen was read; Moxa, Teltonika and Digi not read), so no event names are given.
+  - Carrier-side records (which addresses reached the modem) are held by the mobile operator and need a formal request.
+  - The gateway logs its own management plane; traffic it merely routes to PLCs is usually not logged in detail.
+  - A gateway compromised at firmware level may suppress its own logging.
+confidence: medium
+sources:
+  - title: CISA AA26-097A - Iranian-Affiliated Cyber Actors Exploit Programmable Logic Controllers Across US Critical Infrastructure
+    url: https://www.cisa.gov/news-events/cybersecurity-advisories/aa26-097a
+    accessed: "2026-11-08"
+    kind: government
+    quote: >-
+      Enable logs for connected modems and regularly review for suspicious
+      activity to detect intrusions and improve incident response speed.
+    read: direct
+  - title: CISA AA26-097A, Dropbear on modems
+    url: https://www.cisa.gov/news-events/cybersecurity-advisories/aa26-097a
+    accessed: "2026-11-08"
+    kind: government
+    quote: >-
+      The actors deployed Dropbear SSH software on victim modems to enable them
+      to gain remote access through port `22`.
+    read: direct
+  - title: Best practices for event logging and threat detection (ASD's ACSC with CISA, FBI, NSA and partners, August 2024)
+    url: https://www.cyber.gov.au/sites/default/files/2024-08/best-practices-for-event-logging-and-threat-detection.pdf
+    accessed: "2026-11-08"
+    kind: government
+    quote: >-
+      Many commercially available network infrastructure devices have limited
+      local storage. Forwarding event logs to a centralised and secure storage
+      capability prevents the loss of logs once the local device’s storage is
+      exhausted.
+    read: direct
+  - title: ALEOS 4.14.0 Software Configuration User Guide for AirLink RV55 (Sierra Wireless; distributor-hosted copy)
+    url: https://www.communica.se/sierrawireless/41113782_ALEOS%204.14.0%20Software%20Configuration%20User%20Guide%20for%20AirLink%20RV55_r2.pdf
+    accessed: "2026-11-08"
+    kind: vendor
+    quote: >-
+      To configure what you want to include in the logs: 1. In ACEmanager, go to
+      Admin > Log.
+    read: direct

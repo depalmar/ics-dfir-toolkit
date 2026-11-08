@@ -1,0 +1,96 @@
+id: ICS-TA-0007
+name: Volt Typhoon
+aliases:
+  - name: Vanguard Panda
+    by: "CISA, NSA, FBI and partners, AA24-038A ('known as Volt Typhoon (also known as Vanguard Panda, BRONZE SILHOUETTE, Dev-0391, UNC3236, Voltzite, and Insidious Taurus)')"
+    equated: true
+  - name: BRONZE SILHOUETTE
+    by: AA24-038A, same statement
+    equated: true
+  - name: Dev-0391
+    by: AA24-038A, same statement
+    equated: true
+  - name: UNC3236
+    by: "AA24-038A, same statement. Dragos lists UNC3236 among SYLVANITE's overlaps, not Volt Typhoon's (see notes)."
+    equated: true
+  - name: Insidious Taurus
+    by: AA24-038A, same statement
+    equated: true
+  - name: VOLTZITE
+    by: >-
+      AA24-038A lists 'Voltzite' as another name, but Dragos, which owns the name,
+      states only 'operational overlaps' / 'technical overlaps'. Its own record,
+      ICS-TA-0006 in this toolkit.
+    equated: false
+reported_by:
+  - Microsoft Threat Intelligence
+  - CISA, NSA, FBI with DOE, EPA, TSA, ASD's ACSC, CCCS, NCSC-UK and NCSC-NZ (AA24-038A)
+link_confidence: high
+stated_confidence: >-
+  CISA, NSA and FBI (AA24-038A): 'the U.S. authoring agencies assess with high
+  confidence that Volt Typhoon actors are pre-positioning themselves on IT
+  networks to enable lateral movement to OT assets to disrupt functions.'
+  Microsoft (May 2023): 'Volt Typhoon, a state-sponsored actor based in China that
+  typically focuses on espionage and information gathering. Microsoft assesses
+  with moderate confidence that this Volt Typhoon campaign is pursuing development
+  of capabilities that could disrupt critical communications infrastructure
+  between the United States and Asia region during future crises.'
+state_nexus: >-
+  China. AA24-038A: 'PRC state-sponsored cyber group known as Volt Typhoon'.
+  Microsoft: 'a state-sponsored actor based in China'.
+motivation: prepositioning
+summary: >-
+  PRC state-sponsored group that US agencies, from their own incident response,
+  assess with high confidence is pre-positioning on IT networks of US
+  communications, energy, transportation and water organisations, including in
+  Guam, to reach and disrupt OT. They report footholds held 'for at least five
+  years' in some victims. In one case the actors 'moved laterally to a control
+  system and were positioned to move to a second control system'. In another
+  they enumerated stored PuTTY sessions on a vCenter server next to OT, with
+  profiles for water treatment plants, wells and an electrical substation.
+  Microsoft (2023) emphasises espionage, living-off-the-land and hands-on
+  activity, and traffic proxied through compromised SOHO devices.
+ics_kill_chain_stage: unknown
+stage_basis: >-
+  Neither reporter uses the ICS Cyber Kill Chain. AA24-038A reports access
+  positioned at OT ('positioned to move to a second control system') but gives no
+  stage label.
+platforms: []
+malware: []
+incidents: []
+cves: [CVE-2022-42475]
+tradecraft:
+  - "Hands-on operator (AA24-038A): living off the land and valid accounts; 'maintaining access and footholds within some victim IT environments for at least five years'."
+  - "Hands-on operator (AA24-038A): 'testing access to domain-joint OT assets using default OT vendor credentials', with access to OT systems 'whose credentials were compromised via NTDS.dit theft' (wording as printed)."
+  - "Hands-on operator (AA24-038A): on a vCenter server adjacent to OT, enumerated stored PuTTY sessions that included profiles 'for water treatment plants, water wells, an electrical substation, OT systems, and network security devices'."
+  - "Exploit (AA24-038A, one case): initial access 'likely' through CVE-2022-42475 in an unpatched FortiGate 300D; SSL-VPN crash logs showed a buffer overflow."
+  - "Hands-on operator (Microsoft): credential access through LSASS dumping and ntdsutil-created installation media; netsh portproxy; 'custom versions of open-source tools Impacket and Fast Reverse Proxy (FRP)'."
+  - "Infrastructure (Microsoft): 'proxies all its network traffic to its targets through compromised SOHO network edge devices (including routers)'."
+  - "Hands-on operator (AA24-038A): clears Windows Security logs (event ID 1102 'is a known Volt Typhoon tactic')."
+attack: [T1133, T1563, T1560, T1003.001]
+sectors: [communications, energy, transportation systems, water and wastewater systems, manufacturing, maritime, government]
+regions: [United States, Guam]
+first_seen: "2021 (Microsoft: 'Volt Typhoon has been active since mid-2021'); AA24-038A (February 2024) reports footholds 'for at least five years'"
+references:
+  - title: CISA, NSA, FBI et al. - AA24-038A PRC State-Sponsored Actors Compromise and Maintain Persistent Access to U.S. Critical Infrastructure (7 February 2024)
+    url: https://www.cisa.gov/news-events/cybersecurity-advisories/aa24-038a
+    accessed: "2026-11-08"
+    kind: government
+    quote: "Volt Typhoon’s choice of targets and pattern of behavior is not consistent with traditional cyber espionage or intelligence gathering operations, and the U.S. authoring agencies assess with high confidence that Volt Typhoon actors are pre-positioning themselves on IT networks to enable lateral movement to OT assets to disrupt functions."
+    read: direct
+  - title: Microsoft - Volt Typhoon targets US critical infrastructure with living-off-the-land techniques (24 May 2023)
+    url: https://www.microsoft.com/en-us/security/blog/2023/05/24/volt-typhoon-targets-us-critical-infrastructure-with-living-off-the-land-techniques/
+    accessed: "2026-11-08"
+    kind: vendor
+    quote: "Microsoft assesses with moderate confidence that this Volt Typhoon campaign is pursuing development of capabilities that could disrupt critical communications infrastructure between the United States and Asia region during future crises."
+    read: direct
+notes: >-
+  The reporters frame motivation differently. Microsoft (2023) calls Volt Typhoon
+  an actor that 'typically focuses on espionage and information gathering'.
+  AA24-038A (2024) says its behaviour 'is not consistent with traditional cyber
+  espionage' and assesses pre-positioning with high confidence. The record uses
+  the agencies' later assessment and keeps both quotes. VOLTZITE is a separate
+  Dragos record. UNC3236 is a further conflict: AA24-038A lists it as a Volt
+  Typhoon name, while Dragos lists UNC3236 among the overlaps of SYLVANITE
+  (ICS-TA-0014). ATT&CK ids are the advisory's own mapping where read (T1133,
+  T1563, T1560) plus T1003.001, which Microsoft links for LSASS dumping.

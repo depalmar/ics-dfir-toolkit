@@ -1,0 +1,251 @@
+# ICS visibility data source
+# ICS-DS-0001 - Passive ICS network capture parsed by Zeek with CISA ICSNPP parsers
+# Research notes: docs/research/2026-11-08/datasources.md
+
+id: ICS-DS-0001
+name: Passive ICS network capture parsed by Zeek with CISA ICSNPP parsers
+category: network-passive
+purdue_levels: ["1", "2", "3", "3.5"]
+platforms: [ALL]
+protocols:
+  - ICS-PROTO-0001
+  - ICS-PROTO-0002
+  - ICS-PROTO-0003
+  - ICS-PROTO-0004
+  - ICS-PROTO-0006
+  - ICS-PROTO-0007
+  - ICS-PROTO-0010
+  - ICS-PROTO-0014
+  - ICS-PROTO-0017
+  - ICS-PROTO-0018
+  - ICS-PROTO-0019
+location: >-
+  Produced by a Zeek sensor fed from a network TAP or switch SPAN/mirror port
+  on the OT segment to be watched; logs are written on the sensor and are
+  commonly shipped to a central store such as CISA Malcolm (which pairs Zeek
+  with Arkime and stores Zeek logs alongside full packet capture). The
+  ICS-specific logs exist only where the ICSNPP packages (or other Zeek
+  ICS parsers) are installed and loaded.
+enable: >-
+  Before an incident: place the TAP/SPAN where controller traffic is visible,
+  install the ICSNPP packages (for example "zkg install icsnpp-modbus" and
+  "zkg install icsnpp-s7comm") and load them in the site policy (ICSNPP-S7comm
+  says to add "@load icsnpp/s7comm" to site/local.zeek). Parsers are bound to
+  default ports (Modbus 502/tcp, S7 102/tcp, ENIP 44818 and 2222, OPC UA 4840
+  and 4843, FINS 9600, BACnet 47808/udp, HART-IP 5094, PROFINET IO CM
+  34964/udp); a site that runs a protocol on another port must add it (for
+  example "redef S7COMM::ports += { 12345/tcp };") and restart Zeek. IEC 104
+  logs need the separate cert-lv spicy-iec104 package, which Malcolm bundles.
+retention: >-
+  Not set by Zeek or ICSNPP; it is whatever the sensor's log rotation and the
+  owner's storage keep. The joint ASD/CISA logging guidance warns that default
+  retention periods are often insufficient and that intrusions can take up to
+  18 months to discover; keep at least the ICS logs (and, where storage
+  allows, PCAP for critical segments) long enough to cover that.
+collection:
+  - method: Export Zeek logs (and any retained PCAP) already written by the sensor or held in Malcolm
+    impact: passive
+    description: >-
+      Copies logs that already exist. Nothing touches the control network.
+      Record the sensor's clock source and time zone with the export.
+    confidence: high
+  - method: Re-run Zeek with the ICSNPP packages over stored PCAP (offline)
+    impact: passive
+    description: >-
+      If full packet capture was retained but the parsers were not loaded at
+      the time, the ICS logs can be produced afterwards from the PCAP, for
+      example with "zeek -Cr <pcap> icsnpp/s7comm". Works only on captures
+      that exist.
+    confidence: high
+  - method: Deploy a new TAP or SPAN feed during the incident
+    impact: passive
+    description: >-
+      Receives copies only, so it is passive for the controllers. Inserting an
+      inline TAP or reconfiguring a switch to mirror is a change to network
+      infrastructure that operations must schedule.
+    safety_note: >-
+      An inline TAP insertion breaks the link while it is cabled in; a SPAN
+      change is a switch configuration change. Agree the window with
+      operations. (This project's caution; not from the sources.)
+    confidence: medium
+events:
+  - event: modbus.log (Zeek base) - fields ts, uid, id, tid, unit, func, pdu_type, exception
+    value: >-
+      Which hosts sent which Modbus function (by name) to which unit
+      identifier, requests versus responses, and exceptions. The baseline for
+      "who talks Modbus to this PLC".
+    basis: vendor
+  - event: modbus_detailed.log (ICSNPP) - func, address, quantity, request_values, response_values, exception_code
+    value: >-
+      The register and coil addresses and the values read or written, so a
+      write to a holding register or coil can be tied to a source host and
+      time.
+    basis: government
+  - event: modbus_read_device_identification.log (ICSNPP; Zeek 6.1 and later) - object_id, object_value
+    value: Device identification requests and answers (vendor, product) - a sign of reconnaissance when the requester is not an approved host.
+    basis: government
+  - event: dnp3.log (Zeek base) - fc_request, fc_reply, iin; dnp3_control.log (ICSNPP)
+    value: >-
+      DNP3 request and reply function names; dnp3_control.log records Control
+      Relay Output Block and Pattern Control Block data in SELECT/OPERATE
+      exchanges - the operational commands to an outstation.
+    basis: government
+  - event: s7comm.log (ICSNPP) - rosctr_name, function_name, subfunction_name, error_class
+    value: S7comm header per packet, so the S7 functions each engineering or HMI host used are visible.
+    basis: government
+  - event: s7comm_upload_download.log (ICSNPP) - function_code, block_type, block_number, filename, destination_filesystem
+    value: >-
+      Start Upload, Upload, End Upload, Request Download, Download Block and
+      Download Ended - program block transfers to and from S7-300/400 CPUs,
+      with block identity. ICSNPP also passes the transferred blocks to
+      Zeek's file analysis framework.
+    basis: government
+  - event: s7comm_read_szl.log (ICSNPP) - szl_id, szl_id_name, szl_index
+    value: System status list reads, which identify the CPU and its state; unexpected SZL reads from a new host suggest reconnaissance.
+    basis: government
+  - event: s7comm_plus.log (ICSNPP) - version, opcode, opcode_name, function_code, function_name
+    value: S7comm-plus header only (S7-1200/1500); shows which hosts held S7comm-plus sessions with which CPUs, not what they changed.
+    basis: government
+  - event: enip.log, cip.log, cip_identity.log, cip_io.log (ICSNPP)
+    value: >-
+      EtherNet/IP encapsulation and CIP service headers per packet, CIP
+      identity objects (device inventory) and implicit I/O - who talked CIP to
+      which Logix controller and with what services.
+    basis: government
+  - event: opcua_binary.log and per-service logs such as opcua_binary_activate_session.log and opcua_binary_write.log (ICSNPP)
+    value: OPC UA message types, service request/response headers and status codes; session activation and writes when the channel is not encrypted.
+    basis: government
+  - event: omron_fins_general.log, omron_fins_detail.log (ICSNPP)
+    value: FINS commands and node addresses between OMRON controllers, HMIs and engineering hosts.
+    basis: government
+  - event: bacnet_device_control.log (ICSNPP)
+    value: Reinitialize-Device and Device-Communication-Control requests to building controllers.
+    basis: government
+  - event: profinet_io_cm.log (ICSNPP)
+    value: PROFINET IO Context Manager DCE/RPC header information (application and communication relation set-up between controller and I/O device).
+    basis: government
+  - event: iec104_ctrl.log, iec104_write.log, iec104_read.log (cert-lv spicy-iec104, bundled in Malcolm)
+    value: IEC 60870-5-104 commands and reads toward RTUs and IEDs.
+    basis: researcher
+  - event: Inbound sessions to 44818, 2222, 102 or 502 from internet or foreign hosting-provider addresses
+    value: >-
+      CISA AA26-097A reports inbound malicious traffic to PLCs on these ports
+      from leased third-party infrastructure; a sensor at the boundary shows
+      whether it reached the plant.
+    attack: [T0883, T0885]
+    basis: government
+tooling:
+  - name: Zeek
+    url: https://zeek.org/
+    license: BSD-style (Zeek COPYING)
+  - name: CISA ICSNPP (Industrial Control Systems Network Protocol Parsers)
+    url: https://github.com/cisagov/ICSNPP
+    license: BSD-3-Clause
+    notes: Full parsers for BACnet, BSAP, C12.22, EtherCAT, ENIP/CIP, GE-SRTP, Genisys, HART-IP, OMRON FINS, OPC UA Binary, ROC Plus, S7comm/S7comm-plus/COTP, Synchrophasor, PROFINET IO CM; logging extensions for Zeek's DNP3 and Modbus.
+  - name: CISA Malcolm
+    url: https://github.com/cisagov/Malcolm
+    license: Apache-2.0
+    notes: Bundles Zeek (with ICSNPP, spicy-iec104 and the Amazon PROFINET plugin), Arkime and Suricata.
+  - name: cert-lv spicy-iec104
+    url: https://github.com/cert-lv/spicy-iec104
+    license: BSD-3-Clause
+attack_data_components: [DC0085, DC0078, DC0082]
+gaps:
+  - Encrypted sessions show only metadata - S7comm-plus under TLS (TIA Portal V17 and later), CIP Security, OPC UA SignAndEncrypt and Modbus Security on 802/tcp.
+  - ICSNPP has no detailed logging of S7comm-plus functions (header only), so a program download to an S7-1200/1500 is not itemised the way an S7-300/400 block download is.
+  - Vendor- and product-specific Modbus functions are not decoded, so Schneider UMAS (function code 90) appears only as Modbus traffic on the connection.
+  - Port-bound parsers miss protocols run on non-standard ports unless the site added them beforehand.
+  - Sees only the segments the TAP or SPAN covers; traffic between two devices on an unmonitored switch, serial links and Layer-2-only protocols outside the mirrored VLAN are invisible.
+  - No parser was found for IEC 61850 MMS or GOOSE, Unitronics PCOM, CODESYS V3, TriStation or MELSEC SLMP in ICSNPP or Malcolm; those appear as unparsed connections at best.
+  - Shows that a transfer or write happened, not whether the resulting controller logic is malicious; that needs comparison with a known-good project.
+  - A SPAN port can drop packets under load, so absence of an entry is not proof of absence (this project's caution).
+confidence: high
+sources:
+  - title: ICSNPP - Industrial Control Systems Network Protocol Parsers (cisagov/ICSNPP)
+    url: https://github.com/cisagov/ICSNPP
+    accessed: "2026-11-08"
+    kind: government
+    quote: >-
+      Industrial Control Systems protocol parsers plugins for the Zeek network
+      security monitoring framework.
+    read: direct
+  - title: ICSNPP-Modbus README (cisagov/icsnpp-modbus)
+    url: https://raw.githubusercontent.com/cisagov/icsnpp-modbus/main/README.md
+    accessed: "2026-11-08"
+    kind: government
+    quote: >-
+      This log file contains the functions (read/write), count, addresses, and
+      values of Modbus coils, discrete inputs, input registers, and holding
+      registers.
+    read: direct
+  - title: ICSNPP-Modbus README (cisagov/icsnpp-modbus), coverage
+    url: https://raw.githubusercontent.com/cisagov/icsnpp-modbus/main/README.md
+    accessed: "2026-11-08"
+    kind: government
+    quote: >-
+      The Modbus protocol contains a few vendor and product specific functions.
+      These vendor/product specific functions are not included in this parser.
+    read: direct
+  - title: ICSNPP-S7COMM README (cisagov/icsnpp-s7comm)
+    url: https://raw.githubusercontent.com/cisagov/icsnpp-s7comm/main/README.md
+    accessed: "2026-11-08"
+    kind: government
+    quote: >-
+      To run this plugin in a site deployment, users will need to add the line
+      `@load icsnpp/s7comm` to the `site/local.zeek` file to load this plugin's
+      scripts.
+    read: direct
+  - title: ICSNPP-S7COMM README (cisagov/icsnpp-s7comm), file extraction
+    url: https://raw.githubusercontent.com/cisagov/icsnpp-s7comm/main/README.md
+    accessed: "2026-11-08"
+    kind: government
+    quote: >-
+      S7COMM contains two functions for sending and receiving files: Upload and
+      Download-Block. This plugin will extract files sent via these two functions
+      and pass the extracted files to Zeek's file analysis framework.
+    read: direct
+  - title: ICSNPP-DNP3 README (cisagov/icsnpp-dnp3)
+    url: https://raw.githubusercontent.com/cisagov/icsnpp-dnp3/main/README.md
+    accessed: "2026-11-08"
+    kind: government
+    quote: >-
+      This log captures DNP3 Control Relay Output Block and Pattern Control Block
+      data seen in SELECT-OPERATE-RESPONSE commands and logs them to
+      **dnp3_control.log**.
+    read: direct
+  - title: Malcolm Supported Protocols (cisagov/Malcolm docs/protocols.md)
+    url: https://github.com/cisagov/Malcolm/blob/main/docs/protocols.md
+    accessed: "2026-11-08"
+    kind: government
+    quote: >-
+      Malcolm uses Zeek and Arkime to analyze network traffic. These tools
+      provide varying degrees of visibility into traffic transmitted over the
+      following network protocols:
+    read: direct
+  - title: Best practices for event logging and threat detection (ASD's ACSC with CISA, FBI, NSA and partners, August 2024)
+    url: https://www.cyber.gov.au/sites/default/files/2024-08/best-practices-for-event-logging-and-threat-detection.pdf
+    accessed: "2026-11-08"
+    kind: government
+    quote: >-
+      Note that in cases where OT devices do not support logging, device logs are
+      not available, or are available in a non-standard format, it is good
+      practice to ensure network traffic and communications to and from the OT
+      devices are logged.
+    read: direct
+  - title: CISA AA26-097A - Iranian-Affiliated Cyber Actors Exploit Programmable Logic Controllers Across US Critical Infrastructure
+    url: https://www.cisa.gov/news-events/cybersecurity-advisories/aa26-097a
+    accessed: "2026-11-08"
+    kind: government
+    quote: >-
+      Inbound malicious traffic has been observed targeting PLC devices on the
+      following ports: `44818`, `2222`, `102`, and `502`, as well as targeting
+      modems on port `22`.
+    read: direct
+  - title: CISA AA26-097A, mitigations
+    url: https://www.cisa.gov/news-events/cybersecurity-advisories/aa26-097a
+    accessed: "2026-11-08"
+    kind: government
+    quote: >-
+      Functions of industrial control systems management protocols that change
+      an asset’s operating mode or modify programs.
+    read: direct

@@ -1,0 +1,76 @@
+id: ICS-TA-0016
+name: PYROXENE
+aliases:
+  - name: APT35
+    by: "Dragos ('Shares technical overlaps with APT35, UNC1549, Tortoiseshell adversary clusters.')"
+    equated: false
+  - name: UNC1549
+    by: Dragos, same overlap list
+    equated: false
+  - name: Tortoiseshell
+    by: Dragos, same overlap list
+    equated: false
+reported_by: [Dragos]
+link_confidence: medium
+stated_confidence: >-
+  Dragos gives no confidence language on the pages read. It states 'PYROXENE
+  exhibits substantial technical overlap with activity the U.S. Government
+  assesses is aligned with the Islamic Revolutionary Guard Corps Cyber Electronic
+  Command (IRGC-CEC)' and that PYROXENE 'deployed destructive wiper malware
+  against critical infrastructure during regional conflict in June'.
+state_nexus: >-
+  Dragos: 'Associated with IRGC operators sanctioned by the U.S. Government for
+  attacks against U.S critical infrastructure', and overlap with activity 'the
+  U.S. Government assesses is aligned with' IRGC-CEC. Dragos names no sponsor on
+  its own authority.
+motivation: mixed
+summary: >-
+  Dragos cluster named in the 2026 Year in Review that targets defence,
+  aerospace, aviation, maritime and transport organisations in the US, Western
+  Europe and the Middle East. It works through supply-chain compromise and
+  recruitment-themed social engineering, often building on access from PARISITE,
+  another Dragos group, to move from IT towards OT. Dragos says it 'establishes
+  pathways into OT environments and conducts reconnaissance and enumeration'. It
+  turns destructive in conflict: wiper malware against critical infrastructure 'in
+  June' of the 2025 review year. Its tools are MINIBIKE (RAT) and BLUERABBIT
+  (wiper). Motivation is mixed per Dragos: 'Transitions between intelligence
+  gathering and disruptive operations.'
+ics_kill_chain_stage: unknown
+stage_basis: >-
+  The Dragos pages read give no stage label. Trade press reports 'Dragos assesses
+  with low confidence' that PYROXENE surveyed OT networks consistent with Stage 2;
+  that is not used here.
+platforms: []
+malware: []
+incidents: []
+tradecraft:
+  - "Hands-on operator (Dragos): 'Stages recruitment-themed social engineering campaigns using social media profiles'; patient engagement 'over extended periods before delivering tailored malware or attempting credential theft'."
+  - "Malware (Dragos): 'Builds custom RAT malware (MINIBIKE) and destructive wiper malware (BLUERABBIT)'. No toolkit malware id is assigned yet."
+  - "Hands-on operator (Dragos): 'Custom-built capabilities and LOTL techniques to move laterally between enterprise IT and OT-adjacent networks'."
+  - "Access (Dragos): 'Collaborates with PARISITE for initial access'."
+  - "Infrastructure (Dragos): C2 'often obscured by legitimate services, email message-based, or CDN and cloud-hosted domains'."
+sectors: [aerospace, aviation, defense, maritime, transportation and logistics, government]
+regions: [United States, Western Europe, Israel, United Arab Emirates, Middle East]
+first_seen: "2022 (Dragos: 'Since 2022')"
+references:
+  - title: Dragos - PYROXENE threat group
+    url: https://www.dragos.com/threat/pyroxene
+    accessed: "2026-11-08"
+    kind: vendor
+    quote: "During periods of heightened geopolitical tension and conflict, PYROXENE will transition to disruptive capabilities, including the deployment of destructive wiper malware against its victims."
+    read: direct
+  - title: Dragos - 2026 OT Cybersecurity Report / Year in Review press release (17 February 2026)
+    url: https://www.dragos.com/resources/press-release/dragos-2026-year-in-review-new-ot-threats-ransomware
+    accessed: "2026-11-08"
+    kind: vendor
+    quote: "PYROXENE exhibits substantial technical overlap with activity the U.S. Government assesses is aligned with the Islamic Revolutionary Guard Corps Cyber Electronic Command (IRGC-CEC)."
+    read: direct
+notes: >-
+  The overlap list differs by source. The threat page names APT35, UNC1549 and
+  Tortoiseshell. A Dragos executive-briefing PDF, seen only as a search excerpt,
+  also names 'Imperial Kitten'. That is left out of aliases until the PDF is read
+  directly. The PYROXENE page subtitle repeats AZURITE's subtitle word for word
+  ('Targets OT engineering workstations to exfiltrate operational data...'). It
+  looks like a template error and is not relied on. PARISITE is another Dragos
+  group with no record in this toolkit yet. The year of the June wiper deployment
+  is inferred from the report's 2025 scope; the press release says only 'in June'.

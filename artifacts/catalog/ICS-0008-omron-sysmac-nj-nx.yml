@@ -1,0 +1,346 @@
+# ICS platform catalog entry
+# ICS-0008 - OMRON Sysmac NJ / NX
+# Research notes: docs/research/2026-11-08/platforms-round2.md
+
+id: ICS-0008
+name: OMRON Sysmac NJ / NX
+vendor: OMRON
+products:
+  - NJ-series CPU Units (NJ501 and others)
+  - NX-series CPU Units (NX1P2, NX102, NX502, NX701)
+  - Devices named by CISA as INCONTROLLER targets - NX1P2, NX-SL3300, NX-ECC203, NJ501-1300, S8VK, R88D-1SN10F-ECT servo drive
+asset_class: plc
+purdue_levels: ["1"]
+protocols: [ICS-PROTO-0014, ICS-PROTO-0004]
+os_base: >-
+  Proprietary CPU Unit firmware; OMRON does not publish its internals.
+  Mandiant reports INCONTROLLER's OMSHELL activating a telnet daemon and
+  gaining shell access, which is not a customer-documented interface.
+filesystem: >-
+  SD Memory Card in the CPU Unit, used for backups and readable and writable
+  from other Ethernet nodes through the built-in FTP server (NX1P2
+  specification). Event logs are kept in battery-backed memory (NX701) or
+  non-volatile memory (NX502, NX102, NX1P2).
+customer_shell: "no"
+memory_acquisition: not-available
+program_access: vendor-software-upload
+operating_modes: >-
+  RUN and PROGRAM modes are changed from Sysmac Studio. How mode changes are
+  logged was not read; CISA maps the OMRON tool to Change Operating Mode
+  (T0858). The CPU Unit front-panel DIP switch is used for Safe Mode and SD
+  card backup operations and is normally all OFF.
+integrity_features:
+  - feature: Controller event logs (system, access and user-defined)
+    description: >-
+      All controller events are kept in event logs readable from Sysmac
+      Studio or an HMI on the built-in EtherNet/IP port, exportable to CSV and
+      viewable offline in the Event Log Viewer. Sysmac Studio shows a System
+      Event Log and an Access Event Log on the Controller Event Log tab;
+      user-defined events come from the program (SetAlarm/SetInfo). On the
+      NX1P2 the maximum is 576 system events (512 CPU Unit + 64 NX Unit), 528
+      access events (512 + 16) and 512 user-defined events.
+    versions: NJ/NX-series Troubleshooting Manual (W503); capacities from the NX1P2 specification
+    confidence: high
+    sources:
+      - title: NJ/NX-series Troubleshooting Manual (OMRON W503)
+        url: https://files.omron.eu/downloads/latest/manual/en/w503_nj_nx-series_troubleshooting_manual_users_manual_en.pdf?v=3
+        accessed: "2026-11-08"
+        kind: vendor
+        quote: >-
+          You can use the Sysmac Studio or an HMI to confirm current Controller
+          events and the log of events that occurred before. This log is called
+          an event log.
+        read: direct
+      - title: NX-series NX1P2 CPU Units - Specifications (OMRON Industrial Automation)
+        url: https://www.ia.omron.com/products/family/3650/specification.html
+        accessed: "2026-11-08"
+        kind: vendor
+        quote: This is the total of 512 events for the CPU Unit and 64 events for the NX Unit.
+        read: direct
+  - feature: Sysmac Studio Controller backup and verification; SD Memory Card backup and verification
+    description: >-
+      Sysmac Studio can back up, restore or verify Controller data; SD Memory
+      Card backup, verification and restoration can also be driven from the
+      front-panel DIP switch, system-defined variables or Sysmac Studio.
+      Verification against a backup taken before the incident is the closest
+      thing to a vendor integrity check.
+    versions: NX1P2 specification
+    confidence: high
+    sources:
+      - title: NX-series NX1P2 CPU Units - Specifications (OMRON Industrial Automation)
+        url: https://www.ia.omron.com/products/family/3650/specification.html
+        accessed: "2026-11-08"
+        kind: vendor
+        quote: The Sysmac Studio is used to backup, restore, or verify Controller data.
+        read: direct
+  - feature: CPU Unit name check, write protection and read-prevention options
+    description: >-
+      On going online, Sysmac Studio compares the CPU Unit name in the project
+      with the connected unit. CPU Unit Write Protection blocks writes from
+      Sysmac Studio or an SD card; "User Program Transfer with no Restoration
+      Information" prevents reading data from the CPU Unit - which also
+      prevents an investigator uploading the program for comparison.
+      Operation-authority verification restricts online operations by rights.
+    versions: NX1P2 specification
+    confidence: high
+    sources:
+      - title: NX-series NX1P2 CPU Units - Specifications (OMRON Industrial Automation)
+        url: https://www.ia.omron.com/products/family/3650/specification.html
+        accessed: "2026-11-08"
+        kind: vendor
+        quote: You can prevent reading data in the CPU Unit from the Sysmac Studio.
+        read: direct
+collection:
+  - method: Passive capture of FINS, HTTP/HTTPS, telnet, FTP and EtherNet/IP traffic to the CPU Unit (TAP or SPAN)
+    impact: passive
+    description: >-
+      Mandiant's OMSHELL guidance is network-centred: FINS outside baseline,
+      telnet and HTTP traffic to the controllers, and HTTP POST data carrying
+      Omron API commands. CISA ICSNPP has a FINS parser (ICS-PROTO-0014).
+    confidence: high
+    references:
+      - https://cloud.google.com/blog/topics/threat-intelligence/incontroller-state-sponsored-ics-tool/
+  - method: Collect existing Sysmac Studio Controller backups, SD card backups and exported event-log files
+    impact: passive
+    description: >-
+      Known-good references, if they predate the incident. CISA asks owners to
+      hash and integrity-check controller configuration backups.
+    confidence: high
+    references:
+      - https://www.cisa.gov/news-events/cybersecurity-advisories/aa22-103a
+  - method: View the event log on an HMI already connected to the built-in EtherNet/IP port
+    impact: read-only
+    description: >-
+      OMRON documents event-log viewing and CSV export from an HMI as well as
+      from Sysmac Studio; no engineering session is needed if a connected HMI
+      already offers it.
+    safety_note: View and export only; do not reset errors from the HMI. Agree with operations.
+    confidence: high
+    references:
+      - https://files.omron.eu/downloads/latest/manual/en/w503_nj_nx-series_troubleshooting_manual_users_manual_en.pdf?v=3
+  - method: Sysmac Studio online - Controller Event Log tab (System and Access event logs), save to file / export CSV
+    impact: online-vendor-tool
+    description: Saved files can be reopened offline in the Event Log Viewer.
+    safety_note: >-
+      The same tab offers Clear, and the session can download, change mode or
+      reset errors. Use Save only. Operations approval required.
+    confidence: high
+    references:
+      - https://files.omron.eu/downloads/latest/manual/en/w503_nj_nx-series_troubleshooting_manual_users_manual_en.pdf?v=3
+  - method: Sysmac Studio Controller backup of the running controller, then verify against the known-good backup
+    impact: online-vendor-tool
+    description: >-
+      Captures Controller data for offline comparison. Not possible where
+      "User Program Transfer with no Restoration Information" was set.
+    safety_note: Back up to a new location; never run restore during collection. Operations approval required.
+    confidence: high
+    references:
+      - https://www.ia.omron.com/products/family/3650/specification.html
+  - method: SD Memory Card backup or verification using the CPU Unit front-panel DIP switch
+    impact: process-risk
+    description: >-
+      OMRON documents backup, verification and restoration from the DIP
+      switch; the same switch selects Safe Mode.
+    safety_note: >-
+      Physical switch manipulation on a running controller, where a wrong
+      setting restores instead of backing up. Break-glass only, with the
+      process in an agreed safe state.
+    confidence: high
+    references:
+      - https://www.ia.omron.com/products/family/3650/specification.html
+volatility:
+  - >-
+    Event-log capacity is fixed per model (NX1P2: 576 system, 528 access, 512
+    user-defined); behaviour when a log is full was not read. Logs survive
+    power loss (battery-backed on NX701, non-volatile on NX502, NX102, NX1P2).
+  - The Sysmac Studio Controller Event Log tab offers Clear as well as Save; an online user can empty it.
+  - OMSHELL can wipe program memory and reset the device, removing the logic an investigator would compare.
+anti_forensics:
+  - technique: Program memory wiped and device reset
+    seen_in: INCONTROLLER (OMSHELL)
+    detail: Mandiant lists it among OMSHELL's capabilities and asks defenders to look for PROGRAM-memory wipes and device resets in Omron device logs.
+datasources: [ICS-DS-0001, ICS-DS-0002, ICS-DS-0003, ICS-DS-0004, ICS-DS-0005, ICS-DS-0007, ICS-DS-0014]
+confidence: high
+references:
+  - title: NJ/NX-series Troubleshooting Manual (OMRON W503)
+    url: https://files.omron.eu/downloads/latest/manual/en/w503_nj_nx-series_troubleshooting_manual_users_manual_en.pdf?v=3
+    accessed: "2026-11-08"
+  - title: NX-series NX1P2 CPU Units - Specifications (OMRON Industrial Automation)
+    url: https://www.ia.omron.com/products/family/3650/specification.html
+    accessed: "2026-11-08"
+  - title: CISA AA22-103A - APT Cyber Tools Targeting ICS/SCADA Devices
+    url: https://www.cisa.gov/news-events/cybersecurity-advisories/aa22-103a
+    accessed: "2026-11-08"
+  - title: Mandiant - INCONTROLLER, New State-Sponsored Cyber Attack Tools Target Multiple Industrial Control Systems
+    url: https://cloud.google.com/blog/topics/threat-intelligence/incontroller-state-sponsored-ics-tool/
+    accessed: "2026-11-08"
+last_verified: "2026-11-08"
+notes: >-
+  Only the first 90 of W503's 1282 pages were read: the event-log concept,
+  storage and export are documented, but the list of access-log events (which
+  operations are recorded, with what detail) is in later chapters and in the
+  Software User's Manual (W501), neither read. Whether telnet activation,
+  OMSHELL's agent or a program wipe leave specific event-log entries is
+  therefore not evaluated; Mandiant recommends looking for them in "Omron
+  device logs" without naming which log. FINS port numbers were not taken
+  from these sources (see ICS-PROTO-0014). OMRON's OPC UA server on some NJ/NX
+  models was not read and OPC UA is not listed under protocols. The OMRON
+  security brief Mandiant cites was not read.
+response: baseline
+artifacts:
+  - locator: Controller event log - System Event Log and Access Event Log (Sysmac Studio Controller Event Log tab; HMI; CSV export)
+    class: audit-trail
+    volatility: rotating
+    retention: Fixed maximum per model (NX1P2 528 access, 576 system events); survives power loss
+    forensic_value: high
+    evidence_type: [execution, impair-process-control, inhibit-response-function, timeline]
+    confidence: high
+    collection_impact: online-vendor-tool
+    description: >-
+      Events with time, level (major, partial, minor fault, observation,
+      information), source, event code and details. Information-level events
+      include Power Turned ON, Power Interrupted and Memory All Cleared.
+    seen_in: [INCONTROLLER (OMSHELL) - Mandiant's log-review guidance]
+    provides: When the controller was powered, cleared or faulted, and what it reported around an incident.
+    normal: Power cycles and memory clears that match maintenance records; faults with known physical causes.
+    suspicious: >-
+      Memory All Cleared or power interruptions with no maintenance; resets
+      after unexplained online sessions; a log that has been cleared; Mandiant
+      also lists telnet activation, telnet attempts with default credentials
+      and PROGRAM-memory wipes as things to look for (which log records them
+      was not verified).
+    basis: vendor
+    sources:
+      - title: NJ/NX-series Troubleshooting Manual (OMRON W503)
+        url: https://files.omron.eu/downloads/latest/manual/en/w503_nj_nx-series_troubleshooting_manual_users_manual_en.pdf?v=3
+        accessed: "2026-11-08"
+        kind: vendor
+        quote: These are not errors, but appear in the event log to notify the user of specific information.
+        read: direct
+      - title: NJ/NX-series Troubleshooting Manual (OMRON W503)
+        url: https://files.omron.eu/downloads/latest/manual/en/w503_nj_nx-series_troubleshooting_manual_users_manual_en.pdf?v=3
+        accessed: "2026-11-08"
+        kind: vendor
+        quote: You can use the Sysmac Studio or an HMI to export the displayed event log to a CSV file.
+        read: direct
+      - title: Mandiant - INCONTROLLER
+        url: https://cloud.google.com/blog/topics/threat-intelligence/incontroller-state-sponsored-ics-tool/
+        accessed: "2026-11-08"
+        kind: researcher
+        quote: Wiping of PROGRAM memory and device resets.
+        read: direct
+  - locator: Exported event-log files and saved logs on engineering hosts (CSV export, Event Log Viewer files)
+    class: off-box
+    volatility: off-box
+    forensic_value: medium
+    evidence_type: [timeline]
+    confidence: high
+    collection_impact: passive
+    description: Earlier saves may hold events the controller has since overwritten or someone cleared.
+    provides: History beyond the controller's fixed-size logs.
+    normal: Periodic exports that overlap and agree with each other.
+    suspicious: Events in an older export that are missing from the controller's current log.
+    basis: vendor
+    sources:
+      - title: NJ/NX-series Troubleshooting Manual (OMRON W503)
+        url: https://files.omron.eu/downloads/latest/manual/en/w503_nj_nx-series_troubleshooting_manual_users_manual_en.pdf?v=3
+        accessed: "2026-11-08"
+        kind: vendor
+        quote: You can also save an event log in a file and display it offline in the Event Log Viewer.
+        read: direct
+  - locator: Controller data backed up with Sysmac Studio and verified against the known-good backup
+    class: control-logic
+    volatility: stable
+    forensic_value: high
+    evidence_type: [impair-process-control, inhibit-response-function, impact]
+    confidence: high
+    collection_impact: online-vendor-tool
+    description: >-
+      The program and settings actually on the controller. CISA reports the
+      tools can upload malicious configuration or code, back up or restore
+      device contents and modify parameters.
+    seen_in: [INCONTROLLER (OMSHELL)]
+    provides: Whether the running program and parameters differ from the approved backup.
+    normal: Verification passes against a backup taken before the incident.
+    suspicious: Verification differences with no approved change; read prevention set where the site does not use it; program memory empty.
+    basis: government
+    sources:
+      - title: CISA AA22-103A
+        url: https://www.cisa.gov/news-events/cybersecurity-advisories/aa22-103a
+        accessed: "2026-11-08"
+        kind: government
+        quote: >-
+          The APT actors can leverage the modules to scan for targeted devices,
+          conduct reconnaissance on device details, upload malicious
+          configuration/code to the targeted device, back up or restore device
+          contents, and modify device parameters.
+        read: direct
+      - title: CISA AA22-103A
+        url: https://www.cisa.gov/news-events/cybersecurity-advisories/aa22-103a
+        accessed: "2026-11-08"
+        kind: government
+        quote: >-
+          Maintain known-good offline backups for faster recovery upon a
+          disruptive attack, and conduct hashing and integrity checks on
+          firmware and controller configuration files to ensure validity of
+          those backups.
+        read: direct
+  - locator: Files on the controller and its SD Memory Card (FTP server, Sysmac Studio SD Memory Card window)
+    class: filesystem
+    volatility: stable
+    forensic_value: medium
+    evidence_type: [persistence, execution, collection]
+    confidence: high
+    collection_impact: read-only
+    description: >-
+      CISA reports the OMRON tool can back up and restore arbitrary files and
+      load an agent on the PLC for file manipulation, packet capture and code
+      execution over HTTP/HTTPS. Read over FTP only where the FTP server was
+      already enabled.
+    seen_in: [INCONTROLLER (OMSHELL)]
+    provides: Unexpected files or agents placed on the controller.
+    normal: Only the site's backups and application files.
+    suspicious: Unknown executables, scripts or capture files; files with recent timestamps that match no maintenance.
+    basis: government
+    sources:
+      - title: CISA AA22-103A
+        url: https://www.cisa.gov/news-events/cybersecurity-advisories/aa22-103a
+        accessed: "2026-11-08"
+        kind: government
+        quote: >-
+          Additionally, the OMRON modules can upload an agent that allows a
+          cyber actor to connect and initiate commands—such as file
+          manipulation, packet captures, and code execution—via HTTP and/or
+          Hypertext Transfer Protocol Secure (HTTPS).
+        read: direct
+  - locator: Network traffic to the CPU Unit - FINS, HTTP/HTTPS (including POST bodies), telnet, FTP
+    class: network
+    volatility: off-box
+    forensic_value: high
+    evidence_type: [discovery, initial-access, execution, impair-process-control]
+    confidence: high
+    collection_impact: passive
+    description: >-
+      OMSHELL scans and identifies devices with FINS over UDP, works mainly
+      over HTTP, and can activate and use a telnet daemon on the device.
+    seen_in: [INCONTROLLER (OMSHELL)]
+    provides: Scanning, agent deployment and shell access, independent of controller logging.
+    normal: FINS and HTTP only from engineering hosts and HMIs; no telnet to controllers (toolkit expectation - no source read documents telnet as a customer service).
+    suspicious: >-
+      Telnet sessions to an NJ/NX controller; HTTP POSTs carrying Omron API
+      commands from unexpected hosts; FINS sweeps; packet-capture or agent
+      traffic from the controller.
+    basis: researcher
+    sources:
+      - title: Mandiant - INCONTROLLER
+        url: https://cloud.google.com/blog/topics/threat-intelligence/incontroller-state-sponsored-ics-tool/
+        accessed: "2026-11-08"
+        kind: researcher
+        quote: Collect, identify, and investigate nefarious HTTP POST data to Omron devices containing Omron API commands.
+        read: direct
+      - title: Mandiant - INCONTROLLER
+        url: https://cloud.google.com/blog/topics/threat-intelligence/incontroller-state-sponsored-ics-tool/
+        accessed: "2026-11-08"
+        kind: researcher
+        quote: Activating the telnet daemon on the device
+        read: direct

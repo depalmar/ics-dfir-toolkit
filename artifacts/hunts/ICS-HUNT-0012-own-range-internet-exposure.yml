@@ -1,0 +1,87 @@
+# ICS hunt ICS-HUNT-0012
+# Schema: ../schema/hunt.schema.json
+# Research notes: docs/research/2026-11-08/detections.md
+
+id: ICS-HUNT-0012
+title: The owner's own address ranges in internet exposure data - controller ports, VNC and modems
+platforms: [ALL]
+incidents: [ICS-INC-0005, ICS-INC-0007, ICS-INC-0009, ICS-INC-0010]
+seen_in: [AA23-335A, AA25-343A, AA26-097A]
+hypothesis: >-
+  A controller, HMI or modem in the owner's address space - or in space an
+  integrator, vendor or cellular provider set up for the owner - is
+  reachable from the internet, which is the precondition every campaign in
+  these advisories relied on.
+data: [exposure-scan]
+datasources: [ICS-DS-0014]
+data_detail: >-
+  Results already held by internet search platforms and attack-surface
+  management services for the owner's ranges, and CISA Cyber Hygiene
+  reports already delivered. Reading these is passive: nothing is sent to
+  the plant.
+method:
+  - >-
+    Assemble every public range in use, including the cellular addresses of
+    modems and anything integrators or vendors installed.
+  - >-
+    Query existing search-platform and attack-surface-management results for
+    those ranges for 102, 502, 2222, 20000, 20256, 20257, 44818, 4840,
+    5900-5910, 22, 23 and web administration interfaces, and record the
+    platform and query time with each result.
+  - >-
+    Do not run an active scan of a live control network from this hunt;
+    the toolkit rates any active scanning of controllers process-risk, and
+    ICS-DS-0014 rates Cyber Hygiene enrolment the same way where controllers
+    are directly exposed.
+  - >-
+    For anything exposed with a weak or default password, follow AA25-343A
+    and assume compromise: start incident response rather than just closing
+    the port.
+normal: >-
+  No controller, HMI, VNC or modem management service from the owner's
+  ranges appears in exposure data.
+suspicious: >-
+  Any industrial protocol port, VNC or modem administration interface
+  exposed; cellular addresses not in the inventory; exposure that appeared
+  recently.
+attack: [T0883]
+inferred: >-
+  The port list combines the ports named in AA26-097A, AA25-343A and
+  AA23-335A with the parser defaults in ICS-DS-0001; it is this toolkit's
+  list, not CISA's.
+confidence: high
+sources:
+  - title: CISA AA25-343A - Pro-Russia Hacktivists Conduct Opportunistic Attacks Against US and Global Critical Infrastructure, mitigations
+    url: https://www.cisa.gov/news-events/cybersecurity-advisories/aa25-343a
+    accessed: "2026-11-08"
+    kind: government
+    quote: >-
+      This mitigation can help identify if there are VNC systems exposed
+      within the IP ranges they own, especially for connections set up by
+      third parties.
+    read: direct
+  - title: CISA AA25-343A, incident response
+    url: https://www.cisa.gov/news-events/cybersecurity-advisories/aa25-343a
+    accessed: "2026-11-08"
+    kind: government
+    quote: >-
+      If organizations find exposed systems with weak or default passwords,
+      they should assume threat actors compromised the system and begin the
+      following incident response protocols:
+    read: direct
+  - title: Primary Mitigations to Reduce Cyber Threats to Operational Technology (CISA, FBI, EPA, DOE fact sheet, May 6, 2025)
+    url: https://www.cisa.gov/resources-tools/resources/primary-mitigations-reduce-cyber-threats-operational-technology
+    accessed: "2026-11-08"
+    kind: government
+    quote: >-
+      Critical infrastructure entities should identify their public-facing
+      assets and remove unintentional exposure.
+    read: direct
+  - title: CISA AA26-097A - Iranian-Affiliated Cyber Actors Exploit Programmable Logic Controllers Across US Critical Infrastructure, cellular modems
+    url: https://www.cisa.gov/news-events/cybersecurity-advisories/aa26-097a
+    accessed: "2026-11-08"
+    kind: government
+    quote: >-
+      Ensure cellular modems, used for remote field connectivity and access,
+      are secured with strong authentication and updated.
+    read: direct

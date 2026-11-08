@@ -1,0 +1,86 @@
+# Reported SCADA manipulation at a US drinking water treatment facility (press: Oldsmar, Florida),
+# 5 February 2021.
+# Schema: ../../schema/incident.schema.json
+# Research notes: docs/research/2026-11-08/incidents-and-kev.md
+id: ICS-INC-0012
+name: Reported sodium hydroxide setpoint change at a US water treatment facility
+aliases:
+  - Oldsmar water treatment incident (press name)
+date: '2021-02-05'
+date_basis: >-
+  CISA/FBI/EPA/MS-ISAC AA21-042A: "On February 5, 2021, unidentified cyber actors obtained unauthorized
+  access to the supervisory control and data acquisition (SCADA) system at a U.S. drinking water treatment
+  facility."
+disclosed: '2021-02-11'
+sectors:
+  - water and wastewater
+countries:
+  - United States
+victim: >-
+  "a U.S. drinking water treatment facility" (AA21-042A), with onsite response by the Pinellas County
+  Sheriff Office; CISA does not name the utility.
+platforms:
+  - ICS-0011
+summary: >-
+  AA21-042A reports that unidentified actors used a water treatment plant's SCADA software to raise the
+  sodium hydroxide dose; staff noticed and reversed the change before the SCADA software alarmed and the
+  treatment process was unaffected. Access may have been through desktop sharing software such as
+  TeamViewer on an outdated Windows system with poor password security, but CISA could not confirm it, and
+  the same advisory says the FBI could not confirm the incident was initiated by a targeted cyber
+  intrusion.
+physical_consequence: attempted-no-effect
+consequence_detail: >-
+  "Water treatment plant personnel immediately noticed the change in dosing amounts and corrected the issue
+  before the SCADA system’s software detected the manipulation and alarmed due to the unauthorized change.
+  As a result, the water treatment process remained unaffected and continued to operate as normal."
+  (AA21-042A)
+chain:
+  - tactic: initial-access
+    what: >-
+      "it is possible that a desktop sharing software, such as TeamViewer, may have been used to gain
+      unauthorized access to the system, although this cannot be confirmed"; CISA cites poor password
+      security and an outdated operating system.
+  - tactic: impair-process-control
+    what: >-
+      The SCADA system's software was used "to increase the amount of sodium hydroxide, also known as lye, a
+      caustic chemical, as part of the water treatment process."
+lessons:
+  - lesson: >-
+      Install independent cyber-physical safety systems (chemical pump size, reservoir size, valve gearing,
+      pressure switches) so a compromised control system cannot drive the process to a dangerous state.
+    basis: government
+  - lesson: >-
+      Harden desktop sharing software: no unattended access, manual-start service, random or rotating
+      passwords, host confirmation for anything beyond view-only, and audit logs for all remote connection
+      protocols.
+    basis: government
+  - lesson: >-
+      Operator vigilance at the HMI caught the change before the SCADA alarm did; alarm limits on dosing
+      setpoints are a detection control, not only a process control.
+    basis: toolkit
+confidence: low
+unverified: true
+sources:
+  - title: Compromise of U.S. Water Treatment Facility (AA21-042A)
+    url: https://www.cisa.gov/news-events/cybersecurity-advisories/aa21-042a
+    accessed: '2026-11-08'
+    kind: government
+    quote: >-
+      The unidentified actors used the SCADA system’s software to increase the amount of sodium hydroxide,
+      also known as lye, a caustic chemical, as part of the water treatment process.
+    read: direct
+  - title: Compromise of U.S. Water Treatment Facility (AA21-042A) - FBI caveat
+    url: https://www.cisa.gov/news-events/cybersecurity-advisories/aa21-042a
+    accessed: '2026-11-08'
+    kind: government
+    quote: >-
+      Through the course of the investigation, the FBI was not able to confirm that this incident was
+      initiated by a targeted cyber intrusion.
+    read: direct
+notes: >-
+  Rated low and unverified despite a government source because the advisory itself says the FBI could not
+  confirm a targeted cyber intrusion; it is single-source here. Press widely names the utility as Oldsmar,
+  Florida, and later press accounts suggest the event may not have been an external intrusion; none of that
+  was read in this pass, so the name is used only as a labelled alias. The SCADA software and remote-access
+  product are not confirmed by the source. Kept as a case study because the source states an attempted
+  process change (OT intent) and because the doubt itself is a lesson for incident classification.

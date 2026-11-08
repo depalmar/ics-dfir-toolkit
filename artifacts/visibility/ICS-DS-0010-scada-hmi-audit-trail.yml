@@ -1,0 +1,142 @@
+# ICS visibility data source
+# ICS-DS-0010 - SCADA / HMI application audit trail and alarm-event journal
+# Research notes: docs/research/2026-11-08/datasources.md
+
+id: ICS-DS-0010
+name: SCADA / HMI application audit trail and alarm-event journal
+category: alarm-event
+purdue_levels: ["2", "3"]
+platforms: [ICS-0011]
+location: >-
+  Held by the SCADA/HMI application, usually in a SQL database or the
+  product's internal store. In Inductive Automation Ignition (the product
+  documented here) audit records go to a database table (default
+  AUDIT_EVENTS), an internal audit profile or a remote gateway, and alarm
+  events go to an alarm journal (default tables alarm_events and
+  alarm_event_data) in a database, internally or on a remote gateway.
+  Other products (WinCC, FactoryTalk View, iFIX, InTouch) have equivalents
+  that were not read in this round.
+enable: >-
+  Ignition audit: create an audit profile (Gateway Config > Security >
+  Auditing), set the Gateway Audit Profile for gateway-scoped actions
+  (Config > Security > General), and in the Designer select Enable Auditing
+  under Project > Properties for each project. Ignition alarm journal: by
+  default current alarm data is only in memory; create an Alarm Journal
+  Profile (Config > Alarming > Journal) and, to see alarms being switched off,
+  turn on "Store Enabled & Disabled Events" (and "Store Shelved Events" if
+  shelving matters).
+retention: >-
+  Ignition audit profiles default to 90 days of retention (database profiles
+  prune only if pruning is enabled). Alarm journals store data indefinitely
+  unless Data Pruning is set; Ignition notes an administrator can delete
+  journal data directly in the database at any time.
+collection:
+  - method: Export audit and alarm-journal tables from the SCADA database, or from the remote gateway or SIEM that already receives them
+    impact: passive
+    description: >-
+      Query a replica or backup where one exists. Preserve the database files
+      or a dump with hashes.
+    confidence: high
+  - method: Query the live SCADA database or use the product's audit/alarm viewers on the running server
+    impact: read-only
+    description: >-
+      Reads from the running SCADA system. The SCADA server is the operators'
+      view of the process.
+    safety_note: >-
+      Heavy queries on a production SCADA database can slow the HMI. Agree
+      timing with operations and prefer a replica or backup.
+    confidence: medium
+events:
+  - event: Ignition AUDIT_EVENTS records (audit profile) - for example Tag writes and User Source authentication
+    value: Who wrote which tag from the HMI and who authenticated, attributable to an HMI user and time.
+    basis: vendor
+  - event: Ignition gateway audit actions - creating, editing or deleting a User Source, user or role; user lockout events (8.1.14 and later)
+    value: Account and role changes on the SCADA platform and brute-force lockouts.
+    basis: vendor
+  - event: Ignition alarm_events - eventtype 0 Active, 1 Clear, 2 Acknowledgement, 4 enabled, 5 disabled (8.1.8 and later); eventflags; source; eventtime
+    value: >-
+      When each alarm went active, cleared and was acknowledged, and when an
+      alarm was disabled. AA25-343A reports hacktivists using HMI interfaces
+      to clear alarms caused by their activity; acknowledgements and
+      disablements outside normal operator behaviour are the trace.
+    attack: [T0878]
+    basis: vendor
+  - event: Alarm suppression or clearing by an intruder on an HMI
+    value: AA25-343A lists Alarm Suppression (T0878) among the techniques used through VNC-accessed HMIs.
+    attack: [T0878]
+    basis: government
+  - event: Logins, failed logins and configuration changes on OT systems
+    value: The joint ASD/CISA guidance lists these, with safety and availability data, as real-time alerts defenders should use in OT.
+    basis: government
+tooling:
+  - name: Inductive Automation Ignition (audit profiles and alarm journal)
+    url: https://www.docs.inductiveautomation.com/docs/8.1/platform/audit-log-and-profiles.md
+    license: Commercial
+attack_data_components: [DC0038, DC0109, DC0002]
+gaps:
+  - Only Ignition was documented in this round; WinCC, FactoryTalk View, iFIX, InTouch and other products' audit trails are not described here.
+  - Auditing and alarm journaling are off until profiles are created and enabled; by default Ignition keeps current alarm data only in memory.
+  - Records the HMI account that acted, not the network origin; an intruder using VNC on an HMI appears as the logged-in operator (this project's inference).
+  - Audit and journal tables are ordinary database tables - an administrator (or an intruder with database access) can delete them.
+  - Changes made directly to the controller (engineering software, protocol writes) bypass the HMI and leave no HMI audit entry.
+confidence: high
+sources:
+  - title: Audit Log and Profiles (Ignition 8.1 User Manual)
+    url: https://www.docs.inductiveautomation.com/docs/8.1/platform/audit-log-and-profiles.md
+    accessed: "2026-11-08"
+    kind: vendor
+    quote: >-
+      Ignition's built-in auditing system automatically records certain actions
+      that occur in the system, such as a Tag writes or User Source
+      authentication, into a SQL database table. Utilizing the system involves
+      creating an Audit Profile, followed by enabling auditing in a project.
+    read: direct
+  - title: Audit Log and Profiles (Ignition 8.1 User Manual), retention
+    url: https://www.docs.inductiveautomation.com/docs/8.1/platform/audit-log-and-profiles.md
+    accessed: "2026-11-08"
+    kind: vendor
+    quote: >-
+      How long (in days) should audit records be kept? Values less than or equal
+      to 0 will disable pruning. Default is 90 days.
+    read: direct
+  - title: Alarm Journal (Ignition 8.1 User Manual)
+    url: https://www.docs.inductiveautomation.com/docs/8.1/platform/alarming/alarm-journal.md
+    accessed: "2026-11-08"
+    kind: vendor
+    quote: >-
+      By default, current alarm data is only stored in memory, and a finite
+      number of events are retained for each alarm. Ignition can be configured
+      to store alarm data into a SQL database with an Alarm Journal Profile.
+    read: direct
+  - title: Alarm Journal (Ignition 8.1 User Manual), alarm_events table
+    url: https://www.docs.inductiveautomation.com/docs/8.1/platform/alarming/alarm-journal.md
+    accessed: "2026-11-08"
+    kind: vendor
+    quote: >-
+      This table stores the core data for each event that occurs. An event is a
+      transition for an alarm between active, cleared, or acknowledged.
+    read: direct
+  - title: Alarm Journal (Ignition 8.1 User Manual), Store Enabled & Disabled Events
+    url: https://www.docs.inductiveautomation.com/docs/8.1/platform/alarming/alarm-journal.md
+    accessed: "2026-11-08"
+    kind: vendor
+    quote: >-
+      When enabled, events generated by enabling or disabling alarms will be
+      stored in the journal.
+    read: direct
+  - title: CISA AA25-343A - Pro-Russia Hacktivists Conduct Opportunistic Attacks Against US and Global Critical Infrastructure
+    url: https://www.cisa.gov/news-events/cybersecurity-advisories/aa25-343a
+    accessed: "2026-11-08"
+    kind: government
+    quote: >-
+      Threat actors use HMI interfaces to clear alarms caused by their activity
+      and alarms already present on the system at the time of their intrusion.
+    read: direct
+  - title: Best practices for event logging and threat detection (ASD's ACSC with CISA, FBI, NSA and partners, August 2024)
+    url: https://www.cyber.gov.au/sites/default/files/2024-08/best-practices-for-event-logging-and-threat-detection.pdf
+    accessed: "2026-11-08"
+    kind: government
+    quote: >-
+      These alerts can include safety data, availability data, logins, failed
+      logins9, configuration changes, and network access and traffic.
+    read: direct

@@ -1,0 +1,42 @@
+title: Member Added to the Local Administrators Group on an EWS or HMI
+id: 9f6fdea3-7bb3-42e4-974c-010bce3ed43a
+status: experimental
+description: |
+  Security event 4732 ("A member was added to a security-enabled local
+  group") for the built-in Administrators group, SID S-1-5-32-544, on an
+  engineering workstation or HMI. Microsoft names the built-in local
+  administrators group among the critical groups to monitor with this event,
+  and the joint ASD/CISA logging guidance lists "the creation of user
+  accounts, or disabled accounts being re-enabled, especially accounts with
+  administrative privileges" as anomalous behaviour. Administrator changes
+  on qualified OT hosts are rare and should match a change record. SigmaHQ
+  keeps a general version of this rule
+  (win_security_user_added_to_local_administrators.yml); this one exists so
+  it can be deployed to the EWS and HMI host group with an OT-specific
+  response. Needs the "Audit Security Group Management" subcategory.
+references:
+  - https://learn.microsoft.com/en-us/previous-versions/windows/it-pro/windows-10/security/threat-protection/auditing/event-4732
+  - https://learn.microsoft.com/windows-server/identity/ad-ds/manage/understand-security-identifiers
+  - https://www.cyber.gov.au/sites/default/files/2024-08/best-practices-for-event-logging-and-threat-detection.pdf
+  - https://github.com/SigmaHQ/sigma/blob/master/rules/windows/builtin/security/win_security_user_added_to_local_administrators.yml
+author: Raymond DePalma (ics-dfir-toolkit)
+date: 2026-11-08
+tags:
+  - attack.persistence
+  - attack.privilege-escalation
+  - attack.t1098
+  - ics-dfir.ews-hmi
+logsource:
+  product: windows
+  service: security
+detection:
+  selection:
+    EventID: 4732
+    TargetSid: 'S-1-5-32-544'
+  filter_main_computer_accounts:
+    SubjectUserName|endswith: '$'
+  condition: selection and not 1 of filter_main_*
+falsepositives:
+  - Approved administration under a change record, including vendor commissioning of a new HMI
+  - Domain policy that adds a support group to local Administrators on every host
+level: medium

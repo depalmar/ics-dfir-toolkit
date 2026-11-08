@@ -1,0 +1,170 @@
+# Reconnaissance and capability development against US-based Siemens S7 PLCs (AA26-231A), described as active
+# when the advisory was released on 19 August 2026. No actor, malware family, CVE or indicator is named.
+# Schema: ../../schema/incident.schema.json
+# Research notes: docs/research/2026-11-08/intel-round2.md
+id: ICS-INC-0013
+name: Reconnaissance and capability development against US Siemens S7 PLCs (AA26-231A)
+aliases:
+  - AA26-231A
+date: '2026'
+date_basis: >-
+  AA26-231A, released 19 August 2026, describes the activity in the present tense ("The threat actors are
+  conducting reconnaissance and capability development against U.S.-based Siemens PLC installations") and dates
+  no event. 2026 is the year of that statement, not a measured start.
+disclosed: '2026-08-19'
+sectors:
+  - critical manufacturing
+  - energy
+  - water and wastewater
+  - chemical
+  - food and agriculture
+  - commercial facilities
+countries:
+  - United States
+platforms:
+  - ICS-0003
+  - ICS-0004
+protocols:
+  - ICS-PROTO-0002
+summary: >-
+  NSA, CISA, FBI, DOE and EPA warn of unnamed threat actors who find internet-exposed or poorly segmented Siemens
+  S7-200, S7-300, S7-400, S7-1200 and S7-1500 PLCs (S7-1500 including F-series safety controllers) through internet
+  scanning services. The actors use AI-generated Python scripts built on the open-source snap7.dll / python-snap7
+  library, disguised as legitimate OT monitoring tools, to read and write PLC memory, configuration data and ladder
+  logic over S7comm. They take advantage of default or minimally configured authentication and run read and write
+  operations on data blocks. The authoring agencies assess the pattern as persistent reconnaissance and capability
+  development to prepare operational effects. The advisory reports no operational effect; it lists only potential
+  impacts.
+physical_consequence: none-reported
+consequence_detail: >-
+  None reported. The advisory's "Potential operational impacts" section says only that unauthorized access "could
+  result in" process disruption, safety incidents, equipment damage, data compromise, cascading impacts and
+  compliance violations.
+chain:
+  - tactic: discovery
+    what: >-
+      Internet scanning services (e.g. Censys, ZoomEye) used to identify Internet-exposed or insufficiently
+      segmented Siemens S7 PLCs running outdated software or otherwise poorly protected. The advisory maps this to
+      Reconnaissance, which the schema lacks.
+    attack:
+      - T1596.005
+  - tactic: lateral-movement
+    what: >-
+      Access to exposed devices with unconfigured (default) or minimally configured authentication. The advisory maps
+      Insecure Credentials to Lateral Movement.
+    attack:
+      - T1694
+  - tactic: execution
+    what: >-
+      AI-generated Python scripts incorporating the snap7.dll library from public repositories, deployed to gain
+      read/write access to the PLC. The exploit code was iterated with AI assistance from public information on known
+      S7 vulnerabilities (Resource Development in the advisory's mapping, folded in here). The advisory names no
+      CVE.
+    attack:
+      - T0834
+      - T1587.004
+      - T1588.007
+  - tactic: evasion
+    what: Malicious scripts masqueraded as legitimate monitoring tools to evade detection by security teams.
+    attack:
+      - T0849
+  - tactic: collection
+    what: Read operations on data blocks, "potentially for reconnaissance" (advisory Table 1).
+    attack:
+      - T0893
+  - tactic: execution
+    what: >-
+      Write operations on data blocks, "potentially for pre-positioning for effects operations" (advisory Table 1,
+      Modify Controller Tasking).
+    attack:
+      - T0821
+  - tactic: attribution
+    what: >-
+      The advisory names no actor, nationality, sponsor or motivation and does not say whether one group or several
+      are involved. It assesses the purpose only: "persistent reconnaissance in targeted sectors and facilities to
+      develop capabilities and prepare to cause operational effects against critical infrastructure."
+lessons:
+  - lesson: >-
+      Monitor S7comm on TCP 102 for connections outside maintenance windows or from non-engineering workstations,
+      and alert on unauthorized PUT/GET operations, especially writes to data blocks or configuration memory; watch
+      for sequential scanning of port 102 and enumeration of CPU properties.
+    basis: government
+  - lesson: >-
+      Look for snap7.dll or python-snap7 use outside approved engineering workstations, Python processes importing
+      snap7, Python scripts with S7comm functionality and unauthorized monitoring software. The actors' tools are
+      built to look like legitimate OT monitoring.
+    basis: government
+  - lesson: >-
+      Block TCP 102 at perimeter firewalls and confirm no S7 PLC is reachable from the internet or untrusted
+      networks. Share the advisory with integrators and managed service providers who have remote access, because
+      owners "may not realize that their systems are exposed".
+    basis: government
+  - lesson: >-
+      Enable PLC password protection and protection levels (write protection, read/write protection), restrict TIA
+      Portal/STEP 7 access to authorized engineering workstations by MAC/IP allowlisting on PLCs, and change default
+      SNMP community strings.
+    basis: government
+  - lesson: >-
+      Verify firmware versions against a backup gold copy and evaluate ladder logic for changes in online/offline
+      modes.
+    basis: government
+  - lesson: >-
+      Seeing no writes does not show a controller is unchanged. The advisory says read access is being used to
+      prepare future writes, so a controller whose logic has not been compared with a trusted known-good copy has
+      not been shown to be unmodified.
+    basis: toolkit
+confidence: high
+sources:
+  - title: NSA, CISA, FBI, DOE, EPA - AA26-231A Defending Against an Active Threat to Siemens S7 Series PLCs (19 August 2026)
+    url: https://www.cisa.gov/news-events/cybersecurity-advisories/aa26-231a
+    accessed: '2026-11-08'
+    kind: government
+    quote: >-
+      The threat actors are conducting reconnaissance and capability development against U.S.-based Siemens PLC
+      installations using AI-generated exploitation scripts disguised as legitimate monitoring tools. The actors
+      leverage Internet scanning services to find Internet-exposed PLCs running outdated software or that are
+      otherwise poorly protected.
+    read: direct
+  - title: AA26-231A - tooling
+    url: https://www.cisa.gov/news-events/cybersecurity-advisories/aa26-231a
+    accessed: '2026-11-08'
+    kind: government
+    quote: >-
+      These tools provide read/write access to Siemens S7 Series PLC memory, configuration data, and ladder logic
+      programs via the S7comm protocol.
+    read: direct
+  - title: AA26-231A - assessed intent
+    url: https://www.cisa.gov/news-events/cybersecurity-advisories/aa26-231a
+    accessed: '2026-11-08'
+    kind: government
+    quote: >-
+      The authoring agencies assess this activity pattern is likely intended as persistent reconnaissance in targeted
+      sectors and facilities to develop capabilities and prepare to cause operational effects against critical
+      infrastructure.
+    read: direct
+  - title: AA26-231A - targeted models (PDF edition, same text)
+    url: https://media.defense.gov/2026/Aug/18/2003983494/-1/-1/1/CSA_ACTIVE_THREAT_TO_SIEMENS_S7_SERIES_PLCS.PDF
+    accessed: '2026-11-08'
+    kind: government
+    quote: Threat actors are actively targeting the following Siemens PLC models
+    read: direct
+  - title: Siemens ProductCERT SSB-104599 Increasing Cyber Threats to Industrial Control Systems (V1.3, 21 August 2026)
+    url: https://cert-portal.siemens.com/productcert/html/ssb-104599.html
+    accessed: '2026-11-08'
+    kind: vendor
+    quote: >-
+      On 2026-08-19, a new advisory was published specifically focusing on an potential active threat against the
+      Siemens S7 series programmable logic controllers (PLCs)
+    read: direct
+notes: >-
+  No actor record was created and none is linked. AA26-231A names no group, nationality, sponsor or motivation, and
+  calls the actors only "threat actors". Linking it to ICS-TA-0019 or ICS-INC-0009 (AA26-097A, which also names the
+  S7-1200) would compute attribution no source makes. Siemens SSB-104599 lists both advisories as successive
+  developments but does not tie their actors together. No malware record either: the "AI-generated exploitation
+  scripts" built on snap7 have no name, and snap7 is a legitimate open-source library. The advisory names no CVE,
+  only "various critical and high severity known vulnerabilities", so the KEV watch has nothing to map. S7-200
+  has no platform record. The protocol is S7comm (ICS-PROTO-0002) because the advisory names S7comm; S7comm-plus
+  is not mentioned. The quote "Threat actors are actively targeting the following Siemens PLC models" ends in a
+  colon on the page. The file names snap7.dll and python-snap7 are set as inline code on the page. The advisory
+  publishes no indicators, so no ICS-IOC set exists. Its hardening and detection guidance is already in
+  artifacts/hardening/siemens-s7.yml and baseline.yml.

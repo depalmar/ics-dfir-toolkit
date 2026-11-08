@@ -1,0 +1,69 @@
+# ICS protocol identity record
+# ICS-PROTO-0011 - OPC DA / classic (DCOM)
+# Research notes: docs/research/2026-11-08/datasources.md
+# Identity only: operations (interfaces and their effects) are deliberately omitted.
+
+id: ICS-PROTO-0011
+name: OPC DA / classic (DCOM)
+slug: opc-da
+aliases:
+  - OPC Data Access
+  - OPC Classic
+spec_owner: OPC Foundation (built on Microsoft COM/DCOM)
+transport:
+  - layer: tcp
+    port: 135
+    notes: >-
+      DCOM uses the RPC endpoint mapper on 135/tcp, which then directs the
+      client to a dynamically assigned port (third-party vendor explanation,
+      read directly; Microsoft's own documentation was not read).
+authentication:
+  native: optional
+  detail: >-
+    Not verified against a primary source. OPC DA inherits Windows DCOM
+    authentication, whose level is configurable; third-party vendor pages
+    (Software Toolbox, TDL; read directly) describe Microsoft's KB5004442 DCOM
+    hardening raising the minimum authentication level. Read Microsoft's KB5004442 before relying on
+    this.
+  secure_variant: None specific to OPC DA; the OPC Foundation's successor is OPC UA (ICS-PROTO-0010)
+encryption: Depends on the DCOM authentication level configured; not verified here.
+parsers:
+  - tool: Zeek DCE/RPC analyzer (listed by CISA Malcolm); decodes the RPC layer, not OPC DA semantics
+    url: https://docs.zeek.org/en/stable/scripts/base/protocols/dce-rpc/main.zeek.html
+    license: BSD-style (Zeek COPYING)
+platforms: [ICS-0011]
+malware: [ICS-MAL-0002]
+notes: >-
+  CISA AA22-083A reports that Havex used the OPC standard to gather
+  information about connected control systems and enumerated OPC servers and
+  tags; OPC DA servers are therefore a reconnaissance target on SCADA/HMI
+  hosts.
+confidence: low
+unverified: true
+sources:
+  - title: CISA AA22-083A - Tactics, Techniques, and Procedures of Indicted State-Sponsored Russian Cyber Actors Targeting the Energy Sector
+    url: https://www.cisa.gov/news-events/cybersecurity-advisories/aa22-083a
+    accessed: "2026-11-08"
+    kind: government
+    quote: >-
+      Havex uses Windows networking (WNet) to discover all the servers,
+      including OPC servers that are reachable by the compromised machine over
+      the network.
+    read: direct
+  - title: What is DCOM and why does it matter for OPC? (Software Toolbox)
+    url: https://softwaretoolbox.com/resources/what-is-dcom
+    accessed: "2026-11-08"
+    kind: vendor
+    quote: >-
+      Port 135 is the RPC (Remote Procedure Call) Endpoint Mapper, the directory
+      service that tells DCOM clients which dynamic port a specific COM server is
+      listening on.
+    read: direct
+  - title: OPC DA DCOM errors after KB5004442 (TDL)
+    url: https://www.tdl-ia.com/insights/opc-da-dcom-errors-windows-hardening-path-to-opc-ua.html
+    accessed: "2026-11-08"
+    kind: vendor
+    quote: >-
+      When OPC DA works on one computer but fails between two, or stopped
+      working after Windows updates, the cause is usually DCOM authentication.
+    read: direct

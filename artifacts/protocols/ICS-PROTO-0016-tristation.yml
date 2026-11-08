@@ -1,0 +1,51 @@
+# ICS protocol identity record
+# ICS-PROTO-0016 - TriStation
+# Research notes: docs/research/2026-11-08/datasources.md
+# Identity only: operations (commands and their effects) are deliberately omitted.
+
+id: ICS-PROTO-0016
+name: TriStation
+slug: tristation
+aliases:
+  - TriStation protocol (Triconex TriStation 1131 engineering protocol)
+spec_owner: Schneider Electric (Triconex; proprietary, no public specification)
+transport:
+  - layer: udp
+    port: 1502
+authentication:
+  native: none
+  detail: >-
+    Not verified against Schneider documentation. CISA describes TRITON
+    implementing the protocol in Python modules over UDP 1502 and using it to
+    halt or run programs and download programs; no authentication step is
+    described in that advisory. "None" is this project's reading of that
+    silence, not a quoted statement.
+encryption: None documented in the sources read.
+parsers: []
+platforms: [ICS-0007]
+malware: [ICS-MAL-0005]
+notes: >-
+  No open-source Zeek or Suricata parser for TriStation was verified in this
+  round. CISA explains TriStation is the protocol that Triconex System
+  software uses to communicate with Tricon PLCs.
+confidence: low
+unverified: true
+sources:
+  - title: CISA AA22-083A - Tactics, Techniques, and Procedures of Indicted State-Sponsored Russian Cyber Actors Targeting the Energy Sector (TRITON appendix)
+    url: https://www.cisa.gov/news-events/cybersecurity-advisories/aa22-083a
+    accessed: "2026-11-08"
+    kind: government
+    quote: >-
+      TRITON communicates with Triconex Tricon PLCs using its custom Python
+      script. This Python script communicates using four Python modules that
+      collectively implement the TriStation protocol via User Datagram Protocol
+      (UDP) 1502.
+    read: direct
+  - title: CISA AA22-083A (TRITON appendix), protocol definition
+    url: https://www.cisa.gov/news-events/cybersecurity-advisories/aa22-083a
+    accessed: "2026-11-08"
+    kind: government
+    quote: >-
+      TriStation protocol is the protocol that Triconex System software uses to
+      communicate with the Tricon PLCs.
+    read: direct

@@ -1,0 +1,71 @@
+# ICS protocol identity record
+# ICS-PROTO-0014 - OMRON FINS
+# Research notes: docs/research/2026-11-08/datasources.md
+# Identity only: operations (FINS commands and their effects) are deliberately omitted.
+
+id: ICS-PROTO-0014
+name: OMRON FINS
+slug: fins
+aliases:
+  - Factory Interface Network Service
+  - FINS/UDP and FINS/TCP
+spec_owner: OMRON Corporation
+transport:
+  - layer: udp
+    port: 9600
+  - layer: tcp
+    port: 9600
+    notes: ICSNPP-Omron-FINS registers 9600 on both TCP and UDP by default; FINS/TCP frames carry an ASCII 'FINS' header.
+authentication:
+  native: none
+  detail: >-
+    Not verified against OMRON documentation. The only statement found is a
+    third-party guide (NHI Mgmt Group, read directly) saying legacy FINS
+    carries no strong authentication. Treat FINS as unauthenticated.
+encryption: None documented in the sources read.
+parsers:
+  - tool: CISA ICSNPP-Omron-FINS (Zeek Spicy plugin)
+    url: https://github.com/cisagov/icsnpp-omron-fins
+    logs:
+      - omron_fins_general.log
+      - omron_fins_detail.log
+      - omron_fins_error.log
+      - omron_fins_data_link_status_read.log
+      - omron_fins_network_status_read.log
+      - omron_fins_file.log
+    license: BSD-3-Clause
+platforms: [ICS-0008]
+notes: >-
+  ICSNPP states the parser targets FINS commands for CV-Series, C-Series,
+  SYSMAC LINK and SYSMAC NET PCs; coverage of FINS as implemented on Sysmac
+  NJ/NX (ICS-0008) was not confirmed. The nhimg.org guide (re-read directly
+  2026-11-08) states it was "Researched and written by the NHI Mgmt Group
+  editorial team using AI tools"; it is a lead, not a basis for the
+  authentication value, which stays unverified.
+confidence: low
+unverified: true
+sources:
+  - title: ICSNPP-Omron-FINS README (cisagov/icsnpp-omron-fins)
+    url: https://raw.githubusercontent.com/cisagov/icsnpp-omron-fins/main/README.md
+    accessed: "2026-11-08"
+    kind: government
+    quote: >-
+      Omron FINS is a protocol created by Omron Corporation for commuincation
+      between Omron programamable logic controllers (PLCs), human-machine
+      interfaces (HMIs), and other devices in industrial automation systems.
+    read: direct
+  - title: ICSNPP-Omron-FINS scripts/main.zeek (cisagov/icsnpp-omron-fins)
+    url: https://raw.githubusercontent.com/cisagov/icsnpp-omron-fins/main/scripts/main.zeek
+    accessed: "2026-11-08"
+    kind: government
+    quote: "const omron_fins_ports_udp: set[port] = { 9600/udp } &redef;"
+    read: direct
+  - title: Mitsubishi MELSEC and Omron PLC Security Guide (nhimg.org)
+    url: https://nhimg.org/mitsubishi-and-omron-plc-security-guide
+    accessed: "2026-11-08"
+    kind: researcher
+    quote: >-
+      Legacy protocols such as FINS and plain SLMP carry no strong
+      authentication, so anyone who can reach the port can often read or change
+      data.
+    read: direct

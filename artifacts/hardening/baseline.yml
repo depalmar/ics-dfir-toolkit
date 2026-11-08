@@ -1,0 +1,1184 @@
+# Prevention and hardening - baseline for every OT platform
+# Schema: ../schema/hardening.schema.json
+#
+# Drawn from government guidance written for OT: the CISA/FBI/EPA/DOE "Primary
+# Mitigations" fact sheet (May 2025), the mitigations sections of AA26-097A,
+# AA26-231A, AA25-343A and AA23-335A, ASD's ACSC-led "Principles of operational
+# technology cyber security" (October 2024), the joint OT asset inventory
+# guidance (August 2025), CISA's Secure by Demand OT considerations, NSA/CISA
+# "Control System Defense: Know the Opponent" (AA22-265A) and NIST SP 800-82r3.
+# Platform files add the vendor-specific how. Research notes:
+# docs/research/2026-11-08/hardening-and-response.md
+
+platform_id: ALL
+name: Baseline for every OT environment
+summary: >-
+  The controls every platform in this toolkit shares. The 2023-2026 PLC and HMI
+  intrusions that US and allied agencies reported (Unitronics in 2023, pro-Russia
+  hacktivist VNC access in 2024-2025, Iranian-affiliated exploitation of Rockwell,
+  Siemens and Schneider PLCs in 2025-2026) began with a controller, HMI or modem
+  reachable from the internet with default or weak credentials. The same
+  advisories show the investigation then depending on offline logic backups,
+  off-box logs and the ability to run the process by hand.
+
+controls:
+  # ---------------------------------------------------------------- exposure
+  - id: base-ot-off-internet
+    control: Remove every OT device's direct connection to the public internet
+    category: exposure
+    priority: critical
+    why: >-
+      The first mitigation in every recent joint OT advisory. CISA, FBI, EPA and
+      DOE say OT devices are easy targets once internet-connected because they
+      lack modern authentication and are found by port searches; AA26-097A and
+      AA23-335A describe actors connecting straight to internet-facing PLCs.
+    how: >-
+      Identify public-facing assets and remove unintentional exposure. Where
+      remote access is genuinely needed, remove inbound port exposure and broker
+      all access through a secure gateway or jump host (see
+      base-brokered-remote-access). No vendor syntax applies at this level; each
+      platform file gives the vendor's own wording.
+    operational_impact: >-
+      Integrators and service providers may depend on the existing path for
+      remote monitoring; AA26-097A asks owners to tell them about the threat and
+      work with IT/OT staff or integrators to make the change.
+    blunts:
+      - AA26-097A Iranian-affiliated exploitation of internet-facing PLCs (2025-2026)
+      - AA23-335A CyberAv3ngers compromise of internet-facing Unitronics PLCs (2023)
+      - AA25-343A pro-Russia hacktivist access to internet-facing VNC/HMI (2024-2025)
+    frameworks:
+      - CISA CPG 2.X
+      - CISA CPG 2.0 3.S
+    confidence: high
+    sources:
+      - title: CISA, FBI, EPA, DOE - Primary Mitigations to Reduce Cyber Threats to Operational Technology (May 2025)
+        url: https://www.cisa.gov/sites/default/files/2025-05/fact-sheet-primary-mitigations-to-reduce-cyber-threats-to-operational-technology-508c.pdf
+        accessed: "2026-11-08"
+        kind: government
+        quote: "OT devices are easy targets when connected to the internet."
+        read: direct
+      - title: CISA, FBI, EPA, DOE - Primary Mitigations to Reduce Cyber Threats to Operational Technology (May 2025)
+        url: https://www.cisa.gov/sites/default/files/2025-05/fact-sheet-primary-mitigations-to-reduce-cyber-threats-to-operational-technology-508c.pdf
+        accessed: "2026-11-08"
+        kind: government
+        quote: "Critical infrastructure entities should identify their public-facing assets and remove unintentional exposure."
+        read: direct
+      - title: CISA AA26-097A - Iranian-Affiliated Cyber Actors Exploit Programmable Logic Controllers Across US Critical Infrastructure
+        url: https://www.cisa.gov/news-events/cybersecurity-advisories/aa26-097a
+        accessed: "2026-11-08"
+        kind: government
+        quote: "Specifically, “remove inbound port exposure,” so the OT system is never directly exposed to the internet or external networks, and to ensure all access is mediated, monitored, and controlled."
+        read: direct
+      - title: CISA AA25-343A - Pro-Russia Hacktivists Conduct Opportunistic Attacks Against US and Global Critical Infrastructure
+        url: https://www.cisa.gov/news-events/cybersecurity-advisories/aa25-343a
+        accessed: "2026-11-08"
+        kind: government
+        quote: "When connected to the internet, OT devices are easy targets for malicious cyber threat actors."
+        read: direct
+      - title: CISA AA23-335A - IRGC-Affiliated Cyber Actors Exploit PLCs in Multiple Sectors (updated December 2024)
+        url: https://www.cisa.gov/news-events/cybersecurity-advisories/aa23-335a
+        accessed: "2026-11-08"
+        kind: government
+        quote: "These mitigations should be applied to any internet-facing PLCs."
+        read: direct
+
+  - id: base-scan-own-exposure
+    control: Check your own address ranges for exposed OT, including connections set up by third parties
+    category: exposure
+    priority: high
+    why: >-
+      Owners often do not know a controller or VNC host is reachable; AA25-343A
+      singles out connections set up by third parties, and AA26-231A warns that
+      owners working through integrators "may not realize that their systems are
+      exposed".
+    how: >-
+      Use attack-surface management services and internet search platforms
+      against the ranges you own, and CISA's no-cost Cyber Hygiene vulnerability
+      scanning for US critical infrastructure. Scan only your own public ranges
+      from outside; this is not a scan of the control network.
+    frameworks:
+      - CISA CPG 2.0 3.S
+    confidence: high
+    sources:
+      - title: CISA AA25-343A - Pro-Russia Hacktivists Conduct Opportunistic Attacks Against US and Global Critical Infrastructure
+        url: https://www.cisa.gov/news-events/cybersecurity-advisories/aa25-343a
+        accessed: "2026-11-08"
+        kind: government
+        quote: "Asset owners should use attack surface management services and web-based search platforms to scan the internet."
+        read: direct
+      - title: CISA AA23-335A - IRGC-Affiliated Cyber Actors Exploit PLCs in Multiple Sectors (updated December 2024)
+        url: https://www.cisa.gov/news-events/cybersecurity-advisories/aa23-335a
+        accessed: "2026-11-08"
+        kind: government
+        quote: "CISA Cyber Hygiene services can help provide additional review of organizations’ internet accessible assets."
+        read: direct
+      - title: NSA, CISA, FBI, DOE, EPA AA26-231A - Defending Against an Active Threat to Siemens S7 Series PLCs
+        url: https://www.cisa.gov/news-events/cybersecurity-advisories/aa26-231a
+        accessed: "2026-11-08"
+        kind: government
+        quote: "These mitigations are particularly important for owners and operators who work with third-party service providers or system integrators who may have remote access to PLCs, as the asset owners may not realize that their systems are exposed and at risk."
+        read: direct
+
+  - id: base-protect-engineering-data
+    control: Treat engineering configuration data and project files as sensitive and keep them inside the OT trust boundary
+    category: exposure
+    priority: high
+    why: >-
+      ASD says engineering configuration data keeps its value to an adversary for
+      decades; AA26-097A reports actors exfiltrating PLC project files. NSA and
+      CISA advise limiting what is disclosed about system hardware, firmware and
+      software.
+    how: >-
+      Store critical OT data in a protected repository segregated from the
+      corporate environment and the internet; know where copies live (vendors,
+      consultants, email, cloud); stop EDR, antivirus or staff from uploading OT
+      files to online scanning or storage services. Siemens adds encryption at
+      rest and in transit for project files. No product syntax is published at
+      this level.
+    confidence: high
+    sources:
+      - title: ASD's ACSC et al. - Principles of operational technology cyber security (October 2024)
+        url: https://www.cyber.gov.au/publication/principles-of-operational-technology-cyber-security
+        accessed: "2026-11-08"
+        kind: government
+        quote: "Ideally, critical OT data is always protected to the level of the OT system and as such should be stored in a protected repository that is segmented and segregated from the corporate environment and the internet."
+        read: direct
+      - title: NSA, CISA - Control System Defense - Know the Opponent (AA22-265A)
+        url: https://media.defense.gov/2022/Sep/22/2003083007/-1/-1/0/CSA_ICS_Know_the_Opponent_.PDF
+        accessed: "2026-11-08"
+        kind: government
+        quote: "To the extent possible, avoid disclosing information about system hardware, firmware, and software in any public forum."
+        read: direct
+      - title: Siemens - Cybersecurity for Industry Operational Guidelines v2.2.1
+        url: https://cert-portal.siemens.com/operational-guidelines-industrial-security.pdf
+        accessed: "2026-11-08"
+        kind: vendor
+        quote: "Otherwise industrial project files might be uploaded unintentionally and automatically to external systems."
+        read: direct
+
+  # ---------------------------------------------------------- asset inventory
+  - id: base-asset-inventory
+    control: Build and maintain an OT asset inventory with the high-priority attributes the joint guidance lists
+    category: asset-inventory
+    priority: high
+    why: >-
+      Every later control (exposure checks, patching, known-good logic, response
+      scoping) needs to know what exists. The joint inventory guidance and
+      AA25-343A both make it a foundation.
+    how: >-
+      Follow the joint guidance's steps: define scope and governance, identify
+      assets by physical inspection and logical survey, collect the high-priority
+      attributes (protocols, criticality, asset number, role, hostname, IP, logging,
+      MAC, manufacturer, model, OS, location, ports/services, user accounts), build
+      a taxonomy aligned to zones and conduits, validate, and review periodically.
+    frameworks:
+      - CISA CPG 2.0 2.A
+    confidence: high
+    sources:
+      - title: CISA et al. - Foundations for OT Cybersecurity - Asset Inventory Guidance for Owners and Operators (August 2025)
+        url: https://www.cisa.gov/resources-tools/resources/foundations-ot-cybersecurity-asset-inventory-guidance-owners-and-operators
+        accessed: "2026-11-08"
+        kind: government
+        quote: "Conduct a physical inspection and logical survey by gathering detailed digital and network-based information about system components. Compile a comprehensive list of OT assets and network infrastructure dependencies."
+        read: direct
+      - title: CISA AA25-343A - Pro-Russia Hacktivists Conduct Opportunistic Attacks Against US and Global Critical Infrastructure
+        url: https://www.cisa.gov/news-events/cybersecurity-advisories/aa25-343a
+        accessed: "2026-11-08"
+        kind: government
+        quote: "Adopt mature asset management processes, including mapping data flows and access points."
+        read: direct
+
+  - id: base-passive-discovery
+    control: Discover OT assets passively; schedule any active scanning for a planned outage
+    category: asset-inventory
+    priority: high
+    why: >-
+      NIST records a ping sweep that set a robotic arm moving and another that
+      hung a wafer fab controller. ASD asks every OT team whether active discovery
+      is acceptable at all.
+    how: >-
+      Use passive network monitoring (TAP/SPAN) for discovery and inventory. If
+      active scanning is unavoidable, test the tool first and run it during a
+      planned outage; NIST notes some OT tools learn passively before making
+      device-specific queries.
+    operational_impact: Active scans can destabilise devices or change process state; NIST ties them to planned outages.
+    confidence: high
+    sources:
+      - title: NIST SP 800-82r3 - Guide to Operational Technology (OT) Security, Appendix E.2.3
+        url: https://nvlpubs.nist.gov/nistpubs/SpecialPublications/NIST.SP.800-82r3.pdf
+        accessed: "2026-11-08"
+        kind: government
+        quote: "OT network owners should exercise extreme caution when permitting active scanning on an operational network due to device sensitivity on the target network. Active scans may cause device instability or interfere with the device process state, potentially impacting safety and integrity. Active scans should be scheduled to occur during planned OT outages whenever possible."
+        read: direct
+      - title: NIST SP 800-82r3 - Guide to Operational Technology (OT) Security, Appendix C.3.4
+        url: https://nvlpubs.nist.gov/nistpubs/SpecialPublications/NIST.SP.800-82r3.pdf
+        accessed: "2026-11-08"
+        kind: government
+        quote: "While a ping sweep was being performed on an active SCADA network that controlled 9-foot robotic arms, one arm became active and swung around 180 degrees."
+        read: direct
+      - title: ASD's ACSC et al. - Principles of operational technology cyber security (October 2024)
+        url: https://www.cyber.gov.au/publication/principles-of-operational-technology-cyber-security
+        accessed: "2026-11-08"
+        kind: government
+        quote: "How to do asset discovery? Are active processes acceptable, or is passive the only way?"
+        read: direct
+
+  - id: base-connectivity-inventory
+    control: Keep a connectivity inventory of every remote access point, including vendor devices and modems
+    category: asset-inventory
+    priority: high
+    why: >-
+      NSA and CISA note vendor access devices often phone home or sit unknown to
+      the owner. A remote path that is not on the list cannot be monitored,
+      rotated or cut off during an incident.
+    how: >-
+      Record each remote access point (VPN, jump host, vendor portal, cellular
+      modem, dial-up), who uses it and how it is logged; make sure unused vendor
+      access devices are inactive and cannot be covertly reactivated.
+    confidence: high
+    sources:
+      - title: NSA, CISA - Control System Defense - Know the Opponent (AA22-265A)
+        url: https://media.defense.gov/2022/Sep/22/2003083007/-1/-1/0/CSA_ICS_Know_the_Opponent_.PDF
+        accessed: "2026-11-08"
+        kind: government
+        quote: "Creating a full “connectivity inventory” is a critical step in securing access to the system."
+        read: direct
+      - title: NSA, CISA - Control System Defense - Know the Opponent (AA22-265A)
+        url: https://media.defense.gov/2022/Sep/22/2003083007/-1/-1/0/CSA_ICS_Know_the_Opponent_.PDF
+        accessed: "2026-11-08"
+        kind: government
+        quote: "If the system does not use vendor access points and devices, ensure that none are active."
+        read: direct
+
+  # ------------------------------------------------------------ segmentation
+  - id: base-it-ot-dmz
+    control: Segment IT from OT and pass data between them through a DMZ
+    category: segmentation
+    priority: critical
+    why: >-
+      CISA, FBI, EPA and DOE say a DMZ for passing control data to enterprise
+      systems reduces both the impact of threats and the risk of disruption; ASD
+      treats the IT network as the higher-risk neighbour because of email and web
+      browsing.
+    how: >-
+      Firewalled separation with a DMZ; no direct routing between corporate and
+      industrial networks. ASD adds that OT should push data out rather than
+      external networks pulling data in.
+    frameworks:
+      - CISA CPG 2.F
+    confidence: high
+    sources:
+      - title: CISA, FBI, EPA, DOE - Primary Mitigations to Reduce Cyber Threats to Operational Technology (May 2025)
+        url: https://www.cisa.gov/sites/default/files/2025-05/fact-sheet-primary-mitigations-to-reduce-cyber-threats-to-operational-technology-508c.pdf
+        accessed: "2026-11-08"
+        kind: government
+        quote: "Segmenting critical systems and introducing a demilitarized zone for passing control data to enterprise logistics reduces the potential impact of cyber threats and reduces the risk of disruptions to essential OT operations"
+        read: direct
+      - title: ASD's ACSC et al. - Principles of operational technology cyber security (October 2024)
+        url: https://www.cyber.gov.au/publication/principles-of-operational-technology-cyber-security
+        accessed: "2026-11-08"
+        kind: government
+        quote: "OT networks should push data out of the network, rather than external networks pulling data in from OT."
+        read: direct
+
+  - id: base-admin-from-ot-side
+    control: Administer OT security and infrastructure only from a network of equal or higher trust, outside the corporate AD forest
+    category: segmentation
+    priority: high
+    why: >-
+      ASD's example: an IT-OT firewall managed by a privileged IT account stops
+      protecting OT once the IT network is compromised. The same applies to OT
+      virtualisation, backups and Active Directory trusts.
+    how: >-
+      Manage OT firewalls, hypervisors and backup infrastructure from the OT side
+      with OT-only accounts; do not place OT in the IT AD forest or give it a
+      trust relationship. No product syntax is published at this level.
+    confidence: high
+    sources:
+      - title: ASD's ACSC et al. - Principles of operational technology cyber security (October 2024)
+        url: https://www.cyber.gov.au/publication/principles-of-operational-technology-cyber-security
+        accessed: "2026-11-08"
+        kind: government
+        quote: "a more critical environment should never be administered from a less critical environment, and should always be managed from a network with the same or higher security posture."
+        read: direct
+      - title: ASD's ACSC et al. - Principles of operational technology cyber security (October 2024)
+        url: https://www.cyber.gov.au/publication/principles-of-operational-technology-cyber-security
+        accessed: "2026-11-08"
+        kind: government
+        quote: "If the OT environment is inside the same AD Forest as the IT environment, or if a trust relationship exists, then the desired level of protection and operational separation for the OT environment may not be provided."
+        read: direct
+
+  - id: base-default-deny-perimeter
+    control: Enforce default-deny inbound and outbound at the OT perimeter and block unneeded industrial ports between segments
+    category: segmentation
+    priority: high
+    why: >-
+      AA25-343A asks for default-deny and strict egress filtering against
+      exfiltration and command-and-control callbacks; AA26-097A observed inbound
+      traffic to PLCs on 44818, 2222, 102 and 502 and to modems on 22.
+    how: >-
+      Default-deny on OT perimeter firewalls with explicit allows for authorised
+      destinations and protocols; block industrial protocol ports on external and
+      internal firewalls wherever a segment does not need them; audit rulesets
+      and watch outbound patterns for beaconing.
+    confidence: high
+    sources:
+      - title: CISA AA25-343A - Pro-Russia Hacktivists Conduct Opportunistic Attacks Against US and Global Critical Infrastructure
+        url: https://www.cisa.gov/news-events/cybersecurity-advisories/aa25-343a
+        accessed: "2026-11-08"
+        kind: government
+        quote: "Configure OT perimeter firewalls to enforce a default-deny policy for all traffic."
+        read: direct
+      - title: CISA AA25-343A - Pro-Russia Hacktivists Conduct Opportunistic Attacks Against US and Global Critical Infrastructure
+        url: https://www.cisa.gov/news-events/cybersecurity-advisories/aa25-343a
+        accessed: "2026-11-08"
+        kind: government
+        quote: "Implement strict egress filtering to prevent unauthorized data exfiltration or command-and-control callbacks."
+        read: direct
+      - title: CISA AA26-097A - Iranian-Affiliated Cyber Actors Exploit Programmable Logic Controllers Across US Critical Infrastructure
+        url: https://www.cisa.gov/news-events/cybersecurity-advisories/aa26-097a
+        accessed: "2026-11-08"
+        kind: government
+        quote: "Configure external and internal firewalls to block traffic using common ports associated with network protocols that are unnecessary for the particular network segment."
+        read: direct
+
+  - id: base-safety-network-separation
+    control: Separate safety-critical OT networks (SIS) from less critical OT networks
+    category: safety
+    priority: critical
+    why: >-
+      ASD cites the 2017 HatMan (TRITON) malware as the reason safety networks
+      need separating from other OT networks; NIST describes the SIS as an
+      independent layer whose function a control-system failure must not affect.
+    how: >-
+      Keep the SIS on its own zone with tightly controlled conduits; where an
+      integrated control and safety system is used, NIST notes the SIS must still
+      meet IEC 61511. No vendor syntax at this level.
+    blunts:
+      - HatMan / TRITON (2017), as cited by ASD
+    confidence: high
+    sources:
+      - title: ASD's ACSC et al. - Principles of operational technology cyber security (October 2024)
+        url: https://www.cyber.gov.au/publication/principles-of-operational-technology-cyber-security
+        accessed: "2026-11-08"
+        kind: government
+        quote: "Also well understood since 2017’s Hatman malware, is the need to separate more critical OT networks such as those essential to safety, from less critical OT networks."
+        read: direct
+      - title: NIST SP 800-82r3 - Guide to Operational Technology (OT) Security, section 2
+        url: https://nvlpubs.nist.gov/nistpubs/SpecialPublications/NIST.SP.800-82r3.pdf
+        accessed: "2026-11-08"
+        kind: government
+        quote: "An SIS is often independent from all other control systems in such a manner that a failure of the basic process control system (BPCS) will not impact SIS functionality in a deleterious manner."
+        read: direct
+
+  # ----------------------------------------------------------- remote access
+  - id: base-brokered-remote-access
+    control: Where remote access is essential, broker it through a VPN, gateway or jump host with phishing-resistant MFA
+    category: remote-access
+    priority: critical
+    why: >-
+      Many PLCs cannot do MFA; a gateway in front of them can, and it is also the
+      place to stop repeated login attempts. CISA has given this advice in every
+      PLC advisory since AA23-335A.
+    how: >-
+      Private IP connectivity or a VPN with a strong password and
+      phishing-resistant MFA; a network proxy, gateway, firewall or VPN in front of
+      the PLC with rules that stop brute-force attempts; a device control list of
+      the workstations allowed to reach OT components. Each platform file gives
+      the vendor's own product (for example Unitronics UCR routers, Siemens
+      SINEMA Remote Connect).
+    blunts:
+      - AA23-335A CyberAv3ngers compromise of internet-facing Unitronics PLCs (2023)
+      - AA26-097A Iranian-affiliated exploitation of internet-facing PLCs (2025-2026)
+    frameworks:
+      - CISA CPG 2.0 3.F
+    confidence: high
+    sources:
+      - title: CISA, FBI, EPA, DOE - Primary Mitigations to Reduce Cyber Threats to Operational Technology (May 2025)
+        url: https://www.cisa.gov/sites/default/files/2025-05/fact-sheet-primary-mitigations-to-reduce-cyber-threats-to-operational-technology-508c.pdf
+        accessed: "2026-11-08"
+        kind: government
+        quote: "If remote access is essential, upgrade to a private IP network connection to remove these OT assets from the public internet and use virtual private network (VPN) functionality with a strong password and phishing-resistant multifactor authentication (MFA) for user remote access."
+        read: direct
+      - title: CISA AA26-097A - Iranian-Affiliated Cyber Actors Exploit Programmable Logic Controllers Across US Critical Infrastructure
+        url: https://www.cisa.gov/news-events/cybersecurity-advisories/aa26-097a
+        accessed: "2026-11-08"
+        kind: government
+        quote: "A VPN or gateway device can enable MFA for remote access even if the PLC does not support MFA."
+        read: direct
+      - title: CISA - Exploitation of Unitronics PLCs used in Water and Wastewater Systems (alert, November 2023)
+        url: https://www.cisa.gov/news-events/alerts/2023/11/28/exploitation-unitronics-plcs-used-water-and-wastewater-systems
+        accessed: "2026-11-08"
+        kind: government
+        quote: "Require multifactor authentication for all remote access to the OT network, including from the IT network and external networks."
+        read: direct
+
+  - id: base-least-privilege-remote-access
+    control: Grant remote access per asset and per task, time-limited, and disable dormant accounts
+    category: remote-access
+    priority: high
+    why: >-
+      Always-on vendor connections are a standing path in. AA25-343A recommends
+      disabling exposure by default and opening it only for a limited time; NSA
+      and CISA warn against vendor access devices running continuously without
+      the owner seeing their logs.
+    how: >-
+      Document each remote access solution's scope (asset, role, task); open
+      access for a window and close it afterwards; disable dormant accounts; keep
+      vendor access devices off unless in use and their access logs visible to the
+      owner. No product syntax at this level.
+    frameworks:
+      - CISA CPG 2.H
+    confidence: high
+    sources:
+      - title: CISA AA25-343A - Pro-Russia Hacktivists Conduct Opportunistic Attacks Against US and Global Critical Infrastructure
+        url: https://www.cisa.gov/news-events/cybersecurity-advisories/aa25-343a
+        accessed: "2026-11-08"
+        kind: government
+        quote: "Consider disabling public exposure by default and implementing time-limited remote access to reduce the amount of time systems are exposed."
+        read: direct
+      - title: CISA, FBI, EPA, DOE - Primary Mitigations to Reduce Cyber Threats to Operational Technology (May 2025)
+        url: https://www.cisa.gov/sites/default/files/2025-05/fact-sheet-primary-mitigations-to-reduce-cyber-threats-to-operational-technology-508c.pdf
+        accessed: "2026-11-08"
+        kind: government
+        quote: "Further, disable dormant accounts."
+        read: direct
+      - title: NSA, CISA - Control System Defense - Know the Opponent (AA22-265A)
+        url: https://media.defense.gov/2022/Sep/22/2003083007/-1/-1/0/CSA_ICS_Know_the_Opponent_.PDF
+        accessed: "2026-11-08"
+        kind: government
+        quote: "Do not allow vendor-provided system access devices and software to operate continuously in the system without full awareness of their security posture and access logs."
+        read: direct
+
+  - id: base-cellular-modems
+    control: Secure cellular modems used for field access with strong authentication, current firmware, logging and an isolated cellular architecture
+    category: remote-access
+    priority: high
+    why: >-
+      AA26-097A observed inbound traffic to modems on port 22 and, in one case,
+      Dropbear SSH placed on victim modems for remote access. The advisory's
+      mitigations add modem-specific steps. See remote-access-gateways.yml for
+      vendor settings.
+    how: >-
+      Strong authentication and current firmware on every modem; modem logs
+      enabled and reviewed; consider a private APN, 5G PNI-NPN, cellular SD-WAN,
+      ZTNA or a site-to-site VPN instead of a publicly addressable modem.
+    blunts:
+      - AA26-097A Iranian-affiliated exploitation of internet-facing PLCs (2025-2026), including Dropbear SSH on victim modems
+    confidence: high
+    sources:
+      - title: CISA AA26-097A - Iranian-Affiliated Cyber Actors Exploit Programmable Logic Controllers Across US Critical Infrastructure
+        url: https://www.cisa.gov/news-events/cybersecurity-advisories/aa26-097a
+        accessed: "2026-11-08"
+        kind: government
+        quote: "Ensure cellular modems, used for remote field connectivity and access, are secured with strong authentication and updated."
+        read: direct
+      - title: CISA AA26-097A - Iranian-Affiliated Cyber Actors Exploit Programmable Logic Controllers Across US Critical Infrastructure
+        url: https://www.cisa.gov/news-events/cybersecurity-advisories/aa26-097a
+        accessed: "2026-11-08"
+        kind: government
+        quote: "To mitigate unauthorized access to OT via cellular modems, organizations should consider implementing isolated architectures, such as private Access Point Name (APN), 5G Public Network Integrated Non-Public Network (PNI-NPN), cellular Software-Defined Wide Area Network (SD-WAN), Zero Trust Network Access (ZTNA), or a site-to-site virtual private network (VPN)."
+        read: direct
+
+  # ---------------------------------------------------------------- identity
+  - id: base-no-default-passwords
+    control: Change every default password on PLCs, HMIs, modems and remote access components to a strong, unique one
+    category: identity
+    priority: critical
+    why: >-
+      The 2023 Unitronics compromises used default or absent passwords, AA26-231A
+      lists insecure default credentials among the S7 techniques, and CISA, FBI,
+      EPA and DOE say the targeted systems used default or easily guessed
+      passwords.
+    how: >-
+      Replace defaults at commissioning; unique per device; NSA and CISA add
+      updating products with hard-coded passwords, especially remote access and
+      security components. ASD suggests capturing and investigating failed login
+      attempts once defaults are changed.
+    blunts:
+      - AA23-335A CyberAv3ngers compromise of Unitronics PLCs (2023)
+      - AA25-343A pro-Russia hacktivist VNC/HMI access (2024-2025)
+    frameworks:
+      - CISA CPG 2.A
+      - CISA CPG 2.B
+      - CISA CPG 2.C
+    confidence: high
+    sources:
+      - title: CISA, FBI, EPA, DOE - Primary Mitigations to Reduce Cyber Threats to Operational Technology (May 2025)
+        url: https://www.cisa.gov/sites/default/files/2025-05/fact-sheet-primary-mitigations-to-reduce-cyber-threats-to-operational-technology-508c.pdf
+        accessed: "2026-11-08"
+        kind: government
+        quote: "Changing default passwords is especially important for public-facing internet devices that have the capability to control OT systems or processes"
+        read: direct
+      - title: NSA, CISA - Control System Defense - Know the Opponent (AA22-265A)
+        url: https://media.defense.gov/2022/Sep/22/2003083007/-1/-1/0/CSA_ICS_Know_the_Opponent_.PDF
+        accessed: "2026-11-08"
+        kind: government
+        quote: "Change all default passwords throughout the system and update any products with hard-coded passwords, especially in all remote access and security components."
+        read: direct
+      - title: ASD's ACSC et al. - Principles of operational technology cyber security (October 2024)
+        url: https://www.cyber.gov.au/publication/principles-of-operational-technology-cyber-security
+        accessed: "2026-11-08"
+        kind: government
+        quote: "If default passwords are changed, ideally ensure there is a way to capture failed login attempts, and investigate them."
+        read: direct
+      - title: CISA AA23-335A - IRGC-Affiliated Cyber Actors Exploit PLCs in Multiple Sectors (updated December 2024)
+        url: https://www.cisa.gov/news-events/cybersecurity-advisories/aa23-335a
+        accessed: "2026-11-08"
+        kind: government
+        quote: "In particular, ensure the Unitronics PLC default password is not in use."
+        read: direct
+      - title: CISA AA25-343A - Pro-Russia Hacktivists Conduct Opportunistic Attacks Against US and Global Critical Infrastructure
+        url: https://www.cisa.gov/news-events/cybersecurity-advisories/aa25-343a
+        accessed: "2026-11-08"
+        kind: government
+        quote: "Implement MFA where possible. Where MFA is not feasible, use strong, unique passwords."
+        read: direct
+
+  - id: base-view-only-accounts
+    control: Limit remotely reachable and default HMI/controller accounts to view-only and separate view from control
+    category: identity
+    priority: high
+    why: >-
+      The AA25-343A actors changed setpoints and cleared alarms from the HMI
+      graphical interface and changed HMI credentials to lock operators out. A
+      view-only account would have denied the change without any exploit.
+    how: >-
+      Enable the control system's security features that separate and audit view
+      and control functions; make remotely accessible and default accounts
+      view-only. Platform files give the vendor's role settings.
+    blunts:
+      - AA25-343A pro-Russia hacktivist HMI manipulation (2024-2025)
+    frameworks:
+      - CISA CPG 2.0 3.G
+    confidence: high
+    sources:
+      - title: CISA AA25-343A - Pro-Russia Hacktivists Conduct Opportunistic Attacks Against US and Global Critical Infrastructure
+        url: https://www.cisa.gov/news-events/cybersecurity-advisories/aa25-343a
+        accessed: "2026-11-08"
+        kind: government
+        quote: "Limiting remotely accessible or default user accounts to “view-only” removes the potential for impact without exploiting a vulnerability"
+        read: direct
+
+  # --------------------------------------------------- controller protection
+  - id: base-run-mode
+    control: Keep controller and safety-system key switches in RUN, and enable software programming protection where there is no physical switch
+    category: controller-protection
+    priority: critical
+    why: >-
+      AA26-097A's actors downloaded modified project files to PLCs remotely; a
+      physical mode switch in RUN prevents remote modification on controllers
+      that have one. NIST gives the same advice for PLCs and safety systems.
+    how: >-
+      Leave the physical switch in RUN; move it to PROGRAM or REMOTE only for an
+      online download and return it to RUN immediately afterwards. For devices
+      with a software key, enable programming protection in the configuration
+      software (AA26-097A names S7 TIA Portal). Platform files give vendor detail.
+    operational_impact: >-
+      Changing mode locks in whatever project is currently downloaded, so
+      AA26-097A asks owners to review and validate the project first. Remote
+      downloads then require someone at the cabinet.
+    blunts:
+      - AA26-097A Iranian-affiliated exploitation of internet-facing PLCs (2025-2026)
+    confidence: high
+    sources:
+      - title: CISA AA26-097A - Iranian-Affiliated Cyber Actors Exploit Programmable Logic Controllers Across US Critical Infrastructure
+        url: https://www.cisa.gov/news-events/cybersecurity-advisories/aa26-097a
+        accessed: "2026-11-08"
+        kind: government
+        quote: "For controllers with a physical mode switch, place the physical mode switch into run position to prevent remote modification."
+        read: direct
+      - title: CISA AA26-097A - Iranian-Affiliated Cyber Actors Exploit Programmable Logic Controllers Across US Critical Infrastructure
+        url: https://www.cisa.gov/news-events/cybersecurity-advisories/aa26-097a
+        accessed: "2026-11-08"
+        kind: government
+        quote: "Prior to switching the device to run mode, review and validate project files, as changing modes will lock in the current project file downloaded to the device."
+        read: direct
+      - title: NIST SP 800-82r3 - Guide to Operational Technology (OT) Security, section 5
+        url: https://nvlpubs.nist.gov/nistpubs/SpecialPublications/NIST.SP.800-82r3.pdf
+        accessed: "2026-11-08"
+        kind: government
+        quote: "Keys of OT assets, like PLCs and safety systems, should be in the “Run” position at all times unless they are being actively programmed."
+        read: direct
+
+  - id: base-authenticate-controller-access
+    control: Require authentication for every management session and for any change to a controller's mode, logic or files
+    category: controller-protection
+    priority: high
+    why: >-
+      Many controllers accept engineering connections from anyone who can reach
+      them. AA23-335A and AA25-343A both ask that access be authenticated before
+      state, logic or file changes are allowed.
+    how: >-
+      Use the controller's own authentication and role features (see platform
+      files); limit operating-mode changes to authenticated roles; centralised
+      authentication can help manage large numbers of field controller accounts.
+    confidence: high
+    sources:
+      - title: CISA AA25-343A - Pro-Russia Hacktivists Conduct Opportunistic Attacks Against US and Global Critical Infrastructure
+        url: https://www.cisa.gov/news-events/cybersecurity-advisories/aa25-343a
+        accessed: "2026-11-08"
+        kind: government
+        quote: "Authenticate all access to field controllers before authorizing access to, or modification of, a device’s state, logic, program, or filesystems."
+        read: direct
+      - title: CISA AA23-335A - IRGC-Affiliated Cyber Actors Exploit PLCs in Multiple Sectors (updated December 2024)
+        url: https://www.cisa.gov/news-events/cybersecurity-advisories/aa23-335a
+        accessed: "2026-11-08"
+        kind: government
+        quote: "Use a role-based mechanism to limit operating mode changes to required authenticated users only."
+        read: direct
+
+  - id: base-controller-allowlist
+    control: Allow only known engineering workstations and control devices to connect to each controller
+    category: controller-protection
+    priority: high
+    why: >-
+      AA26-097A's actors used the vendors' own programming software from leased
+      hosting infrastructure. A controller or segment that accepts only expected
+      peers refuses that connection even when the software is genuine.
+    how: >-
+      Firewall rules or the controller's own ACL feature allowing only expected
+      control system devices; host-based allowlists so controllers connect only
+      with known workstations; block hosting-provider and actor-controlled
+      addresses. Platform files give vendor syntax.
+    blunts:
+      - AA26-097A Iranian-affiliated exploitation of internet-facing PLCs (2025-2026)
+    frameworks:
+      - CISA CPG 2.0 3.E
+    confidence: high
+    sources:
+      - title: CISA AA26-097A - Iranian-Affiliated Cyber Actors Exploit Programmable Logic Controllers Across US Critical Infrastructure
+        url: https://www.cisa.gov/news-events/cybersecurity-advisories/aa26-097a
+        accessed: "2026-11-08"
+        kind: government
+        quote: "Configure firewall rules or access control list (ACL) security features on PLCs or programmable controllers to allow only authorized communications between expected control system devices."
+        read: direct
+      - title: CISA AA23-335A - IRGC-Affiliated Cyber Actors Exploit PLCs in Multiple Sectors (updated December 2024)
+        url: https://www.cisa.gov/news-events/cybersecurity-advisories/aa23-335a
+        accessed: "2026-11-08"
+        kind: government
+        quote: "Use host-based allowlists to prevent devices from accepting connections from unauthorized systems and ensure they can only connect with known workstations."
+        read: direct
+      - title: CISA AA25-343A - Pro-Russia Hacktivists Conduct Opportunistic Attacks Against US and Global Critical Infrastructure
+        url: https://www.cisa.gov/news-events/cybersecurity-advisories/aa25-343a
+        accessed: "2026-11-08"
+        kind: government
+        quote: "Establish an allowlist that permits only authorized device IP addresses and/or media access control addresses."
+        read: direct
+
+  # ---------------------------------------------------------------- services
+  - id: base-disable-unused-services
+    control: Disable unused authentication methods, features and services (Telnet, FTP, RDP, VNC, web) on OT devices
+    category: services
+    priority: high
+    why: >-
+      AA25-343A's hacktivists came in through exposed VNC; AA26-097A lists Telnet,
+      FTP, RDP, VNC and web services as services to switch off when not needed.
+      Siemens gives the same rule for automation components.
+    how: >-
+      Turn off every service not operationally required and account for those
+      that remain in the security concept; block unused high ephemeral ports and
+      watch for standard protocols on non-standard ports.
+    blunts:
+      - AA25-343A pro-Russia hacktivist VNC/HMI access (2024-2025)
+    frameworks:
+      - CISA CPG 2.0 3.R
+    confidence: high
+    sources:
+      - title: CISA AA26-097A - Iranian-Affiliated Cyber Actors Exploit Programmable Logic Controllers Across US Critical Infrastructure
+        url: https://www.cisa.gov/news-events/cybersecurity-advisories/aa26-097a
+        accessed: "2026-11-08"
+        kind: government
+        quote: "Disable any unused authentication methods, logic, or features, such as default authentication keys and passwords, as well as unused or needed services such as Teletype Network (Telnet), File Transfer Protocol (FTP), Remote Desktop Protocol (RDP), Virtual Network Computing (VNC), and web services."
+        read: direct
+      - title: Siemens - Cybersecurity for Industry Operational Guidelines v2.2.1
+        url: https://cert-portal.siemens.com/operational-guidelines-industrial-security.pdf
+        accessed: "2026-11-08"
+        kind: vendor
+        quote: "To minimize risks, only the services that are actually required should be activated on automation components."
+        read: direct
+      - title: CISA AA25-343A - Pro-Russia Hacktivists Conduct Opportunistic Attacks Against US and Global Critical Infrastructure
+        url: https://www.cisa.gov/news-events/cybersecurity-advisories/aa25-343a
+        accessed: "2026-11-08"
+        kind: government
+        quote: "Block all unused high ephemeral ports and monitor for attempted connections using standard protocols on non-standard ports"
+        read: direct
+
+  # ------------------------------------------------------ logging/monitoring
+  - id: base-monitor-ot-traffic
+    control: Capture and monitor OT network traffic for unusual logins and for protocol functions that change operating mode or modify programs
+    category: logging-monitoring
+    priority: high
+    why: >-
+      Most controllers keep little or no audit log, so passive capture is often
+      the only record of who changed logic. Three joint advisories (AA23-335A,
+      AA25-343A, AA26-097A) name the same two things to watch for.
+    how: >-
+      Passive capture and ICS-aware network intrusion detection at OT segment
+      boundaries; alert on logins from the internet, unexpected protocols, and ICS
+      management functions that change mode or download programs.
+    confidence: high
+    sources:
+      - title: CISA AA25-343A - Pro-Russia Hacktivists Conduct Opportunistic Attacks Against US and Global Critical Infrastructure
+        url: https://www.cisa.gov/news-events/cybersecurity-advisories/aa25-343a
+        accessed: "2026-11-08"
+        kind: government
+        quote: "This includes unusual logins or unexpected protocols communicating over the internet, and functions of ICS management protocols that change an asset’s operating mode or modify programs."
+        read: direct
+      - title: CISA AA26-097A - Iranian-Affiliated Cyber Actors Exploit Programmable Logic Controllers Across US Critical Infrastructure
+        url: https://www.cisa.gov/news-events/cybersecurity-advisories/aa26-097a
+        accessed: "2026-11-08"
+        kind: government
+        quote: "Functions of industrial control systems management protocols that change an asset’s operating mode or modify programs."
+        read: direct
+
+  - id: base-remote-access-logs
+    control: Keep remote access, modem and firewall logs off the device and review them continually
+    category: logging-monitoring
+    priority: high
+    why: >-
+      Remote access is the usual way in. NSA and CISA ask for continual review of
+      remote access logs, and AA26-097A for modem logs, to detect intrusion and
+      speed up response.
+    how: >-
+      Enable logging on VPNs, jump hosts, gateways and modems; aggregate it
+      securely off the device; review for unexpected access, especially from the
+      internet and outside operator hours.
+    confidence: high
+    sources:
+      - title: NSA, CISA - Control System Defense - Know the Opponent (AA22-265A)
+        url: https://media.defense.gov/2022/Sep/22/2003083007/-1/-1/0/CSA_ICS_Know_the_Opponent_.PDF
+        accessed: "2026-11-08"
+        kind: government
+        quote: "Continually monitor remote access logs for suspicious accesses. Securely aggregate logs for easier monitoring."
+        read: direct
+      - title: CISA AA26-097A - Iranian-Affiliated Cyber Actors Exploit Programmable Logic Controllers Across US Critical Infrastructure
+        url: https://www.cisa.gov/news-events/cybersecurity-advisories/aa26-097a
+        accessed: "2026-11-08"
+        kind: government
+        quote: "Enable logs for connected modems and regularly review for suspicious activity to detect intrusions and improve incident response speed."
+        read: direct
+
+  - id: base-time-sync
+    control: Use one common time source for all OT devices, with a backup source, and keep unauthenticated NTP behind the firewall
+    category: logging-monitoring
+    priority: medium
+    why: A timeline built from controller, HMI and firewall clocks that disagree puts events in the wrong order.
+    how: >-
+      A common time across OT devices from multiple sources; authenticated NTP
+      or secure PTP where malicious time changes are a risk; unauthenticated NTP
+      located behind the firewall.
+    confidence: high
+    sources:
+      - title: NIST SP 800-82r3 - Guide to Operational Technology (OT) Security, section 6.2.12
+        url: https://nvlpubs.nist.gov/nistpubs/SpecialPublications/NIST.SP.800-82r3.pdf
+        accessed: "2026-11-08"
+        kind: government
+        quote: "A common time should be used across all OT devices. Utilizing multiple time sources can benefit OT devices by reducing clock error and providing backup time sources if the primary time source is lost or if the time quality of a primary time source has degraded."
+        read: direct
+      - title: NIST SP 800-82r3 - Guide to Operational Technology (OT) Security, section 6.2.12
+        url: https://nvlpubs.nist.gov/nistpubs/SpecialPublications/NIST.SP.800-82r3.pdf
+        accessed: "2026-11-08"
+        kind: government
+        quote: "Non-authenticated NTP is susceptible to spoofing and should be located behind the firewall."
+        read: direct
+
+  # --------------------------------------------------------------- integrity
+  - id: base-config-change-monitoring
+    control: Monitor for device configuration changes and alert when setpoints or tag values leave their safe ranges
+    category: integrity
+    priority: high
+    why: >-
+      AA25-343A's actors changed setpoints from HMIs; AA26-097A's disabled
+      shutdown and alarm logic. Knowing the expected values is how an unexpected
+      change is noticed.
+    how: >-
+      Use asset or change management systems to record expected parameter
+      settings and flag changes; configure alerting on setpoint and tag ranges.
+      Platform files list vendor change-detection features.
+    confidence: high
+    sources:
+      - title: CISA AA26-097A - Iranian-Affiliated Cyber Actors Exploit Programmable Logic Controllers Across US Critical Infrastructure
+        url: https://www.cisa.gov/news-events/cybersecurity-advisories/aa26-097a
+        accessed: "2026-11-08"
+        kind: government
+        quote: "Monitor asset management systems for device configuration changes, which can be used to understand expected parameter settings."
+        read: direct
+      - title: CISA AA25-343A - Pro-Russia Hacktivists Conduct Opportunistic Attacks Against US and Global Critical Infrastructure
+        url: https://www.cisa.gov/news-events/cybersecurity-advisories/aa25-343a
+        accessed: "2026-11-08"
+        kind: government
+        quote: "Review configurations for setpoint ranges or tag values to stay within safe ranges and establish alerting for deviations."
+        read: direct
+
+  - id: base-known-good-comparison
+    control: Compare running controller logic, reusable modules and I/O configuration against a known-good copy with the vendor's integrity tools
+    category: integrity
+    priority: high
+    why: >-
+      AA26-097A's actors kept the downstream ladder logic working while adding
+      logic that overrode safe operating parameters and modified Add-On
+      Instructions. A logic comparison is the way to see that; a controller never
+      compared has not been shown to be unmodified.
+    how: >-
+      Use the vendor's integrity or compare tools and a visual review against
+      known-good logic; check reusable logic (for example Rockwell AOIs) and I/O
+      configuration. Going online with engineering software needs operations
+      approval.
+    blunts:
+      - AA26-097A Iranian-affiliated modification of PLC project logic and AOIs (2026)
+    confidence: high
+    sources:
+      - title: CISA AA26-097A - Iranian-Affiliated Cyber Actors Exploit Programmable Logic Controllers Across US Critical Infrastructure
+        url: https://www.cisa.gov/news-events/cybersecurity-advisories/aa26-097a
+        accessed: "2026-11-08"
+        kind: government
+        quote: "Use vendor-provided integrity checking tools and visually compare the running program to known good logic. Ensure reusable logic and input/output configurations are valid."
+        read: direct
+
+  - id: base-restrict-engineering-tools
+    control: Limit engineering, configuration and diagnostic tools to the hosts and people that need them, and keep gold copies outside the system
+    category: integrity
+    priority: medium
+    why: >-
+      NSA and CISA call using the system against itself a powerful technique;
+      AA26-231A's actors hid snap7-based scripts as monitoring tools.
+    how: >-
+      Identify engineering and diagnostic tools; store gold copies outside the
+      system; remove non-critical tools, prevent reinstallation and audit for it.
+      AA26-231A adds application allowlisting on engineering workstations.
+    confidence: high
+    sources:
+      - title: NSA, CISA - Control System Defense - Know the Opponent (AA22-265A)
+        url: https://media.defense.gov/2022/Sep/22/2003083007/-1/-1/0/CSA_ICS_Know_the_Opponent_.PDF
+        accessed: "2026-11-08"
+        kind: government
+        quote: "Limit access to network and control system application tools and scripts to legitimate users performing legitimate tasks on the control system."
+        read: direct
+      - title: NSA, CISA, FBI, DOE, EPA AA26-231A - Defending Against an Active Threat to Siemens S7 Series PLCs
+        url: https://www.cisa.gov/news-events/cybersecurity-advisories/aa26-231a
+        accessed: "2026-11-08"
+        kind: government
+        quote: "Implement application allowlisting on all engineering workstations"
+        read: direct
+
+  # ---------------------------------------------------------------- patching
+  - id: base-patch-in-windows-kev-first
+    control: Patch controllers and remote access components in planned downtime, tested first, and prioritise known exploited vulnerabilities
+    category: patching
+    priority: high
+    why: >-
+      AA26-231A's actors look for PLCs running outdated firmware. NSA and CISA ask
+      for remote access points to be patched first.
+    how: >-
+      Install manufacturer patches in established downtime windows; take KEV
+      entries outside the window where needed; test in a development environment
+      first; prioritise internet-facing, DMZ and remote access devices.
+    operational_impact: >-
+      Downtime window, prior testing and often vendor support. Do not prioritise
+      on CVSS alone (see CLAUDE.md).
+    confidence: high
+    sources:
+      - title: CISA AA26-097A - Iranian-Affiliated Cyber Actors Exploit Programmable Logic Controllers Across US Critical Infrastructure
+        url: https://www.cisa.gov/news-events/cybersecurity-advisories/aa26-097a
+        accessed: "2026-11-08"
+        kind: government
+        quote: "Use established downtime windows to install patches."
+        read: direct
+      - title: CISA AA26-097A - Iranian-Affiliated Cyber Actors Exploit Programmable Logic Controllers Across US Critical Infrastructure
+        url: https://www.cisa.gov/news-events/cybersecurity-advisories/aa26-097a
+        accessed: "2026-11-08"
+        kind: government
+        quote: "Known Exploited Vulnerabilities may need to be prioritized outside a downtime window."
+        read: direct
+      - title: NSA, CISA - Control System Defense - Know the Opponent (AA22-265A)
+        url: https://media.defense.gov/2022/Sep/22/2003083007/-1/-1/0/CSA_ICS_Know_the_Opponent_.PDF
+        accessed: "2026-11-08"
+        kind: government
+        quote: "Patch known exploited vulnerabilities whenever possible. Prioritize timely patching of all remote access points."
+        read: direct
+      - title: NSA, CISA, FBI, DOE, EPA AA26-231A - Defending Against an Active Threat to Siemens S7 Series PLCs
+        url: https://www.cisa.gov/news-events/cybersecurity-advisories/aa26-231a
+        accessed: "2026-11-08"
+        kind: government
+        quote: "Test all updates in a development environment before production deployment"
+        read: direct
+
+  # --------------------------------------------------------- backup/recovery
+  - id: base-offline-logic-backups
+    control: Back up PLC logic and configurations and HMI logic, configuration and firmware, test restores, and keep copies offline and off-site
+    category: backup-recovery
+    priority: critical
+    why: >-
+      The logic is the best artefact a controller has and the only route back
+      after it is altered; AA26-097A and AA25-343A both ask for tested backups
+      for fast recovery.
+    how: >-
+      Back up logic, configurations and firmware; store files offline with the
+      removable media physically secured; keep an alternate copy where the same
+      incident cannot reach it; test restoration as part of contingency testing;
+      list everything kept (installation media, licence keys, configuration).
+    frameworks:
+      - CISA CPG 2.0 3.O
+    confidence: high
+    sources:
+      - title: CISA AA26-097A - Iranian-Affiliated Cyber Actors Exploit Programmable Logic Controllers Across US Critical Infrastructure
+        url: https://www.cisa.gov/news-events/cybersecurity-advisories/aa26-097a
+        accessed: "2026-11-08"
+        kind: government
+        quote: "Store backup files offline and secure the physical removal media to enable fast recovery."
+        read: direct
+      - title: CISA AA25-343A - Pro-Russia Hacktivists Conduct Opportunistic Attacks Against US and Global Critical Infrastructure
+        url: https://www.cisa.gov/news-events/cybersecurity-advisories/aa25-343a
+        accessed: "2026-11-08"
+        kind: government
+        quote: "Create backups of the engineering logic, configurations, and firmware of HMIs to enable fast recovery."
+        read: direct
+      - title: NIST SP 800-82r3 - Guide to Operational Technology (OT) Security, section 6.2.4.3
+        url: https://nvlpubs.nist.gov/nistpubs/SpecialPublications/NIST.SP.800-82r3.pdf
+        accessed: "2026-11-08"
+        kind: government
+        quote: "Establish an alternate secondary storage location for additional copies of backups to ensure that the same incident that disrupts the primary data cannot modify or destroy the backup"
+        read: direct
+
+  - id: base-trustworthy-backups
+    control: Keep time-sequenced backups and verify a backup is free of malicious logic before restoring it
+    category: backup-recovery
+    priority: high
+    why: >-
+      A backup taken after the attacker's change reinstalls the attacker's logic.
+      ASD asks whether backups can be trusted when an actor has been present for
+      some time; AA26-097A says to verify before deployment.
+    how: >-
+      Backup-in-depth with time-sequenced layers (local, facility, disaster) so an
+      older copy predating the intrusion exists; compare any backup against
+      known-good engineering source before restoring.
+    confidence: high
+    sources:
+      - title: CISA AA26-097A - Iranian-Affiliated Cyber Actors Exploit Programmable Logic Controllers Across US Critical Infrastructure
+        url: https://www.cisa.gov/news-events/cybersecurity-advisories/aa26-097a
+        accessed: "2026-11-08"
+        kind: government
+        quote: "If restoring from backups, verify the backup does not contain malicious logic before deployment."
+        read: direct
+      - title: ASD's ACSC et al. - Principles of operational technology cyber security (October 2024)
+        url: https://www.cyber.gov.au/publication/principles-of-operational-technology-cyber-security
+        accessed: "2026-11-08"
+        kind: government
+        quote: "That is, if a malicious actor has been on the network for a period of time, can the backups be trusted?"
+        read: direct
+      - title: NIST SP 800-82r3 - Guide to Operational Technology (OT) Security, section 5
+        url: https://nvlpubs.nist.gov/nistpubs/SpecialPublications/NIST.SP.800-82r3.pdf
+        accessed: "2026-11-08"
+        kind: government
+        quote: "A “backup-in-depth” approach with multiple layers of backups (e.g., local, facility, disaster) that are time-sequenced such that rapid recent local backups are available for immediate use and secure backups are available to recover from a massive security incident (e.g., ransomware attack) can help improve OT system availability."
+        read: direct
+
+  - id: base-cold-standby
+    control: Keep cold-standby or replacement hardware and know each device's factory-reset and redeploy procedure
+    category: backup-recovery
+    priority: medium
+    why: >-
+      In 2023 the Unitronics actors changed device names, software versions and
+      upload passwords so that operators could not reconnect; AA23-335A says only
+      a matching software version or a factory reset resolved it.
+    how: >-
+      Retain spares of similar models; practise the factory reset and redeploy
+      procedure for each controller family before an incident.
+    frameworks:
+      - CISA CPG 2.R
+    confidence: high
+    sources:
+      - title: CISA AA23-335A - IRGC-Affiliated Cyber Actors Exploit PLCs in Multiple Sectors (updated December 2024)
+        url: https://www.cisa.gov/news-events/cybersecurity-advisories/aa23-335a
+        accessed: "2026-11-08"
+        kind: government
+        quote: "Retain cold-standby or replacement hardware of similar models to ensure continued operations of critical functions if the primary system is compromised or unavailable"
+        read: direct
+      - title: CISA - Exploitation of Unitronics PLCs used in Water and Wastewater Systems (alert, November 2023)
+        url: https://www.cisa.gov/news-events/alerts/2023/11/28/exploitation-unitronics-plcs-used-water-and-wastewater-systems
+        accessed: "2026-11-08"
+        kind: government
+        quote: "Become familiar with the process for factory resetting and deploying configurations to a device in the event of being hit by ransomware."
+        read: direct
+
+  # ------------------------------------------------------------------ safety
+  - id: base-manual-operations
+    control: Practise and maintain the ability to run the process manually, and test fail-safe, islanding and standby systems
+    category: safety
+    priority: critical
+    why: >-
+      Manual operation is what keeps the service running while controllers are
+      investigated; the 2023 Unitronics victim took its system offline and ran
+      manually. CISA, FBI, EPA and DOE list it as a primary mitigation.
+    how: >-
+      Include manual-operation scenarios in business continuity and disaster
+      recovery plans; routinely test fail-safe mechanisms, islanding, software
+      backups and standby systems.
+    operational_impact: Requires trained operators, staffing and exercises; it is a plant decision, not a security setting.
+    frameworks:
+      - CISA CPG 2.0 6.A
+    confidence: high
+    sources:
+      - title: CISA, FBI, EPA, DOE - Primary Mitigations to Reduce Cyber Threats to Operational Technology (May 2025)
+        url: https://www.cisa.gov/sites/default/files/2025-05/fact-sheet-primary-mitigations-to-reduce-cyber-threats-to-operational-technology-508c.pdf
+        accessed: "2026-11-08"
+        kind: government
+        quote: "Business continuity and disaster recovery plans, fail-safe mechanisms, islanding capabilities, software backups, and standby systems should all be routinely tested to ensure safe manual operations in the event of an incident."
+        read: direct
+      - title: CISA AA25-343A - Pro-Russia Hacktivists Conduct Opportunistic Attacks Against US and Global Critical Infrastructure
+        url: https://www.cisa.gov/news-events/cybersecurity-advisories/aa25-343a
+        accessed: "2026-11-08"
+        kind: government
+        quote: "Include scenarios that necessitate switching to manual operations."
+        read: direct
+
+  # ------------------------------------------------------------ supply chain
+  - id: base-third-party-countermeasures
+    control: Require integrators, service providers and vendors to apply these mitigations and tell them about active threats
+    category: supply-chain
+    priority: high
+    why: >-
+      Misconfigurations come from integrators, managed service providers and
+      manufacturer defaults as well as the owner; service providers relying on
+      internet connectivity may not know about current targeting.
+    how: >-
+      Confirm third parties apply the countermeasures to installed equipment;
+      communicate directly about active threats, especially where they do remote
+      monitoring or maintenance; share advisories with them.
+    confidence: high
+    sources:
+      - title: CISA AA23-335A - IRGC-Affiliated Cyber Actors Exploit PLCs in Multiple Sectors (updated December 2024)
+        url: https://www.cisa.gov/news-events/cybersecurity-advisories/aa23-335a
+        accessed: "2026-11-08"
+        kind: government
+        quote: "Confirm third-party vendors apply the above recommended countermeasures to mitigate exposure of these devices and all installed equipment."
+        read: direct
+      - title: CISA AA26-097A - Iranian-Affiliated Cyber Actors Exploit Programmable Logic Controllers Across US Critical Infrastructure
+        url: https://www.cisa.gov/news-events/cybersecurity-advisories/aa26-097a
+        accessed: "2026-11-08"
+        kind: government
+        quote: "Owners and operators should communicate directly with service providers to address risks, especially when remote monitoring or maintenance is involved."
+        read: direct
+      - title: CISA, FBI, EPA, DOE - Primary Mitigations to Reduce Cyber Threats to Operational Technology (May 2025)
+        url: https://www.cisa.gov/sites/default/files/2025-05/fact-sheet-primary-mitigations-to-reduce-cyber-threats-to-operational-technology-508c.pdf
+        accessed: "2026-11-08"
+        kind: government
+        quote: "Misconfigurations may be introduced during standard operations, by the system integrator, by a managed service provider, or as part of the default product configuration by the system manufacturer."
+        read: direct
+
+  - id: base-secure-by-demand
+    control: Buy OT products that ship without default passwords, log logins and changes, support MFA and authenticated backups
+    category: supply-chain
+    priority: medium
+    why: >-
+      Each of these features answers a gap that recent incidents exploited or that
+      left responders without evidence. CISA's Secure by Demand fact sheet turns
+      them into procurement questions.
+    how: >-
+      Ask the Secure by Demand questions during procurement: default passwords
+      eliminated, older insecure protocols disabled by default, logging of
+      logins, restarts and changes, MFA in the baseline version, authenticated
+      backup and deployment of configurations and engineering logic.
+    confidence: high
+    sources:
+      - title: CISA - Key Secure by Demand Elements for Operational Technology (fact sheet, 2025)
+        url: https://www.cisa.gov/sites/default/files/2025-04/Priority-Considerations-for-OT-508c.pdf
+        accessed: "2026-11-08"
+        kind: government
+        quote: "Has the manufacturer eliminated default passwords? Are older insecure protocols disabled by default?"
+        read: direct
+      - title: CISA - Key Secure by Demand Elements for Operational Technology (fact sheet, 2025)
+        url: https://www.cisa.gov/sites/default/files/2025-04/Priority-Considerations-for-OT-508c.pdf
+        accessed: "2026-11-08"
+        kind: government
+        quote: "Does the product log logins, restarts, or changes to the product?"
+        read: direct
+
+  - id: base-device-provenance
+    control: Know the provenance of every device on the OT network and accept only firmware that is signed and verified
+    category: supply-chain
+    priority: medium
+    why: >-
+      ASD notes that on a typically open OT network almost any device can see and
+      inject control messages, so every device's supply chain matters, including
+      vendor laptops.
+    how: >-
+      Track the source of all devices, including vendor and consultant laptops;
+      receive firmware from a trusted location, check that it is cryptographically
+      signed and verify the signature.
+    confidence: high
+    sources:
+      - title: ASD's ACSC et al. - Principles of operational technology cyber security (October 2024)
+        url: https://www.cyber.gov.au/publication/principles-of-operational-technology-cyber-security
+        accessed: "2026-11-08"
+        kind: government
+        quote: "To aid protecting against third-party interference, entities should ensure that firmware is received from a trusted location, is cryptographically signed, and that the signature is checked."
+        read: direct
+      - title: ASD's ACSC et al. - Principles of operational technology cyber security (October 2024)
+        url: https://www.cyber.gov.au/publication/principles-of-operational-technology-cyber-security
+        accessed: "2026-11-08"
+        kind: government
+        quote: "The source and provenance of all devices in the OT environment should be known."
+        read: direct
+
+  # ------------------------------------------------------ incident readiness
+  - id: base-ot-ir-plan
+    control: Keep an OT-specific incident response plan, integrated with emergency and continuity plans, with a process engineer and an evidence-retention process
+    category: incident-readiness
+    priority: high
+    why: >-
+      Response in OT is a joint operations, engineering and security effort.
+      ASD wants a process engineer in planning and in any containment or recovery;
+      CISA, EPA and FBI want evidence preservation decided before the incident.
+    how: >-
+      Integrate OT playbooks with emergency, crisis and continuity plans and
+      reporting obligations; prepare an information pack for third-party
+      responders (contacts, naming conventions, data sources, tools that may be
+      deployed); define how evidence is collected, stored and accessed; exercise
+      and update the plans. See artifacts/response/baseline.yml.
+    confidence: high
+    sources:
+      - title: ASD's ACSC et al. - Principles of operational technology cyber security (October 2024)
+        url: https://www.cyber.gov.au/publication/principles-of-operational-technology-cyber-security
+        accessed: "2026-11-08"
+        kind: government
+        quote: "The involvement of a process engineer is important, both when creating plans and playbooks and during any investigation, containment or recovery processes."
+        read: direct
+      - title: CISA, FBI, EPA - Incident Response Guide - Water and Wastewater Sector
+        url: https://www.cisa.gov/sites/default/files/2024-10/WWS-Sector_Incident-Response-Guide.pdf
+        accessed: "2026-11-08"
+        kind: government
+        quote: "As a part of preparation, organizations should have a well-defined process for preserving data and evidence related to cyber incidents. This process should include clear guidelines for data collection, storage, and access."
+        read: direct
+
+  - id: base-cyber-aware-fault-triage
+    control: Train operators and technicians to consider a cyber cause before resetting, rebooting or re-flashing a faulting device
+    category: incident-readiness
+    priority: medium
+    why: >-
+      ASD notes the usual engineering fixes reset communication links and wipe
+      volatile memory, destroying evidence, and that cyber incidents may have been
+      dismissed as operational faults.
+    how: >-
+      Add a cyber check to fault-handling procedures and change management; make
+      it easy and blame-free for field staff to report suspicious behaviour,
+      including unannounced remote sessions on HMIs.
+    confidence: high
+    sources:
+      - title: ASD's ACSC et al. - Principles of operational technology cyber security (October 2024)
+        url: https://www.cyber.gov.au/publication/principles-of-operational-technology-cyber-security
+        accessed: "2026-11-08"
+        kind: government
+        quote: "Most, if not all, of the traditional remediation steps listed will reset communication links and wipe volatile memory, which may have helped a cyber security investigation."
+        read: direct
+
+notes: >-
+  ISA/IEC 62443 is cited only where a free government source maps a control to
+  it; the standard itself is paywalled and was not read. CPG ids are given as
+  each source prints them: the May 2025 fact sheet and AA23-335A use the original
+  CPG numbering (2.X, 2.F, 2.H, 2.R); AA25-343A and AA26-097A use CPG 2.0 numbering
+  (3.S, 3.I, 3.F, 6.A). SANS "Five ICS Cybersecurity Critical Controls" was
+  considered but not read directly (download not fetched); its controls overlap
+  base-ot-ir-plan, base-it-ot-dmz, base-monitor-ot-traffic, base-brokered-remote-access
+  and base-patch-in-windows-kev-first and add no claim not already sourced here.

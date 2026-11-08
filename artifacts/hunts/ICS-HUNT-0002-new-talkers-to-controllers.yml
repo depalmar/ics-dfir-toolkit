@@ -1,0 +1,104 @@
+# ICS hunt ICS-HUNT-0002
+# Schema: ../schema/hunt.schema.json
+# Research notes: docs/research/2026-11-08/detections.md
+
+id: ICS-HUNT-0002
+title: Hosts that start speaking an industrial protocol to a controller
+platforms: [ALL]
+protocols:
+  - ICS-PROTO-0001
+  - ICS-PROTO-0002
+  - ICS-PROTO-0003
+  - ICS-PROTO-0004
+  - ICS-PROTO-0006
+  - ICS-PROTO-0007
+  - ICS-PROTO-0010
+actors: [ICS-TA-0019]
+incidents: [ICS-INC-0009]
+hypothesis: >-
+  A host that is not an approved engineering workstation, HMI, SCADA server
+  or historian collector began talking an industrial protocol to a
+  controller: an IT host reached through a flat boundary, an unmanaged
+  laptop, or a script or tool dropped on an EWS.
+data: [ics-network-capture, netflow, windows-events]
+datasources: [ICS-DS-0001, ICS-DS-0003, ICS-DS-0006, ICS-DS-0002]
+data_detail: >-
+  Zeek conn.log with the ICSNPP protocol logs (modbus, modbus_detailed,
+  modbus_read_device_identification, s7comm, s7comm_read_szl,
+  s7comm_upload_download, s7comm_plus, enip, cip, cip_identity, dnp3,
+  iec104, opcua_binary) from a sensor inside the control network, or flow
+  records where no sensor exists; Sysmon Event ID 3 on EWS and HMI hosts
+  where it is configured.
+method:
+  - >-
+    Build the device control list CISA describes: for every controller, the
+    client addresses and protocols seen over a baseline period, reviewed with
+    operations and the controls engineers so that it lists approved hosts,
+    not merely observed ones.
+  - >-
+    Each day, list (client, controller, protocol) tuples absent from the
+    baseline. Rank those whose protocol logs show program transfer, writes or
+    mode-related functions above reads; device-identity reads
+    (modbus_read_device_identification, cip_identity, s7comm_read_szl) from a
+    new client suggest reconnaissance.
+  - >-
+    Where the new client is a Windows host with Sysmon network events, find
+    the process that opened the connection: engineering software in its
+    install path is a change to explain; a script interpreter or a binary in
+    a user-writable folder is the 01-engineering-workstations rule's case.
+  - >-
+    Set ENIP_CLIENT, MODBUS_CLIENT and DNP3_CLIENT in the Suricata
+    configuration to the approved hosts so that a new client alerts as it
+    appears.
+normal: >-
+  Each controller talks to a short, stable list of HMIs, SCADA servers,
+  historian or OPC collectors and named engineering workstations.
+suspicious: >-
+  A new client, especially an IT-subnet address, a DHCP laptop, a jump host
+  talking directly to controllers, or a process such as python.exe,
+  powershell.exe or a binary in AppData\Local\Temp; identity reads or writes
+  from a host that never spoke to that controller before.
+attack: [T0846, T0888, T0885, T0843]
+rules:
+  - 02-ot-network/ot_protocol_inbound_from_unapproved_host.rules
+  - 01-engineering-workstations/ews_script_or_user_path_process_to_controller_port.yml
+inferred: >-
+  The ranking by protocol function and the use of Sysmon to attribute a new
+  connection to a process are this toolkit's method. CISA supplies the
+  device control list; the joint ASD/CISA guidance supplies the anomaly.
+confidence: high
+sources:
+  - title: CISA AA26-097A - Iranian-Affiliated Cyber Actors Exploit Programmable Logic Controllers Across US Critical Infrastructure, mitigations
+    url: https://www.cisa.gov/news-events/cybersecurity-advisories/aa26-097a
+    accessed: "2026-11-08"
+    kind: government
+    quote: >-
+      When possible, implement a device control list for workstations sending
+      messages or connecting to OT components.
+    read: direct
+  - title: CISA AA23-335A - IRGC-Affiliated Cyber Actors Exploit PLCs in Multiple Sectors (revised December 18, 2024), mitigations
+    url: https://www.cisa.gov/news-events/cybersecurity-advisories/aa23-335a
+    accessed: "2026-11-08"
+    kind: government
+    quote: >-
+      Use host-based allowlists to prevent devices from accepting connections
+      from unauthorized systems and ensure they can only connect with known
+      workstations.
+    read: direct
+  - title: Best practices for event logging and threat detection (ASD's ACSC with CISA, FBI, NSA and partners, August 2024), OT considerations
+    url: https://www.cyber.gov.au/sites/default/files/2024-08/best-practices-for-event-logging-and-threat-detection.pdf
+    accessed: "2026-11-08"
+    kind: government
+    quote: >-
+      unexpected communication between the control system and external
+      network or unusual communication between components that do not usually
+      communicate
+    read: direct
+  - title: Best practices for event logging and threat detection, anomalous behaviour examples
+    url: https://www.cyber.gov.au/sites/default/files/2024-08/best-practices-for-event-logging-and-threat-detection.pdf
+    accessed: "2026-11-08"
+    kind: government
+    quote: >-
+      netflow data indicating one device talking to other internal devices it
+      normally does not connect to
+    read: direct

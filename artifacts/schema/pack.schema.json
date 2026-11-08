@@ -1,0 +1,59 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/depalmar/ics-dfir-toolkit/artifacts/schema/pack.schema.json",
+  "title": "Detection pack",
+  "description": "Detections for one campaign, malware family or CVE set, each tied to the evidence it reads and the Sigma, YARA or Suricata rule that expresses it. A detection that lacks its evidence says not-evaluated, never passed.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["id", "name", "platforms", "summary", "confidence", "references", "detect"],
+  "properties": {
+    "id": {"$ref": "common.schema.json#/$defs/pack_id"},
+    "name": {"type": "string"},
+    "platforms": {"type": "array", "minItems": 1, "items": {"$ref": "common.schema.json#/$defs/platform_or_all"}},
+    "protocols": {"type": "array", "items": {"$ref": "common.schema.json#/$defs/protocol_id"}},
+    "cves": {"type": "array", "items": {"$ref": "common.schema.json#/$defs/cve"}},
+    "actors": {"type": "array", "items": {"$ref": "common.schema.json#/$defs/actor_id"}},
+    "malware": {"type": "array", "items": {"$ref": "common.schema.json#/$defs/malware_id"}},
+    "incidents": {"type": "array", "items": {"$ref": "common.schema.json#/$defs/incident_id"}},
+    "summary": {"type": "string"},
+    "confidence": {"$ref": "common.schema.json#/$defs/confidence"},
+    "unverified": {"type": "boolean"},
+    "references": {"$ref": "common.schema.json#/$defs/references"},
+    "detect": {"type": "array", "minItems": 1, "items": {"$ref": "#/$defs/detection"}}
+  },
+  "$defs": {
+    "detection": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "title", "type", "tier", "evidence_class"],
+      "properties": {
+        "id": {"$ref": "common.schema.json#/$defs/slug"},
+        "title": {"type": "string"},
+        "type": {
+          "enum": ["log_regex", "path_exists", "yara", "network", "logic_compare", "check"],
+          "description": "network: expressed by a Suricata rule over capture; logic_compare: a difference between the running control logic and a known-good copy"
+        },
+        "tier": {"enum": ["possible", "likely", "confirmed"]},
+        "evidence_class": {"$ref": "common.schema.json#/$defs/artifact_class"},
+        "datasources": {"type": "array", "items": {"$ref": "common.schema.json#/$defs/datasource_id"}},
+        "pattern": {"type": "string"},
+        "exclude": {"type": "array", "items": {"type": "string"}},
+        "flags": {"type": "array", "items": {"enum": ["ignorecase"]}},
+        "paths": {"type": "array", "items": {"type": "string"}},
+        "rule": {"type": "string", "description": "YARA rule name inside a file listed in rules"},
+        "check": {"type": "string"},
+        "args": {"type": "object"},
+        "attack": {"type": "array", "items": {"$ref": "common.schema.json#/$defs/attack_id"}},
+        "rules": {"type": "array", "items": {"$ref": "common.schema.json#/$defs/rule_path"}, "description": "Sigma, YARA or Suricata files that express this detection"},
+        "notes": {"type": "string"}
+      },
+      "allOf": [
+        {"if": {"properties": {"type": {"const": "log_regex"}}}, "then": {"required": ["pattern"]}},
+        {"if": {"properties": {"type": {"const": "path_exists"}}}, "then": {"required": ["paths"]}},
+        {"if": {"properties": {"type": {"const": "yara"}}}, "then": {"required": ["rule", "rules"]}},
+        {"if": {"properties": {"type": {"const": "network"}}}, "then": {"required": ["rules"]}},
+        {"if": {"properties": {"type": {"const": "check"}}}, "then": {"required": ["check"]}}
+      ]
+    }
+  }
+}

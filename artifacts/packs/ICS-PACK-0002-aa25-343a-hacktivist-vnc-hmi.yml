@@ -1,0 +1,156 @@
+# Detection pack ICS-PACK-0002
+# Schema: ../schema/pack.schema.json
+# Research notes: docs/research/2026-11-08/detections.md
+#
+# Detections of type "check" name an evaluation step for the triage engine,
+# which is not built yet (docs/ROADMAP.md); until then they are manual steps,
+# and the Sigma and Suricata files linked in "rules" are what can be deployed
+# today. A detection whose evidence was not collected is not evaluated.
+
+id: ICS-PACK-0002
+name: AA25-343A - Pro-Russia hacktivist intrusions into HMIs over VNC
+platforms: [ICS-0011]
+actors: [ICS-TA-0010, ICS-TA-0011, ICS-TA-0012, ICS-TA-0013]
+incidents: [ICS-INC-0007]
+summary: >-
+  CISA AA25-343A (December 2025) reports CARR, Z-Pentest, NoName057(16),
+  Sector16 and affiliated groups scanning for VNC on 5900-5910, brute-forcing
+  passwords from temporary VPSs, logging in to HMIs with default, weak or no
+  passwords, and then using the HMI's graphical interface to change
+  usernames, passwords, parameters, device names and instrument settings,
+  disable alarms, cause loss of view and restart devices, recording it all
+  for social media. CISA warns the groups regularly make false or
+  exaggerated claims; a claim is a lead to the device, not a confirmed
+  impact. Many affected HMIs are embedded panels that log nothing, so the
+  network detections carry most of the weight; the Windows detections apply
+  where the HMI is a Windows host.
+confidence: high
+references:
+  - title: CISA AA25-343A - Pro-Russia Hacktivists Conduct Opportunistic Attacks Against US and Global Critical Infrastructure
+    url: https://www.cisa.gov/news-events/cybersecurity-advisories/aa25-343a
+    accessed: "2026-11-08"
+  - title: 4624(S) An account was successfully logged on (Microsoft Learn)
+    url: https://learn.microsoft.com/en-us/previous-versions/windows/it-pro/windows-10/security/threat-protection/auditing/event-4624
+    accessed: "2026-11-08"
+  - title: Sysmon v15.22 (Microsoft Sysinternals)
+    url: https://learn.microsoft.com/en-us/sysinternals/downloads/sysmon
+    accessed: "2026-11-08"
+
+detect:
+  - id: aa25343a-inbound-vnc-session
+    title: Completed VNC session to 5900-5910 in the OT range from outside
+    type: network
+    tier: possible
+    evidence_class: network
+    datasources: [ICS-DS-0002, ICS-DS-0004]
+    attack: [T0883, T0886, T1021.005]
+    rules: [02-ot-network/remote_access_inbound_to_ot.rules]
+    notes: >-
+      sid 9000010. The handshake completed, so the VNC service answered;
+      whether the actor got past authentication needs the HMI's own records
+      or the VNC server's log. Covers embedded panels that cannot log.
+
+  - id: aa25343a-hmi-inbound-vnc-public-source
+    title: Windows HMI accepted a VNC connection from a public address
+    type: check
+    check: windows_event_query
+    args:
+      channel: Microsoft-Windows-Sysmon/Operational
+      event_id: 3
+      Initiated: "false"
+      DestinationPort: "5900-5910"
+      SourceIp: not private, loopback, link-local or 100.64.0.0/10
+    tier: likely
+    evidence_class: network
+    datasources: [ICS-DS-0006]
+    attack: [T0883, T0886, T1021.005]
+    rules: [01-engineering-workstations/hmi_inbound_vnc_from_public_address.yml]
+    notes: >-
+      Needs Sysmon network events, which are disabled by default. Absence of
+      hits on a host without that configuration means not evaluated.
+
+  - id: aa25343a-hmi-rdp-public-source
+    title: Windows HMI or EWS accepted a remote desktop logon from a public address
+    type: check
+    check: windows_event_query
+    args:
+      channel: Security
+      event_id: 4624
+      LogonType: 10
+      IpAddress: not private, loopback, link-local or 100.64.0.0/10
+    tier: likely
+    evidence_class: auth-logs
+    datasources: [ICS-DS-0006]
+    attack: [T0886, T0822, T1021.001]
+    rules: [01-engineering-workstations/ews_hmi_rdp_logon_from_public_address.yml]
+    notes: >-
+      AA25-343A's finding is VNC; RDP is included because AA26-097A lists RDP
+      and VNC together among services to disable and the route is the same.
+
+  - id: aa25343a-remote-tool-on-hmi
+    title: Remote-access tool started on an HMI or EWS that has none in its inventory
+    type: check
+    check: windows_event_query
+    args:
+      channel: Microsoft-Windows-Sysmon/Operational
+      event_id: 1
+      tools: [AnyDesk, ScreenConnect, UltraVNC, TeamViewer incoming session]
+    tier: possible
+    evidence_class: process
+    datasources: [ICS-DS-0006]
+    attack: [T1219, T0822]
+    rules: [01-engineering-workstations/ews_hmi_remote_access_tool_started.yml]
+    notes: >-
+      Vendors install remote tools on HMIs legitimately; compare with the
+      asset inventory before treating a hit as more than possible.
+
+  - id: aa25343a-hmi-alarms-disabled-or-cleared
+    title: HMI alarm journal shows alarms disabled, or acknowledged in bulk, during a remote session
+    type: check
+    check: hmi_alarm_journal_query
+    args:
+      product: ignition
+      table: alarm_events
+      eventtype: [2, 5]
+    tier: possible
+    evidence_class: alarms-events
+    datasources: [ICS-DS-0010]
+    attack: [T0878]
+    notes: >-
+      AA25-343A: actors "use HMI interfaces to clear alarms caused by their
+      activity and alarms already present". Ignition eventtype values are as
+      recorded in ICS-DS-0010 (2 acknowledgement, 5 disabled; disabled events
+      only if "Store Enabled & Disabled Events" was on). Other HMI products
+      are not documented here. Rises to likely when it falls inside a remote
+      session from ICS-HUNT-0004.
+
+  - id: aa25343a-hmi-credentials-or-name-changed
+    title: HMI usernames, passwords, roles or device name changed with no change record
+    type: check
+    check: hmi_audit_query
+    args:
+      product: ignition
+      actions: [user source edit, user edit, role edit]
+    tier: possible
+    evidence_class: audit-trail
+    datasources: [ICS-DS-0010]
+    attack: [T0892]
+    notes: >-
+      AA25-343A: actors change HMI usernames and passwords to lock operators
+      out, usually causing loss of view. Device-name changes on embedded
+      panels may leave no record at all; operators losing access is then the
+      only sign.
+
+  - id: aa25343a-setpoint-outside-safe-range
+    title: Setpoint or limit moved outside its documented safe range
+    type: check
+    check: historian_setpoint_range
+    tier: possible
+    evidence_class: process-data
+    datasources: [ICS-DS-0011]
+    attack: [T0836, T0831]
+    notes: >-
+      AA25-343A asks owners to "Review configurations for setpoint ranges or
+      tag values to stay within safe ranges and establish alerting for
+      deviations." Needs the safe ranges from operations; without them this
+      is not evaluated.

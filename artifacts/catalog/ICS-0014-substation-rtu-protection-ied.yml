@@ -1,0 +1,677 @@
+# ICS platform catalog entry
+# ICS-0014 - Substation RTU and protection IED (IEC 60870-5-104, IEC 61850)
+# Research notes: docs/research/2026-11-08/platforms-round2.md
+
+id: ICS-0014
+name: Substation RTU and protection IED (IEC 60870-5-104, IEC 61850)
+vendor: multiple
+products:
+  - Hitachi Energy RTU500 series (RTU560 named by CERT Polska, Poland December 2025)
+  - Hitachi Energy Relion 650 / 670 series protection and control IEDs (650 v1.1 named by CERT Polska; 670 v2.2 guideline read)
+  - Mikronika RTUs (Linux-based; named by CERT Polska)
+  - Siemens SIPROTEC protection relays (SIPROTEC DoS in Industroyer; SIPROTEC 5 logging documentation read)
+  - ABB substation automation products whose files the Industroyer wiper targeted (MicroSCADA, PCM600 projects)
+asset_class: rtu
+purdue_levels: ["1", "2"]
+protocols: [ICS-PROTO-0007, ICS-PROTO-0008, ICS-PROTO-0009, ICS-PROTO-0006]
+os_base: >-
+  Vendor firmware, different per product. CERT Polska describes the RTU560
+  firmware file as an ELF image and the Mikronika controllers as Linux-based;
+  Relion and SIPROTEC internals are not published.
+filesystem: >-
+  Varies. RTU500 series archives events, security events and disturbance files
+  on non-volatile CompactFlash (Hitachi Energy). Relion 650 v1.1 exposes system
+  files over FTP, enabled by default (CERT Polska). Mikronika RTUs have a Linux
+  filesystem with shell history (CERT Polska). SIPROTEC 5 log storage is
+  battery-buffered or flash (Siemens).
+customer_shell: restricted
+memory_acquisition: not-available
+program_access: vendor-software-upload
+operating_modes: >-
+  No key switch common to the class. Relion 670 v2.2 records entering test
+  mode, simulation mode and configuration mode, forced signals and manual
+  resets as numbered security events (6110, 6170, 13250, 6140, 5110). The
+  RTU560 event log excerpt printed by CERT Polska shows "Manual Reset" (5110)
+  and "Gateway/RTU restarted" (5160) after a firmware transfer. SIPROTEC 5
+  mode handling was not read.
+integrity_features:
+  - feature: RTU500 secure update (firmware signature verification)
+    description: >-
+      Verifies the digital signature of uploaded firmware. CERT Polska reports
+      it was introduced in firmware 13.2.1 but had to be activated explicitly,
+      that none of the affected RTUs that supported it had it enabled, and that
+      CVE-2024-2617 allows it to be bypassed until 13.7.7. Without it the
+      Poland attacker loaded a modified firmware image that left the RTUs in a
+      reboot loop.
+    versions: RTU500 firmware 13.2.1 and later (bypass fixed in 13.7.7, per CERT Polska)
+    confidence: high
+    sources:
+      - title: CERT Polska - Energy Sector Incident Report, 29 December 2025 (PDF)
+        url: https://cert.pl/uploads/docs/CERT_Polska_Energy_Sector_Incident_Report_2025.pdf
+        accessed: "2026-11-08"
+        kind: government
+        quote: >-
+          The secure update feature, which enables verification of the uploaded
+          firmware’s digital signature, was introduced in version 13.2.1
+        read: direct
+      - title: CERT Polska - Energy Sector Incident Report, 29 December 2025 (PDF)
+        url: https://cert.pl/uploads/docs/CERT_Polska_Energy_Sector_Incident_Report_2025.pdf
+        accessed: "2026-11-08"
+        kind: government
+        quote: None of the devices that supported secure update had this feature enabled.
+        read: direct
+  - feature: Relion 670 security events (user activity logging)
+    description: >-
+      Security-relevant user operations are logged with event ID, timestamp,
+      sequence number, user name, severity and source; up to 10240 are kept on
+      the IED and can be sent to up to six external syslog (RFC 3164/5424) or
+      ArcSight CEF servers, or reported over IEC 61850 (logical node GSAL).
+      Events raised while the server is unreachable are not resent; read them
+      from the IED with PCM600. Reading needs the SECAUD role or "Audit log
+      read" right.
+    versions: 670 series version 2.2 (guideline 1MRK 511 399-UEN); 650 v1.1 not read
+    confidence: high
+    sources:
+      - title: 670 series Version 2.2 IEC Cybersecurity deployment guideline (Hitachi Energy, 1MRK 511 399-UEN)
+        url: https://publisher.hitachienergy.com/download?DocumentID=1MRK511399-UEN&LanguageCode=en&DocumentPartId=&Action=download&DocumentRevisionId=Y&parentURL=68747470733a2f2f7075626c69736865722e68697461636869656e657267792e636f6d2f646f63756d656e74733f6369643d39414146343032303838
+        accessed: "2026-11-08"
+        kind: vendor
+        quote: >-
+          A security event contains an event ID, a time stamp, a sequence
+          number, the user name, the severity of the action and the name of the
+          source. These events can be sent to external security log servers
+          using Syslog.
+        read: direct
+  - feature: SIPROTEC 5 security log and setting-history log
+    description: >-
+      Two ring-buffer logs the user cannot delete: the security log (access to
+      restricted areas, including unsuccessful and unauthorised attempts; up to
+      2048 indications) and the setting-history log (every setting change and
+      every downloaded parameter set; up to 200 indications). Siemens says to
+      read them regularly to archive them without loss.
+    versions: SIPROTEC 5 operation manual V08.83
+    confidence: high
+    sources:
+      - title: SIPROTEC 5 Operation manual V08.83 (Siemens, C003-G)
+        url: https://cache.industry.siemens.com/dl/files/321/109742321/att_1089364/v1/SIP5_Operating_V08.83_Manual_C003-G_en.pdf
+        accessed: "2026-11-08"
+        kind: vendor
+        quote: >-
+          Not all logs of your SIPROTEC 5 device can be deleted. These
+          limitations apply especially to logs with relevance for security and
+          after-sales (security log, device-diagnosis log, setting-history log).
+        read: direct
+  - feature: RTU500 data archives
+    description: >-
+      Archives on non-volatile CompactFlash for events, measurements, counters,
+      security events, protection-relay disturbance files and meter load
+      profiles, readable through the RTU web server and by file transfer.
+    confidence: high
+    sources:
+      - title: RTU500 series function and software (Hitachi Energy product page)
+        url: https://www.hitachienergy.com/us/en/products-and-solutions/substation-automation-protection-and-control/products/remote-terminal-units/rtu500-series-function-and-software
+        accessed: "2026-11-08"
+        kind: vendor
+        quote: >-
+          Data archives in RTU500 series products provide archive functions on
+          non-volatile compact flash for events, measurements, counter values,
+          security events, disturbance files of protection relays and load
+          profiles of metering devices.
+        read: direct
+collection:
+  - method: Security events already received by the site syslog/CEF server or SIEM
+    impact: passive
+    description: >-
+      Only where forwarding was configured beforehand: in the Relion 670 v2.2
+      ACTIVLOG settings every external log server is Off by default. Events
+      raised while the server was unreachable are missing from this copy.
+    confidence: high
+    references:
+      - https://publisher.hitachienergy.com/download?DocumentID=1MRK511399-UEN&LanguageCode=en&DocumentPartId=&Action=download&DocumentRevisionId=Y&parentURL=68747470733a2f2f7075626c69736865722e68697461636869656e657267792e636f6d2f646f63756d656e74733f6369643d39414146343032303838
+  - method: Copy engineering projects, SCL files, saved logs and exported fault records from engineering hosts and backups
+    impact: passive
+    description: >-
+      PCM600 and DIGSI 5 projects, .scd/.icd/.cid files and COMTRADE exports
+      live on engineering workstations and backup media. DIGSI 5 stores the
+      log contents and fault records it last read in the linked offline
+      configuration, so an earlier read may already hold entries the device has
+      since overwritten. These copies are also the known-good reference for
+      comparing device configuration.
+    confidence: high
+    references:
+      - https://cache.industry.siemens.com/dl/files/321/109742321/att_1089364/v1/SIP5_Operating_V08.83_Manual_C003-G_en.pdf
+  - method: Passive capture of IEC 60870-5-104, IEC 61850 MMS/GOOSE, DNP3 and management traffic (TAP or SPAN)
+    impact: passive
+    description: >-
+      Shows which hosts sent control commands, enumerated MMS objects, or
+      opened web, FTP or SSH sessions to RTUs and IEDs, independent of device
+      logging. GOOSE is layer-2 multicast and is only visible on a SPAN or TAP
+      inside the station bus.
+    confidence: medium
+  - method: Read the SIPROTEC 5 security log and setting-history log on the device's on-site operation panel
+    impact: read-only
+    description: >-
+      Main menu → Test & Diagnosis → Logs → Security log; Main menu →
+      Indications → Setting changes. Needs someone at the panel; no network
+      session to the relay.
+    safety_note: >-
+      Navigate only the Indications and Logs menus. Agree the visit with the
+      operator in charge of the substation; do not touch control or test
+      functions on the panel.
+    confidence: high
+    references:
+      - https://cache.industry.siemens.com/dl/files/321/109742321/att_1089364/v1/SIP5_Operating_V08.83_Manual_C003-G_en.pdf
+  - method: Read RTU500 archives and system diagnosis through the RTU web server
+    impact: read-only
+    description: >-
+      Hitachi Energy documents archive access via the web server under user
+      account management. Use an account without firmware or configuration
+      rights.
+    safety_note: >-
+      The login is itself logged ("Log-in successful", 1110, in the format
+      CERT Polska printed), so record the time. The Poland attacker used this
+      same interface with a firmware-capable account; never log in with such an
+      account to collect evidence.
+    confidence: high
+    references:
+      - https://www.hitachienergy.com/us/en/products-and-solutions/substation-automation-protection-and-control/products/remote-terminal-units/rtu500-series-function-and-software
+  - method: Read SIPROTEC 5 logs and fault records online with DIGSI 5 ("Read log entries", "Read records")
+    impact: online-vendor-tool
+    description: >-
+      Security log: Project → Online access → Device → Device Information →
+      Logs tab → Security logs. Save before anything is deleted; Siemens notes
+      log deletion is per log and fault-record deletion also removes the
+      matching fault-log entries.
+    safety_note: >-
+      The same DIGSI session can change settings, delete logs and fault records
+      and send commands. Operations approval required; name the operator.
+    confidence: high
+    references:
+      - https://cache.industry.siemens.com/dl/files/321/109742321/att_1089364/v1/SIP5_Operating_V08.83_Manual_C003-G_en.pdf
+  - method: Read Relion 670 security events with the PCM600 Event Viewer, and disturbance records over FTP
+    impact: online-vendor-tool
+    description: >-
+      Hitachi Energy names the PCM600 Event Viewer as the place to read
+      security events when syslog is not configured. Disturbance records can
+      only be read over FTP without TLS.
+    safety_note: >-
+      PCM600 can also write configuration and firmware. Use a dedicated
+      file-transfer-only account for disturbance records (the vendor's own
+      advice, because the FTP password crosses the wire in clear text).
+      Operations approval required.
+    confidence: high
+    references:
+      - https://publisher.hitachienergy.com/download?DocumentID=1MRK511399-UEN&LanguageCode=en&DocumentPartId=&Action=download&DocumentRevisionId=Y&parentURL=68747470733a2f2f7075626c69736865722e68697461636869656e657267792e636f6d2f646f63756d656e74733f6369643d39414146343032303838
+volatility:
+  - Relion 670 v2.2 keeps up to 10240 security events, then overwrites the oldest; event 9996 marks the overflow warning at 10000.
+  - >-
+    SIPROTEC 5 logs are ring buffers (security log 2048 entries, setting-history
+    log 200). An initial start after a device-software update automatically
+    deletes the operational, fault, switching-device, ground-fault,
+    setting-history and user-defined logs; the security log is not in that list.
+  - Deleting a SIPROTEC 5 fault log also deletes its fault records and resets the fault and fault-record counters to 0.
+  - >-
+    Destroyed devices may still hold logs. CERT Polska printed an RTU560 event
+    log excerpt from 29 December 2025, and Mikronika recovered part of the logs
+    from its damaged RTUs. Keep failed units for vendor analysis instead of
+    reflashing or scrapping them.
+anti_forensics:
+  - technique: Wiper overwrote substation configuration files (.scl, .cid, .scd) and ABB product files on Windows hosts
+    seen_in: Industroyer
+    detail: >-
+      ESET lists SCL-family extensions, SYS_BASCON.COM and ABB .paf licence
+      files among the wiper's targets; it ran after the protocol payloads.
+  - technique: All files deleted on Linux-based RTUs over SSH with a root account; the command was not preserved in shell history
+    seen_in: Poland, December 2025 (CERT Polska)
+  - technique: Modified firmware uploaded to RTUs, leaving them in a reboot loop
+    seen_in: Poland, December 2025 (CERT Polska)
+    detail: >-
+      240 bytes of 0xFF inserted at the program entry point; the image reported
+      version 13.5.3.0, which no affected site ran. Hitachi Energy PSIRT
+      independently confirmed the scenario.
+datasources: [ICS-DS-0001, ICS-DS-0002, ICS-DS-0003, ICS-DS-0004, ICS-DS-0005, ICS-DS-0007, ICS-DS-0010, ICS-DS-0013]
+confidence: high
+references:
+  - title: CERT Polska - Energy Sector Incident Report, 29 December 2025 (blog)
+    url: https://cert.pl/en/posts/2026/01/incident-report-energy-sector-2025/
+    accessed: "2026-11-08"
+  - title: CERT Polska - Energy Sector Incident Report, 29 December 2025 (PDF)
+    url: https://cert.pl/uploads/docs/CERT_Polska_Energy_Sector_Incident_Report_2025.pdf
+    accessed: "2026-11-08"
+  - title: CISA - Poland Energy Sector Cyber Incident Highlights OT and ICS Security Gaps (10 February 2026)
+    url: https://www.cisa.gov/news-events/alerts/2026/02/10/poland-energy-sector-cyber-incident-highlights-ot-and-ics-security-gaps
+    accessed: "2026-11-08"
+  - title: 670 series Version 2.2 IEC Cybersecurity deployment guideline (Hitachi Energy, 1MRK 511 399-UEN)
+    url: https://publisher.hitachienergy.com/download?DocumentID=1MRK511399-UEN&LanguageCode=en&DocumentPartId=&Action=download&DocumentRevisionId=Y&parentURL=68747470733a2f2f7075626c69736865722e68697461636869656e657267792e636f6d2f646f63756d656e74733f6369643d39414146343032303838
+    accessed: "2026-11-08"
+  - title: SIPROTEC 5 Operation manual V08.83 (Siemens, C003-G)
+    url: https://cache.industry.siemens.com/dl/files/321/109742321/att_1089364/v1/SIP5_Operating_V08.83_Manual_C003-G_en.pdf
+    accessed: "2026-11-08"
+  - title: RTU500 series function and software (Hitachi Energy product page)
+    url: https://www.hitachienergy.com/us/en/products-and-solutions/substation-automation-protection-and-control/products/remote-terminal-units/rtu500-series-function-and-software
+    accessed: "2026-11-08"
+  - title: ESET - Win32/Industroyer, a new threat for industrial control systems (whitepaper, 2017-06-12)
+    url: https://www.welivesecurity.com/wp-content/uploads/2017/06/Win32_Industroyer.pdf
+    accessed: "2026-11-08"
+last_verified: "2026-11-08"
+notes: >-
+  A class record: products differ, so every vendor-specific claim names its
+  product and version. The Relion event numbers come from the 670 series 2.2
+  guideline; the RTU560 excerpt CERT Polska printed uses the same numbers and
+  texts for 1110, 5110 and 13400, which suggests (toolkit inference, not
+  vendor-stated) a shared Hitachi Energy event scheme - check the product's own
+  manual before relying on it. Relion 650 v1.1 documentation, the RTU500
+  cybersecurity deployment guideline and RTU500 syslog configuration were not
+  read (the Hitachi Energy publisher download for the RTU cybersecurity
+  brochure failed to fetch). Siemens SIPROTEC 4, the family Industroyer's DoS
+  tool hit, was not read; the SIPROTEC 5 manual describes a later generation.
+  Mikronika documentation was not found. customer_shell is "restricted"
+  because it varies: Mikronika RTUs expose a root SSH console (CERT Polska),
+  the others only web, FTP or vendor-tool access. Vendor default credentials
+  are documented in the guidelines read but are deliberately not reproduced
+  here; check that the factory default user is removed or changed.
+response: baseline
+artifacts:
+  - locator: RTU500 (RTU560) event log / security event archive - RTU web server, archives on CompactFlash
+    class: audit-trail
+    volatility: rotating
+    retention: Archive capacity not documented in the sources read
+    forensic_value: high
+    evidence_type: [initial-access, inhibit-response-function, impact, timeline, attribution]
+    confidence: high
+    collection_impact: read-only
+    description: >-
+      CERT Polska's excerpt shows the columns Seq. No., Timestamp, User name,
+      Event id, Severity, Source, Event text and Extra info. On 29 December
+      2025 the sequence was: 1110 "Log-in successful" by user "Default", two
+      2240 "User session role changed successfully", 13400 "Firmware
+      transferred to the device successfully" with extra info 13.5.3.0, 5110
+      "Manual Reset", then 5160 "Gateway/RTU restarted" by SYSTEM.
+    seen_in: [Poland, December 2025 (CERT Polska)]
+    provides: Who logged in, with what role, what firmware was loaded and when the RTU restarted.
+    normal: Logins by named maintenance accounts during planned work; firmware transfers only with an approved version during a change window.
+    suspicious: >-
+      Logins by a built-in or default account; a role change right after
+      login; "Firmware transferred to the device successfully" with a version
+      not deployed anywhere in the fleet; a manual reset and restart minutes
+      after a firmware transfer; gaps in sequence numbers.
+    basis: government
+    sources:
+      - title: CERT Polska - Energy Sector Incident Report, 29 December 2025 (PDF)
+        url: https://cert.pl/uploads/docs/CERT_Polska_Energy_Sector_Incident_Report_2025.pdf
+        accessed: "2026-11-08"
+        kind: government
+        quote: Excerpt from the RTU event log dated 29 December 2025
+        read: direct
+      - title: CERT Polska - Energy Sector Incident Report, 29 December 2025 (PDF)
+        url: https://cert.pl/uploads/docs/CERT_Polska_Energy_Sector_Incident_Report_2025.pdf
+        accessed: "2026-11-08"
+        kind: government
+        quote: >-
+          The attack was carried out by logging into the web interface using
+          the “Default” account.
+        read: direct
+  - locator: Relion 670 security events on the IED (PCM600 Event Viewer) and in syslog / CEF / IEC 61850 GSAL reports
+    class: audit-trail
+    volatility: rotating
+    retention: Up to 10240 events on the IED, oldest overwritten; not resent after a server outage
+    forensic_value: high
+    evidence_type: [initial-access, credential-access, inhibit-response-function, impair-process-control, evasion, timeline, attribution]
+    confidence: high
+    collection_impact: online-vendor-tool
+    description: >-
+      Numbered events include 1110 login successful; 1120, 1130 and 1170 login
+      failures; 1380 parameter changed; 1520 software updated; 1680 disturbance
+      records deleted; 1687 fault records cleared; 1710 device reset to factory
+      default; 1730 admin password reset to factory default; 6110 test mode
+      started; 6140 signal forced; 6170 simulation mode started; 10030 FTP
+      server activated from maintenance menu; 10060 authentication disabled from
+      maintenance menu; 13200 configuration transferred; 13400 firmware
+      transferred; 13500 firmware read/exported from the device.
+    provides: Logons, configuration and firmware transfers, test/force actions and evidence deletion on the relay itself.
+    normal: Engineering logons by named users during commissioning or approved changes; occasional mistyped passwords.
+    suspicious: >-
+      Repeated login failures; any login by the factory default user; 13200 or
+      13400 outside a change window; 1680 or 1687 (records deleted); 1710 or
+      1730; 10030 or 10060 from the maintenance menu; 6140 forced signals or
+      6110/6170 with no test planned; 13500 firmware export (someone obtaining
+      the image); 9996 overflow.
+    basis: vendor
+    sources:
+      - title: 670 series Version 2.2 IEC Cybersecurity deployment guideline (Hitachi Energy, 1MRK 511 399-UEN)
+        url: https://publisher.hitachienergy.com/download?DocumentID=1MRK511399-UEN&LanguageCode=en&DocumentPartId=&Action=download&DocumentRevisionId=Y&parentURL=68747470733a2f2f7075626c69736865722e68697461636869656e657267792e636f6d2f646f63756d656e74733f6369643d39414146343032303838
+        accessed: "2026-11-08"
+        kind: vendor
+        quote: >-
+          IED can store up to 10240 security events after which the oldest
+          events are overwritten.
+        read: direct
+      - title: 670 series Version 2.2 IEC Cybersecurity deployment guideline (Hitachi Energy, 1MRK 511 399-UEN)
+        url: https://publisher.hitachienergy.com/download?DocumentID=1MRK511399-UEN&LanguageCode=en&DocumentPartId=&Action=download&DocumentRevisionId=Y&parentURL=68747470733a2f2f7075626c69736865722e68697461636869656e657267792e636f6d2f646f63756d656e74733f6369643d39414146343032303838
+        accessed: "2026-11-08"
+        kind: vendor
+        quote: >-
+          In the event of unavailability of external servers the events
+          published are only logged in the IED and will not be made available
+          for the external servers when they are back online.
+        read: direct
+  - locator: Forwarded security events on the site syslog / CEF server (UDP 514 or TCP 1468 per the 670 port table)
+    class: off-box
+    volatility: off-box
+    forensic_value: high
+    evidence_type: [initial-access, credential-access, timeline]
+    confidence: high
+    collection_impact: passive
+    description: The forwarded copy survives firmware corruption, file deletion or factory reset of the device.
+    provides: Retention set by the owner rather than by the device buffer.
+    normal: A steady stream from every configured IED and RTU.
+    suspicious: A device that stops sending; the event criteria above; events on the device that never reached the server (outage gap).
+    basis: vendor
+  - locator: SIPROTEC 5 security log (on-site panel Main menu → Test & Diagnosis → Logs → Security log; DIGSI 5 Online access → Device Information → Logs tab)
+    class: auth-logs
+    volatility: rotating
+    retention: Up to 2048 indications, ring buffer, not deletable by the user
+    forensic_value: high
+    evidence_type: [initial-access, credential-access, timeline]
+    confidence: high
+    collection_impact: read-only
+    description: Access to restricted areas of the relay, including unsuccessful and unauthorised attempts.
+    provides: Authentication history on the relay that an operator cannot clear.
+    normal: Access by commissioning and maintenance engineers during planned work.
+    suspicious: Unsuccessful or unauthorised access attempts; access outside maintenance windows.
+    basis: vendor
+    sources:
+      - title: SIPROTEC 5 Operation manual V08.83 (Siemens, C003-G)
+        url: https://cache.industry.siemens.com/dl/files/321/109742321/att_1089364/v1/SIP5_Operating_V08.83_Manual_C003-G_en.pdf
+        accessed: "2026-11-08"
+        kind: vendor
+        quote: >-
+          Access to areas of the device with restricted access rights is
+          recorded in the security log. Unsuccessful and unauthorized access
+          attempts are also recorded. Up to 2048 indications can be stored in
+          the security log.
+        read: direct
+      - title: SIPROTEC 5 Operation manual V08.83 (Siemens, C003-G)
+        url: https://cache.industry.siemens.com/dl/files/321/109742321/att_1089364/v1/SIP5_Operating_V08.83_Manual_C003-G_en.pdf
+        accessed: "2026-11-08"
+        kind: vendor
+        quote: This log, which is organized as a ring buffer, cannot be deleted by the user!
+        read: direct
+  - locator: SIPROTEC 5 setting-history log (on-site panel Main menu → Indications → Setting changes; DIGSI 5 Project → Device → Process data → Log → Setting changes)
+    class: config
+    volatility: rotating
+    retention: Up to 200 indications; not deletable by the user, but wiped by an initial start after a device-software update
+    forensic_value: high
+    evidence_type: [impair-process-control, inhibit-response-function, configuration, timeline]
+    confidence: high
+    collection_impact: read-only
+    description: >-
+      Every individual setting change and every downloaded parameter set
+      ("DCF uploaded" = DCF loaded into device), with settings-group
+      activations and failed confirmations.
+    provides: Whether protection settings changed, and when, relative to a fault or trip.
+    normal: Entries matching approved setting changes and commissioning.
+    suspicious: >-
+      "DCF uploaded" or "Set+" entries with no approved change; settings-group
+      activation by command outside an operating procedure; a log that is
+      nearly empty right after an unplanned firmware update (the initial start
+      wiped it).
+    basis: vendor
+    sources:
+      - title: SIPROTEC 5 Operation manual V08.83 (Siemens, C003-G)
+        url: https://cache.industry.siemens.com/dl/files/321/109742321/att_1089364/v1/SIP5_Operating_V08.83_Manual_C003-G_en.pdf
+        accessed: "2026-11-08"
+        kind: vendor
+        quote: >-
+          All individual setting changes and the downloaded files of entire
+          parameter sets are recorded in the log for setting changes.
+        read: direct
+      - title: SIPROTEC 5 Operation manual V08.83 (Siemens, C003-G)
+        url: https://cache.industry.siemens.com/dl/files/321/109742321/att_1089364/v1/SIP5_Operating_V08.83_Manual_C003-G_en.pdf
+        accessed: "2026-11-08"
+        kind: vendor
+        quote: >-
+          If the device executes an initial start, for example after an update
+          of the device software, the following logs are automatically deleted:
+        read: direct
+  - locator: Fault / disturbance records and fault log (SIPROTEC 5 export as COMTRADE; Relion over FTP; copies archived in RTU500)
+    class: process-data
+    volatility: rotating
+    retention: Ring buffer on the relay; oldest records deleted automatically when full
+    forensic_value: high
+    evidence_type: [impact, impair-process-control, timeline]
+    confidence: high
+    collection_impact: online-vendor-tool
+    description: >-
+      Analog and binary recordings around a fault or trip. SIPROTEC 5 exports
+      them in COMTRADE (CFG) or CSV; Relion 670 disturbance records are read
+      over clear-text FTP; RTU500 can upload and archive relay disturbance
+      files via IEC 60870-5-103, SPA bus and IEC 61850.
+    provides: What the primary equipment actually did - breaker operations and electrical values - independent of SCADA.
+    normal: Records that match known grid faults, tests and switching orders.
+    suspicious: >-
+      Breaker operations with no electrical fault and no switching order;
+      records or fault logs deleted (Relion 1680/1687; SIPROTEC fault and
+      fault-record counters back at 0).
+    basis: vendor
+    sources:
+      - title: SIPROTEC 5 Operation manual V08.83 (Siemens, C003-G)
+        url: https://cache.industry.siemens.com/dl/files/321/109742321/att_1089364/v1/SIP5_Operating_V08.83_Manual_C003-G_en.pdf
+        accessed: "2026-11-08"
+        kind: vendor
+        quote: >-
+          Upon deletion of the fault log, the associated fault records are also
+          deleted. In addition, the meters for fault number and fault-record
+          number are reset to 0.
+        read: direct
+      - title: 670 series Version 2.2 IEC Cybersecurity deployment guideline (Hitachi Energy, 1MRK 511 399-UEN)
+        url: https://publisher.hitachienergy.com/download?DocumentID=1MRK511399-UEN&LanguageCode=en&DocumentPartId=&Action=download&DocumentRevisionId=Y&parentURL=68747470733a2f2f7075626c69736865722e68697461636869656e657267792e636f6d2f646f63756d656e74733f6369643d39414146343032303838
+        accessed: "2026-11-08"
+        kind: vendor
+        quote: >-
+          It is only possible to access disturbance records from the IED if FTP
+          without TLS encryption is used.
+        read: direct
+      - title: RTU500 series function and software (Hitachi Energy product page)
+        url: https://www.hitachienergy.com/us/en/products-and-solutions/substation-automation-protection-and-control/products/remote-terminal-units/rtu500-series-function-and-software
+        accessed: "2026-11-08"
+        kind: vendor
+        quote: >-
+          Disturbance files can be uploaded via IEC 60870-5-103, SPA bus and IEC
+          61850 and stored in the RTU.
+        read: direct
+  - locator: Substation configuration files (.scd, .icd, .cid) and vendor tool projects (PCM600, DIGSI 5) on engineering hosts and backups
+    class: project-files
+    volatility: stable
+    forensic_value: high
+    evidence_type: [impact, configuration]
+    confidence: high
+    collection_impact: passive
+    description: >-
+      The engineered configuration of the station and each IED, and the
+      known-good reference against which a device's current configuration is
+      compared. DIGSI 5 projects also hold the last logs and fault records read
+      from the device.
+    seen_in: [Industroyer]
+    provides: A baseline for comparison and, from saved logs, history the device may have overwritten.
+    normal: Files and projects that match the approved station configuration, held in version control or backup.
+    suspicious: >-
+      SCL or project files overwritten with junk at the start of the file, or
+      missing, on engineering hosts (the Industroyer wiper pattern); a device
+      configuration that no longer matches the approved SCD/CID.
+    basis: researcher
+    sources:
+      - title: ESET - Win32/Industroyer whitepaper
+        url: https://www.welivesecurity.com/wp-content/uploads/2017/06/Win32_Industroyer.pdf
+        accessed: "2026-11-08"
+        kind: researcher
+        quote: >-
+          In addition, the component also wipes files that may be used in
+          industrial control systems, such as files written using Substation
+          Configuration description Language (.scl/.cid/.scd) and there are
+          many files and file extensions that are used by various products from
+          ABB.
+        read: direct
+      - title: SIPROTEC 5 Operation manual V08.83 (Siemens, C003-G)
+        url: https://cache.industry.siemens.com/dl/files/321/109742321/att_1089364/v1/SIP5_Operating_V08.83_Manual_C003-G_en.pdf
+        accessed: "2026-11-08"
+        kind: vendor
+        quote: >-
+          The log content as well as fault records are thus saved simultaneously
+          as well in the linked offline configuration.
+        read: direct
+  - locator: Device firmware version and image (device information page; firmware-transfer event extra info)
+    class: firmware
+    volatility: live
+    forensic_value: high
+    evidence_type: [inhibit-response-function, impact]
+    confidence: high
+    collection_impact: read-only
+    description: >-
+      The Poland attacker's RTU560 image reported version 13.5.3.0 while the
+      sites ran 12.6.6.0, 12.7.3.0, 13.1.1.0 and 13.5.2.0. A unit in a reboot
+      loop cannot report its version; keep it for vendor analysis.
+    seen_in: [Poland, December 2025 (CERT Polska)]
+    provides: Whether firmware was replaced, and with what.
+    normal: The version recorded in the asset register for that unit.
+    suspicious: A version not deployed anywhere in the fleet; a unit that boot-loops or will not start after an unplanned firmware transfer.
+    basis: government
+    sources:
+      - title: CERT Polska - Energy Sector Incident Report, 29 December 2025 (PDF)
+        url: https://cert.pl/uploads/docs/CERT_Polska_Energy_Sector_Incident_Report_2025.pdf
+        accessed: "2026-11-08"
+        kind: government
+        quote: >-
+          In most of the affected farms, Hitachi RTU560 controllers were in use,
+          running firmware versions 12.6.6.0, 12.7.3.0, 13.1.1.0, and 13.5.2.0.
+        read: direct
+      - title: CERT Polska - Energy Sector Incident Report, 29 December 2025 (PDF)
+        url: https://cert.pl/uploads/docs/CERT_Polska_Energy_Sector_Incident_Report_2025.pdf
+        accessed: "2026-11-08"
+        kind: government
+        quote: >-
+          As a result, the processor executed an invalid instruction, which
+          caused a fault and led to a device reboot loop.
+        read: direct
+      - title: CISA - Poland Energy Sector Cyber Incident Highlights OT and ICS Security Gaps
+        url: https://www.cisa.gov/news-events/alerts/2026/02/10/poland-energy-sector-cyber-incident-highlights-ot-and-ics-security-gaps
+        accessed: "2026-11-08"
+        kind: government
+        quote: >-
+          Operators should prioritize updates that allow firmware verification
+          when available; if updates are not immediately feasible, ensure that
+          cyber incident response plans account for inoperative OT devices to
+          mitigate prolonged outages.
+        read: direct
+  - locator: Shell history (.bash_history) and device logs on Linux-based RTUs (Mikronika), recovered with vendor help
+    class: system-logs
+    volatility: stable
+    retention: Not documented; CERT Polska reports only partial recovery from damaged units
+    forensic_value: medium
+    evidence_type: [discovery, initial-access, impact, timeline]
+    confidence: high
+    collection_impact: process-risk
+    description: >-
+      Mikronika recovered part of the logs from damaged RTUs; they showed
+      network scanning and login attempts on 25 December 2025, four days before
+      the destructive actions. The deletion command itself was not in
+      .bash_history. Rated process-risk by this project: on a live RTU the
+      only documented way in is a root SSH session to the controller, and no
+      vendor read-only log export was found; on a destroyed unit, leave
+      recovery to the vendor.
+    seen_in: [Poland, December 2025 (CERT Polska)]
+    provides: Pre-attack reconnaissance and access attempts on the RTU.
+    normal: SSH logins only by the integrator's named maintenance accounts.
+    suspicious: Root SSH logins with default credentials; bursts of failed logins; scanning from inside the station network.
+    basis: government
+    sources:
+      - title: CERT Polska - Energy Sector Incident Report, 29 December 2025 (PDF)
+        url: https://cert.pl/uploads/docs/CERT_Polska_Energy_Sector_Incident_Report_2025.pdf
+        accessed: "2026-11-08"
+        kind: government
+        quote: During the analysis, Mikronika was able to recover a portion of the device logs.
+        read: direct
+      - title: CERT Polska - Energy Sector Incident Report, 29 December 2025 (PDF)
+        url: https://cert.pl/uploads/docs/CERT_Polska_Energy_Sector_Incident_Report_2025.pdf
+        accessed: "2026-11-08"
+        kind: government
+        quote: The exact command executed during the attack was not preserved in the .bash_history file.
+        read: direct
+  - locator: File-transfer access to IED system files (FTP, enabled by default on Relion 650 v1.1)
+    class: filesystem
+    volatility: stable
+    forensic_value: medium
+    evidence_type: [initial-access, inhibit-response-function, impact]
+    confidence: high
+    collection_impact: passive
+    description: >-
+      CERT Polska: the attacker used a built-in account with default
+      credentials over FTP to delete files the IED needs, so it shut down and
+      would not restart. Evidence is on the wire (FTP sessions and DELE
+      commands in passive capture) and in the device state, not in a log the
+      sources describe.
+    seen_in: [Poland, December 2025 (CERT Polska)]
+    provides: How a relay was disabled without any protection-protocol traffic.
+    normal: FTP to IEDs only from the engineering host during disturbance-record readout or configuration work.
+    suspicious: FTP logins with the factory account; file deletions over FTP; an IED that shuts down and will not restart.
+    basis: government
+    sources:
+      - title: CERT Polska - Energy Sector Incident Report, 29 December 2025 (PDF)
+        url: https://cert.pl/uploads/docs/CERT_Polska_Energy_Sector_Incident_Report_2025.pdf
+        accessed: "2026-11-08"
+        kind: government
+        quote: >-
+          These devices have the FTP service enabled by default, which provides
+          access to the device’s system files.
+        read: direct
+  - locator: Network traffic to RTUs and IEDs - IEC 60870-5-104 (TCP 2404), MMS (TCP 102), DNP3, web, FTP, SSH, and UDP 50000 to SIPROTEC
+    class: network
+    volatility: off-box
+    forensic_value: high
+    evidence_type: [discovery, lateral-movement, impair-process-control, inhibit-response-function, impact]
+    confidence: high
+    collection_impact: passive
+    description: >-
+      Industroyer's 61850 component swept subnets for TCP 102 when no target
+      list was given, then enumerated MMS named variables of circuit-breaker
+      and switch logical nodes (CSW); its 104 component discovered command
+      IOAs by iterating ranges. Its SIPROTEC DoS tool used UDP port 50000
+      (CVE-2015-5374). In Poland, devices were attacked in ascending IP order.
+    seen_in: [Industroyer, Industroyer2, COSMICENERGY, Poland, December 2025 (CERT Polska)]
+    provides: Control commands, enumeration and management sessions independent of device logging.
+    normal: >-
+      IEC-104 or DNP3 only between the SCADA front-end or gateway and its
+      configured outstations; MMS from the station HMI/gateway; web, FTP and
+      SSH only from engineering hosts during maintenance.
+    suspicious: >-
+      IEC-104 commands from a host that is not the SCADA master; MMS
+      getNameList sweeps across a subnet; UDP 50000 to protection relays;
+      web, FTP or SSH sessions to many devices in ascending address order;
+      Windows hosts making port-102 connections to every address in a subnet.
+    basis: researcher
+    sources:
+      - title: ESET - Win32/Industroyer whitepaper
+        url: https://www.welivesecurity.com/wp-content/uploads/2017/06/Win32_Industroyer.pdf
+        accessed: "2026-11-08"
+        kind: researcher
+        quote: >-
+          If the configuration file is not present, then this component
+          enumerates all connected network adaptors to determine their TCP/IP
+          subnet masks.
+        read: direct
+      - title: ESET - Win32/Industroyer whitepaper
+        url: https://www.welivesecurity.com/wp-content/uploads/2017/06/Win32_Industroyer.pdf
+        accessed: "2026-11-08"
+        kind: researcher
+        quote: >-
+          Once this vulnerability is successfully exploited, the target device
+          stops responding to any commands until it is rebooted manually.
+        read: direct
+      - title: CERT Polska - Energy Sector Incident Report, 29 December 2025 (PDF)
+        url: https://cert.pl/uploads/docs/CERT_Polska_Energy_Sector_Incident_Report_2025.pdf
+        accessed: "2026-11-08"
+        kind: government
+        quote: >-
+          The activity observed within individual substations appears to have
+          been at least partially automated.
+        read: direct

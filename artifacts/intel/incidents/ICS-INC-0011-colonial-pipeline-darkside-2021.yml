@@ -1,0 +1,85 @@
+# Colonial Pipeline: IT ransomware incident that led to a precautionary OT shutdown, May 2021.
+# Schema: ../../schema/incident.schema.json
+# Research notes: docs/research/2026-11-08/incidents-and-kev.md
+id: ICS-INC-0011
+name: Colonial Pipeline precautionary OT shutdown after DarkSide ransomware on IT
+aliases:
+  - DarkSide ransomware attack on a US pipeline company
+date: '2021-05'
+date_basis: >-
+  CISA/FBI AA21-131A was first published 11 May 2021 about a ransomware attack on "a pipeline company"; the
+  company's own statement says "On May 7, the Colonial Pipeline Company learned it was the victim of a
+  cybersecurity attack" and that taking systems offline halted all pipeline operations.
+disclosed: '2021-05'
+sectors:
+  - oil and gas (refined products pipeline)
+countries:
+  - United States
+victim: Colonial Pipeline Company (named in its own media statement; CISA says "a pipeline company").
+summary: >-
+  DarkSide ransomware affiliates encrypted the IT network of a US pipeline company. CISA and FBI saw no
+  indication that the operational technology network was directly affected or that the actors moved
+  laterally to OT, but the company reported that it proactively disconnected certain OT systems for
+  safety; its own statement says taking systems offline temporarily halted all pipeline operations. The
+  case is the reference example of an IT-only intrusion producing an OT outage through the operator's
+  containment decision.
+physical_consequence: service-outage
+consequence_detail: >-
+  Colonial (media statement, 10 May 2021 update): taking systems offline "temporarily halted all pipeline operations". CISA:
+  "the company has reported that they proactively disconnected certain OT systems to ensure the systems’
+  safety." The outage was a defensive decision, not malware acting on OT.
+ics_effects:
+  - loss-of-productivity-and-revenue
+chain:
+  - tactic: initial-access
+    what: >-
+      Not described for this incident. AA21-131A lists DarkSide's general access methods from open-source
+      reporting (phishing, exploiting remotely accessible accounts and systems, VDI), not the pipeline
+      company's.
+  - tactic: impact
+    what: DarkSide ransomware deployed against the company's IT network.
+  - tactic: configuration
+    what: >-
+      The company proactively disconnected certain OT systems; CISA: "there are no indications that the
+      threat actor moved laterally to OT systems."
+lessons:
+  - lesson: >-
+      Implement robust IT/OT segmentation with a DMZ, organize OT assets into zones, and prohibit ICS
+      protocols from traversing the IT network.
+    basis: government
+  - lesson: >-
+      Identify IT/OT inter-dependencies and develop workarounds or manual controls so ICS networks can be
+      isolated, and regularly test manual operation so critical functions continue if OT must be taken
+      offline.
+    basis: government
+  - lesson: >-
+      Know which business systems operations depend on (scheduling, billing, metering); an OT shutdown can be
+      forced by IT dependencies even when OT is untouched.
+    basis: toolkit
+confidence: high
+sources:
+  - title: 'DarkSide Ransomware: Best Practices for Preventing Business Disruption from Ransomware Attacks (AA21-131A)'
+    url: https://www.cisa.gov/news-events/cybersecurity-advisories/aa21-131a
+    accessed: '2026-11-08'
+    kind: government
+    quote: >-
+      After gaining initial access to the pipeline company’s network, DarkSide actors deployed DarkSide
+      ransomware against the company’s IT network. In response to the cyberattack, the company has reported
+      that they proactively disconnected certain OT systems to ensure the systems’ safety.
+    read: direct
+  - title: 'Media Statement Update: Colonial Pipeline System Disruption'
+    url: https://www.colpipe.com/news-insights/media-resources/post/media-statement-update-colonial-pipeline-system-disruption/
+    accessed: '2026-11-08'
+    kind: press
+    quote: >-
+      In response to the cybersecurity attack on our system, we proactively took certain systems offline to
+      contain the threat, which temporarily halted all pipeline operations, and affected some of our IT
+      systems.
+    read: direct
+notes: >-
+  The company statement is the victim's own words, recorded as kind press (the enum has no victim
+  category); it was re-read directly on 2026-11-08 (the quoted sentence is in the Monday 10 May, 12:25
+  p.m. update). The same page's Saturday 8 May, 12:30 p.m. update says "On May 7, the Colonial Pipeline
+  Company learned it was the victim of a cybersecurity attack"; the date field was left at month
+  precision in this verification pass and can now be narrowed from that quote. Neither DarkSide nor its affiliate has a registry actor id. No OT platform is listed because
+  no source says OT assets were affected.

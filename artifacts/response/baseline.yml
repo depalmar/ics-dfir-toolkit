@@ -1,0 +1,526 @@
+# Containment and recovery - baseline for every OT platform
+# Schema: ../schema/response.schema.json
+#
+# Guidance, not automation. Order is fixed: safety first, preserve, contain,
+# rotate credentials, eradicate, recover, verify. Built from CISA's ICS incident
+# response recommended practice, NIST SP 800-82r3 section 6.4-6.5, ASD's
+# ACSC-led OT principles, the "Incident Response" and mitigation sections of
+# AA25-343A and AA26-097A, AA23-335A, the CISA/FBI/EPA water-sector incident
+# response guide and the May 2025 primary mitigations fact sheet. Steps marked
+# basis: toolkit are this project's inference and say why. Research notes:
+# docs/research/2026-11-08/hardening-and-response.md
+
+platform_id: ALL
+name: Baseline OT incident response
+confidence: medium
+
+safety_first:
+  - step: Agree the safe state, who may operate the process, and the manual fallback with operations before any response action
+    detail: >-
+      CISA, FBI, EPA and DOE call the ability to revert to manual control vital
+      in the immediate aftermath of an incident; the 2023 Unitronics victim took
+      the system offline and ran manually. Decide whether the process keeps
+      running, fails over, or moves to manual, and who has authority to change
+      that.
+    owner: operations
+    basis: government
+  - step: Decide whether people can safely work in areas that depend on possibly compromised safety or protection systems
+    detail: >-
+      ASD frames this as the first incident-response question for safety and
+      protection systems: would you send staff to a site knowing an actor has
+      been, or is, on the network? Involve the safety function.
+    owner: safety
+    basis: government
+  - step: Treat changed setpoints, cleared alarms and altered shutdown logic as a safety event, not only a cyber event
+    detail: >-
+      AA26-097A reports logic changes that disabled critical shutdown and alarm
+      logic; AA25-343A reports hacktivists changing setpoints and clearing alarms
+      from HMIs. Confirm independent protection (SIS, hardwired trips) and local
+      indications before trusting the HMI.
+    owner: safety
+    basis: government
+  - step: Bring a process engineer and the control-system vendor into the response team from the start
+    detail: >-
+      ASD wants a process engineer in investigation, containment and recovery;
+      NIST lists OT technical support (vendors, integrators) and safety personnel
+      among response participants. AA26-097A asks owners to contact the PLC
+      manufacturer.
+    owner: engineering
+    basis: government
+  - step: Understand and communicate the operational impact of every containment option before using it
+    detail: >-
+      NIST: mitigation may involve process shutdowns or communication disconnects
+      that impact operations; those impacts should be understood and communicated.
+      For remote, unstaffed sites, account for the time to get people on site.
+    owner: operations
+    basis: government
+
+preserve_first:
+  - step: Do not reboot, power-cycle, reset or re-flash a suspect controller, HMI or gateway until its state has been captured
+    detail: >-
+      CISA's ICS IR practice: a modified real-time OS kernel is lost when power is
+      removed, and the only chance to capture it is to isolate the component from
+      the network while leaving it powered. ASD notes the usual engineering
+      remediation steps wipe volatile memory. If a restart is unavoidable for
+      safety, record that it happened and when.
+    owner: engineering
+    basis: government
+  - step: Pull the off-box evidence first - passive capture, firewall, switch, remote-access, modem, historian and alarm logs
+    detail: >-
+      These are passive collections. CISA's IR practice names server, firewall
+      and switch logs as the fallback when device state is lost; AA26-097A asks
+      for logs and configurations from modems, HMIs and workstations. Many
+      gateways and controllers keep short ring buffers - copy them early.
+    owner: security
+    basis: government
+  - step: Query logs for the advisory indicators and for OT-protocol traffic from the internet
+    detail: >-
+      AA26-097A: check for its IOCs and for suspicious traffic on 44818, 2222,
+      102 and 502, especially from foreign hosting providers; vet indicator IPs
+      before acting on them.
+    when: Any internet-reachable controller, HMI or modem, or a matching advisory
+    owner: security
+    basis: government
+  - step: With operations approval, upload the running project and compare it with the known-good copy using the vendor's tools
+    detail: >-
+      AA26-097A: use vendor-provided integrity checking tools and visually compare
+      the running program to known-good logic, including reusable modules and I/O
+      configuration. Going online with engineering software is an
+      online-vendor-tool action: read-only in intent, but the same session can
+      download or force, so operations must approve it. Save the uploaded project
+      as evidence before any change.
+    owner: engineering
+    basis: government
+  - step: Collect volatile and disk artefacts from Windows HMIs and engineering workstations before reimaging
+    detail: >-
+      AA25-343A's IR protocol: collect and review running processes and services,
+      unusual authentications and recent network connections. Engineering
+      workstations hold the projects and tools an attacker would use.
+    owner: security
+    basis: government
+  - step: Document the evidence and every response action with controlled access
+    detail: >-
+      CISA's IR practice: keep accurate documentation with controlled access to
+      the evidence. NIST suggests logs, video or interviews if recording in real
+      time would affect safety. Follow the evidence-retention process agreed
+      before the incident.
+    owner: security
+    basis: government
+
+contain:
+  - step: Assume an exposed device with weak or default credentials is compromised and isolate it
+    detail: >-
+      AA25-343A: determine which hosts were compromised and isolate them by
+      quarantining or taking them offline. Prefer isolating at the network
+      (removing the communication point) over powering the device off, so state
+      is preserved.
+    when: Internet-exposed system found with weak or default passwords
+    owner: security
+    basis: government
+  - step: Isolate by disconnecting the network communication point using a method planned and tested in advance, then verify isolation
+    detail: >-
+      CISA's IR practice: remove the networking communication point, then test and
+      verify isolation without disrupting other critical services. Cut external
+      and remote paths upstream (perimeter firewall, VPN concentrator, modem) rather
+      than editing the suspect device.
+    owner: engineering
+    basis: government
+  - step: Disable remote access paths not needed for recovery, including vendor connections and cellular modems
+    detail: >-
+      Remove inbound exposure; block identified addresses after vetting them
+      (AA26-097A warns its indicator IPs need vetting before blocking). Keep
+      remote access for the vendor only through a brokered, logged path.
+    owner: security
+    basis: government
+  - step: Where the controller has a mode switch, return it to RUN only after the running project has been reviewed
+    detail: >-
+      AA26-097A: changing modes locks in the current project file downloaded to
+      the device, so review and validate it first. The switch then blocks
+      further remote modification.
+    owner: engineering
+    basis: government
+  - step: Engage the incident response plan and report to the vendor PSIRT and national authorities
+    detail: >-
+      AA26-097A asks owners who find an affected internet-accessible device to
+      engage their IR plans and contact the authoring agencies and the vendor;
+      the water-sector guide suggests reporting product incidents to the
+      vendor's PSIRT immediately. Consider external OT forensic support if the
+      capability is not in-house (NIST).
+    owner: management
+    basis: government
+  - step: Tell integrators and service providers with remote access about the incident
+    detail: >-
+      AA26-097A: some service providers rely on internet connectivity and may not
+      be aware of active threats; their access paths and credentials are in
+      scope.
+    owner: management
+    basis: government
+
+credential_exposure:
+  - what: PLC, HMI and controller-protection passwords (including any default or shared ones)
+    why: >-
+      The 2023 Unitronics compromises used default or absent passwords, and
+      AA25-343A's actors changed HMI usernames and passwords to lock operators out.
+    action: >-
+      Provision new credentials (AA25-343A) once the device's logic is verified;
+      no default, shared or reused passwords; for Unitronics re-apply the project
+      passwords listed in hardening/unitronics.yml.
+  - what: Remote access, VPN, jump-host and vendor accounts
+    why: Brokered remote access is the usual entry path, and dormant or shared vendor accounts are rarely rotated.
+    action: >-
+      Rotate all remote access credentials, disable dormant accounts, enforce
+      phishing-resistant MFA (Primary Mitigations fact sheet) and re-scope vendor
+      access per asset and task before re-enabling it.
+  - what: Cellular modem and gateway credentials, SSH keys and SNMP communities
+    why: >-
+      AA26-097A reports actors placing Dropbear SSH on victim modems; a modem's
+      own accounts and keys must be presumed known.
+    action: >-
+      Rotate web, console and application accounts; revoke and regenerate SSH
+      keys; change SNMP communities; check for SSH services or accounts that were
+      not there before (vendor guidance in hardening/remote-access-gateways.yml).
+  - what: Engineering project files and the protection passwords and source keys configured in them
+    why: >-
+      AA26-097A reports project files exfiltrated from PLCs; ASD says engineering
+      configuration data keeps its value to an adversary for years.
+    action: >-
+      Treat exfiltrated projects as known to the adversary: change controller
+      access-level, source-protection and know-how passwords associated with them
+      (toolkit inference) and review what else the project reveals (addresses,
+      device names).
+  - what: Windows accounts on HMIs, engineering workstations and OT servers, and any AD trust with IT
+    why: >-
+      ASD warns that an OT environment in the IT AD forest, or trusted by it, does
+      not get the separation it needs; compromised IT credentials then reach OT.
+    action: >-
+      Rotate local and domain accounts used in OT; review and remove IT-to-OT
+      trusts; provision new account credentials as AA25-343A's IR protocol
+      requires.
+
+eradicate:
+  - step: Reimage compromised HMIs, engineering workstations and other hosts the actor touched
+    detail: >-
+      AA25-343A's IR protocol and AA26-097A both direct reimaging of devices the
+      actors connected to, to remove malicious changes or access tools. Image
+      from trusted media, not from a backup of the compromised host.
+    owner: engineering
+    basis: government
+  - step: Restore controller logic only from a copy verified free of malicious logic
+    detail: >-
+      AA26-097A: if restoring from backups, verify the backup does not contain
+      malicious logic before deployment. Use a backup older than the earliest
+      known intrusion activity, or rebuild from engineering source, and compare
+      before download.
+    owner: engineering
+    basis: government
+  - step: Where the actor locked a device out (renamed it, rolled back software version, set upload passwords), factory reset and redeploy known-good configuration
+    detail: >-
+      AA23-335A: the Unitronics lock-out could only be resolved by matching the
+      workstation software version or factory resetting the PLC. Upload or record
+      whatever state remains before the reset; it is the last evidence.
+    when: Device unreachable with normal engineering tools
+    owner: engineering
+    basis: government
+  - step: Remove unauthorised remote access tools and services from gateways and modems, and update their firmware
+    detail: >-
+      AA26-097A: Dropbear SSH on victim modems; modems should be secured with
+      strong authentication and updated. A factory reset plus a reviewed
+      configuration is cleaner than deleting one artefact.
+    owner: engineering
+    basis: government
+  - step: Close the access path - passwords, blocked sources, firewall port configuration
+    detail: >-
+      CISA's IR practice: changing all passwords and certain user names, blocking
+      identified IP addresses and changing firewall port configurations.
+      AA25-343A: harden the network to prevent additional malicious activity.
+    owner: security
+    basis: government
+
+recover:
+  - step: Run in a temporary operating state (fail-over, backup equipment, manual or isolated segments) while systems are restored
+    detail: >-
+      CISA's IR practice describes switching to fail-over systems, temporary
+      backup equipment or isolated components and warns this state carries higher
+      risk; plan its duration.
+    owner: operations
+    basis: government
+  - step: Restore in stages agreed with operations and remove temporary containment systematically
+    detail: >-
+      CISA's IR practice lists systematically removing temporary containment and
+      restarting operational systems as part of recovery. Bring one cell or
+      controller back at a time and watch the process.
+    owner: operations
+    basis: government
+  - step: Re-enable remote access only through a brokered path with phishing-resistant MFA after all credentials are rotated
+    detail: >-
+      Primary Mitigations fact sheet: private connectivity or VPN with a strong
+      password and phishing-resistant MFA, least privilege per asset and role.
+    owner: security
+    basis: government
+  - step: Keep heightened monitoring for logins and for protocol functions that change mode or download programs
+    detail: >-
+      AA26-097A and AA25-343A name both as the things to watch; keep passive
+      capture running through and after recovery.
+    owner: security
+    basis: government
+
+verify:
+  - step: Run acceptance tests, automated and manual, to show systems are back in their pre-incident state
+    detail: CISA's IR practice calls for acceptance tests and procedures after restoration.
+    owner: engineering
+    basis: government
+  - step: Compare the running logic, reusable modules, I/O configuration and safety/alarm logic with known-good again
+    detail: >-
+      AA26-097A: ensure reusable logic and input/output configurations are valid;
+      the 2026 changes disabled shutdown and alarm logic. A controller never
+      compared has not been shown to be unmodified.
+    owner: engineering
+    basis: government
+  - step: Confirm setpoint ranges and tag values are within safe limits and that deviation alerting works
+    detail: AA25-343A recommends reviewing setpoint and tag ranges and alerting on deviations.
+    owner: operations
+    basis: government
+  - step: Confirm from outside that no OT device or gateway is still reachable from the internet
+    detail: >-
+      Check your own public ranges (attack-surface service or CISA Cyber
+      Hygiene); this is an external check of your ranges, not a scan of the
+      control network.
+    owner: security
+    basis: government
+  - step: Report the lowest verdict as NO-INDICATORS-FOUND and state what was not evaluated
+    detail: >-
+      Controllers cannot be imaged like hosts; any controller whose logic was not
+      compared with a known-good copy, or whose ring buffer had rolled over, is a
+      stated gap. This project never calls a system clean.
+    owner: security
+    basis: toolkit
+  - step: Hold a lessons-learned review soon after recovery and feed it into the plan and the hardening controls
+    detail: >-
+      CISA's IR practice: as soon after the incident as possible; NIST asks that
+      response and recovery steps be documented for that review.
+    owner: management
+    basis: government
+
+do_not:
+  - action: Run the vendor's password-recovery or factory-reset procedure on a locked-out controller before everything else on it is captured
+    because: >-
+      Recovery usually erases what the investigation needs. Rockwell's SD1790
+      for MicroLogix: "The IP address and program are now erased" (1400) and the
+      firmware update "will clear the user program and any configured controller
+      password" (1100). In the July 2026 water-sector campaign attackers set
+      passwords and changed IP addresses (ICS-INC-0010), so the lockout is itself
+      evidence. Photograph displays, capture network traffic and gateway logs,
+      and record that the logic could not be uploaded before recovering.
+    basis: vendor
+  - action: Power-cycle, reboot, reset or re-flash a suspect PLC, HMI or gateway before its state and logic are captured
+    because: >-
+      CISA's ICS IR practice: a modified kernel is erased when power is removed,
+      and rebooting the affected device may destroy evidence. ASD: traditional
+      remediation steps wipe volatile memory. AA25-343A also notes operators, not
+      attackers, may turn HMIs off during response.
+    basis: government
+  - action: Restore a controller from a backup taken after the compromise, or from any backup not compared with known-good logic
+    because: >-
+      It reinstalls the attacker's logic. AA26-097A says to verify a backup has no
+      malicious logic before deployment; ASD asks whether backups can be trusted
+      after an actor has been present.
+    basis: government
+  - action: Run active scans (ping sweeps, vulnerability or discovery scanners) on the live control network to scope the incident
+    because: >-
+      NIST records a ping sweep that moved a robotic arm and another that hung a
+      wafer-fab controller, and advises extreme caution with active scanning on
+      operational networks. Scope from passive capture and logs instead; active
+      scanning is process-risk and break-glass only.
+    basis: government
+  - action: Disconnect, bypass, force or reset safety instrumented systems or trips as a containment step
+    because: >-
+      The SIS is the independent layer that keeps the plant safe if the control
+      system is compromised (NIST); AA26-097A shows disabling shutdown and alarm
+      logic is the harm an attacker seeks. Changes to safety systems go through
+      the safety function, not incident response. No source states this rule
+      verbatim; it is the toolkit's inference from those two.
+    basis: toolkit
+  - action: Turn a controller's mode switch to RUN, or download any project, before reviewing what is running
+    because: AA26-097A - changing modes locks in the current project file downloaded to the device.
+    basis: government
+  - action: Isolate network segments or shut down OT systems without agreeing the operational impact with operations
+    because: >-
+      NIST - incident mitigation may involve process shutdowns or communication
+      disconnects that impact operations; those impacts must be understood and
+      communicated.
+    basis: government
+  - action: Block advisory indicator IP addresses without vetting them
+    because: >-
+      AA26-097A asks organisations to investigate or vet its IP addresses before
+      blocking; actors use leased third-party hosting, so the addresses may be
+      shared or reassigned.
+    basis: government
+  - action: Let antivirus or EDR on HMIs and engineering workstations quarantine files, block communication or shut systems down automatically
+    because: >-
+      Siemens: availability must be assured even when malware is present, so the
+      scanner must not remove or quarantine files, block communication or shut
+      down systems. Make those decisions deliberately with operations.
+    basis: vendor
+  - action: Upload OT project files, logic or captures to public online scanning or storage services
+    because: >-
+      ASD and Siemens both warn against OT files leaving the organisation through
+      online antivirus or scanning engines; engineering data stays valuable to an
+      adversary for decades.
+    basis: government
+  - action: Pay a ransom to recover safety-relevant OT systems, or trust systems returned that way
+    because: >-
+      ASD: for safety and protection systems paying cannot be an option because
+      there is no timely way to verify the system has returned to a safe state;
+      ASD's advice is never to pay.
+    basis: government
+  - action: Declare a controller clean, or treat patching alone as eradication
+    because: >-
+      Not evaluated is not passed; a patch closes an entry path but does not
+      remove logic already downloaded. This project's lowest verdict is
+      NO-INDICATORS-FOUND.
+    basis: toolkit
+
+sources:
+  - title: Rockwell Automation SD1790 - Important Hardening Guidance and Instructions for Restoring Access When the Password Is Unknown (rev. 5.0)
+    url: https://www.rockwellautomation.com/en-us/trust-center/security-advisories/advisory.SD1790.html
+    accessed: "2026-11-08"
+    kind: vendor
+    quote: "The firmware update process will clear the user program and any configured controller password, restoring access to the device."
+    read: direct
+  - title: CISA - Recommended Practice - Developing an Industrial Control Systems Cybersecurity Incident Response Capability (2009)
+    url: https://www.cisa.gov/sites/default/files/2023-01/final-RP_ics_cybersecurity_incident_response_100609.pdf
+    accessed: "2026-11-08"
+    kind: government
+    quote: "It may be possible to take a snapshot of the kernel on the isolated component for later analysis under two conditions: the offending component is isolated by disconnecting it from the network, and leaving it in a powered state."
+    read: direct
+  - title: CISA - Recommended Practice - Developing an Industrial Control Systems Cybersecurity Incident Response Capability (2009)
+    url: https://www.cisa.gov/sites/default/files/2023-01/final-RP_ics_cybersecurity_incident_response_100609.pdf
+    accessed: "2026-11-08"
+    kind: government
+    quote: "In most incident instances, the system administrator or process engineer’s priority is to resume normal operations as soon as possible, often by rebooting the affected device. When this process is executed in this manner, evidence may be destroyed."
+    read: direct
+  - title: CISA - Recommended Practice - Developing an Industrial Control Systems Cybersecurity Incident Response Capability (2009)
+    url: https://www.cisa.gov/sites/default/files/2023-01/final-RP_ics_cybersecurity_incident_response_100609.pdf
+    accessed: "2026-11-08"
+    kind: government
+    quote: "The intention is to isolate the critical control system from the network by removing the networking communication point and then to test and verify isolation without disrupting other critical services."
+    read: direct
+  - title: CISA - Recommended Practice - Developing an Industrial Control Systems Cybersecurity Incident Response Capability (2009)
+    url: https://www.cisa.gov/sites/default/files/2023-01/final-RP_ics_cybersecurity_incident_response_100609.pdf
+    accessed: "2026-11-08"
+    kind: government
+    quote: "Establish and run acceptance tests and procedures to ensure that systems have been restored to the pre-incident state. These may include both automated and manual tests."
+    read: direct
+  - title: ASD's ACSC et al. - Principles of operational technology cyber security (October 2024)
+    url: https://www.cyber.gov.au/publication/principles-of-operational-technology-cyber-security
+    accessed: "2026-11-08"
+    kind: government
+    quote: "Most, if not all, of the traditional remediation steps listed will reset communication links and wipe volatile memory, which may have helped a cyber security investigation."
+    read: direct
+  - title: ASD's ACSC et al. - Principles of operational technology cyber security (October 2024)
+    url: https://www.cyber.gov.au/publication/principles-of-operational-technology-cyber-security
+    accessed: "2026-11-08"
+    kind: government
+    quote: "If there is a cyber security incident in an area that requires software running correctly for the work environment to be considered safe (safety and protection systems), is an organisation prepared to send staff to that site knowing that a bad actor has been, or is currently, on the network?"
+    read: direct
+  - title: ASD's ACSC et al. - Principles of operational technology cyber security (October 2024)
+    url: https://www.cyber.gov.au/publication/principles-of-operational-technology-cyber-security
+    accessed: "2026-11-08"
+    kind: government
+    quote: "That is, if a malicious actor has been on the network for a period of time, can the backups be trusted?"
+    read: direct
+  - title: ASD's ACSC et al. - Principles of operational technology cyber security (October 2024)
+    url: https://www.cyber.gov.au/publication/principles-of-operational-technology-cyber-security
+    accessed: "2026-11-08"
+    kind: government
+    quote: "paying a ransom cannot be an option, as there is no timely large-scale method to verify that the system has been returned to a safe state."
+    read: direct
+  - title: CISA AA25-343A - Pro-Russia Hacktivists Conduct Opportunistic Attacks Against US and Global Critical Infrastructure (Incident Response section)
+    url: https://www.cisa.gov/news-events/cybersecurity-advisories/aa25-343a
+    accessed: "2026-11-08"
+    kind: government
+    quote: "If organizations find exposed systems with weak or default passwords, they should assume threat actors compromised the system and begin the following incident response protocols:"
+    read: direct
+  - title: CISA AA25-343A - Pro-Russia Hacktivists Conduct Opportunistic Attacks Against US and Global Critical Infrastructure (Incident Response section)
+    url: https://www.cisa.gov/news-events/cybersecurity-advisories/aa25-343a
+    accessed: "2026-11-08"
+    kind: government
+    quote: "Collect and review artifacts, such as running processes/services, unusual authentications, and recent network connections."
+    read: direct
+  - title: CISA AA26-097A - Iranian-Affiliated Cyber Actors Exploit Programmable Logic Controllers Across US Critical Infrastructure
+    url: https://www.cisa.gov/news-events/cybersecurity-advisories/aa26-097a
+    accessed: "2026-11-08"
+    kind: government
+    quote: "If restoring from backups, verify the backup does not contain malicious logic before deployment."
+    read: direct
+  - title: CISA AA26-097A - Iranian-Affiliated Cyber Actors Exploit Programmable Logic Controllers Across US Critical Infrastructure
+    url: https://www.cisa.gov/news-events/cybersecurity-advisories/aa26-097a
+    accessed: "2026-11-08"
+    kind: government
+    quote: "Prior to switching the device to run mode, review and validate project files, as changing modes will lock in the current project file downloaded to the device."
+    read: direct
+  - title: CISA AA26-097A - Iranian-Affiliated Cyber Actors Exploit Programmable Logic Controllers Across US Critical Infrastructure
+    url: https://www.cisa.gov/news-events/cybersecurity-advisories/aa26-097a
+    accessed: "2026-11-08"
+    kind: government
+    quote: "Additionally, the changes disabled critical shutdown and alarm logic, allowing systems to enter unsafe conditions without notifying operators of the anomalies."
+    read: direct
+  - title: CISA AA26-097A - Iranian-Affiliated Cyber Actors Exploit Programmable Logic Controllers Across US Critical Infrastructure
+    url: https://www.cisa.gov/news-events/cybersecurity-advisories/aa26-097a
+    accessed: "2026-11-08"
+    kind: government
+    quote: "The authoring agencies recommend organizations investigate or vet these IP addresses prior to taking action, such as blocking."
+    read: direct
+  - title: CISA AA23-335A - IRGC-Affiliated Cyber Actors Exploit PLCs in Multiple Sectors (updated December 2024)
+    url: https://www.cisa.gov/news-events/cybersecurity-advisories/aa23-335a
+    accessed: "2026-11-08"
+    kind: government
+    quote: "This could only be resolved if the engineering workstation’s software version changed to match the software version of the new ladder logic file or if the PLC device was factory reset so the ladder logic would be the latest software version."
+    read: direct
+  - title: NIST SP 800-82r3 - Guide to Operational Technology (OT) Security, section 6.4.4
+    url: https://nvlpubs.nist.gov/nistpubs/SpecialPublications/NIST.SP.800-82r3.pdf
+    accessed: "2026-11-08"
+    kind: government
+    quote: "Cyber incident mitigation may involve process shutdowns or communication disconnects that impact operations. These impacts should be understood and communicated during incident mitigation."
+    read: direct
+  - title: NIST SP 800-82r3 - Guide to Operational Technology (OT) Security, Appendix E.2.3
+    url: https://nvlpubs.nist.gov/nistpubs/SpecialPublications/NIST.SP.800-82r3.pdf
+    accessed: "2026-11-08"
+    kind: government
+    quote: "OT network owners should exercise extreme caution when permitting active scanning on an operational network due to device sensitivity on the target network."
+    read: direct
+  - title: NIST SP 800-82r3 - Guide to Operational Technology (OT) Security, section 2
+    url: https://nvlpubs.nist.gov/nistpubs/SpecialPublications/NIST.SP.800-82r3.pdf
+    accessed: "2026-11-08"
+    kind: government
+    quote: "An SIS is often independent from all other control systems in such a manner that a failure of the basic process control system (BPCS) will not impact SIS functionality in a deleterious manner."
+    read: direct
+  - title: CISA, FBI, EPA - Incident Response Guide - Water and Wastewater Sector
+    url: https://www.cisa.gov/sites/default/files/2024-10/WWS-Sector_Incident-Response-Guide.pdf
+    accessed: "2026-11-08"
+    kind: government
+    quote: "First, if the incident involves a specific product or solution, the utility should consider immediately reporting it to the vendor's support team or product security incident response (PSIR) team, if available."
+    read: direct
+  - title: CISA, FBI, EPA, DOE - Primary Mitigations to Reduce Cyber Threats to Operational Technology (May 2025)
+    url: https://www.cisa.gov/sites/default/files/2025-05/fact-sheet-primary-mitigations-to-reduce-cyber-threats-to-operational-technology-508c.pdf
+    accessed: "2026-11-08"
+    kind: government
+    quote: "The capability for organizations to revert to manual controls to quickly restore operations is vital in the immediate aftermath of an incident."
+    read: direct
+  - title: Siemens - Cybersecurity for Industry Operational Guidelines v2.2.1
+    url: https://cert-portal.siemens.com/operational-guidelines-industrial-security.pdf
+    accessed: "2026-11-08"
+    kind: vendor
+    quote: "Availability must generally be assured even in the case of infection with malware. This means that the virus scanner must under no circumstances:"
+    read: direct
+
+notes: >-
+  Confidence is medium for the playbook as a whole because it combines several
+  authorities' guidance and two toolkit-basis items; individual steps carry their
+  own basis. Platform playbooks can add vendor-specific capture and restore
+  steps; only the baseline exists so far (docs/ID_REGISTRY.md). DOE CESER and
+  E-ISAC response guidance and SANS ICS incident-response material were not read
+  in this pass. Collection impact for each step follows CLAUDE.md: log and
+  capture pulls are passive, going online with engineering software is
+  online-vendor-tool and needs operations approval, active scanning is
+  process-risk.

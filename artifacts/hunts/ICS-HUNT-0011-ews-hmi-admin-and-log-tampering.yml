@@ -1,0 +1,101 @@
+# ICS hunt ICS-HUNT-0011
+# Schema: ../schema/hunt.schema.json
+# Research notes: docs/research/2026-11-08/detections.md
+
+id: ICS-HUNT-0011
+title: New local administrators, logon-log enumeration and log clearing on EWS and HMI hosts
+platforms: [ICS-0010, ICS-0011]
+actors: [ICS-TA-0007]
+seen_in: [Volt Typhoon (joint ASD/CISA logging guidance case study)]
+hypothesis: >-
+  An intruder on an OT Windows host is giving itself administrative rights,
+  reading the Security log to map accounts and logons, or erasing its trail.
+data: [windows-events, edr]
+datasources: [ICS-DS-0006]
+data_detail: >-
+  Forwarded Security, Sysmon and PowerShell logs from EWS, HMI, SCADA and OT
+  jump hosts. The forwarded copy matters: a local administrator can clear or
+  stop local logging. Needs Audit Security Group Management (4732) and
+  process creation with command lines.
+method:
+  - >-
+    List 4732 events adding a member to BUILTIN\Administrators
+    (S-1-5-32-544) and match each to a change record.
+  - >-
+    List process starts of wevtutil query-events, Get-EventLog or
+    Get-WinEvent aimed at the Security log or event 4624, and the same
+    strings in PowerShell script block logging (4104) where enabled.
+  - >-
+    List 1102 (audit log cleared) and compare the local log's earliest
+    record with the forwarded copy; a local log that starts later than the
+    forwarded one was cleared or rolled over.
+  - >-
+    Check the forwarded event rate per host for silences while the host was
+    evidently in use (operator logons, HMI polling in network data).
+normal: >-
+  Administrator changes only by named administrators under change records;
+  no log clearing outside reimaging; log queries only by known monitoring
+  tools.
+suspicious: >-
+  Members added to Administrators on an EWS or HMI by unexpected accounts or
+  at odd hours; logon enumeration from an interactive or remote session;
+  any 1102; forwarding that stops while the host is in use.
+attack: [T1098, T1654, T1070.001, T0872]
+rules:
+  - 01-engineering-workstations/ews_hmi_local_administrators_member_added.yml
+  - 01-engineering-workstations/ews_hmi_event_log_logon_enumeration.yml
+  - 01-engineering-workstations/ews_hmi_security_log_cleared.yml
+inferred: >-
+  Applying the Volt Typhoon log-enumeration finding to OT Windows hosts is
+  this toolkit's judgement; the joint guidance reports it on enterprise
+  hosts. Dragos's point that EWS and HMIs are OT assets is why it belongs
+  here.
+confidence: high
+sources:
+  - title: Best practices for event logging and threat detection (ASD's ACSC with CISA, FBI, NSA and partners, August 2024), Volt Typhoon case study
+    url: https://www.cyber.gov.au/sites/default/files/2024-08/best-practices-for-event-logging-and-threat-detection.pdf
+    accessed: "2026-11-08"
+    kind: government
+    quote: >-
+      enumerate logs to search for successful logons using wevtutil.exe and
+      the command Get-EventLog Security
+    read: direct
+  - title: Best practices for event logging and threat detection, anomalous behaviour examples
+    url: https://www.cyber.gov.au/sites/default/files/2024-08/best-practices-for-event-logging-and-threat-detection.pdf
+    accessed: "2026-11-08"
+    kind: government
+    quote: >-
+      the creation of user accounts, or disabled accounts being re-enabled,
+      especially accounts with administrative privileges
+    read: direct
+  - title: Best practices for event logging and threat detection, anomalous behaviour examples (logs)
+    url: https://www.cyber.gov.au/sites/default/files/2024-08/best-practices-for-event-logging-and-threat-detection.pdf
+    accessed: "2026-11-08"
+    kind: government
+    quote: unexpected clearing of logs
+    read: direct
+  - title: 4732(S) A member was added to a security-enabled local group (Microsoft Learn)
+    url: https://learn.microsoft.com/en-us/previous-versions/windows/it-pro/windows-10/security/threat-protection/auditing/event-4732
+    accessed: "2026-11-08"
+    kind: vendor
+    quote: >-
+      Examples of critical local or domain groups are built-in local
+      administrators group, domain admins, enterprise admins, and so on.
+    read: direct
+  - title: 1102(S) The audit log was cleared (Microsoft Learn)
+    url: https://learn.microsoft.com/en-us/previous-versions/windows/it-pro/windows-10/security/threat-protection/auditing/event-1102
+    accessed: "2026-11-08"
+    kind: vendor
+    quote: >-
+      Typically you should not see this event. There is no need to manually
+      clear the Security event log in most cases.
+    read: direct
+  - title: Dragos 2026 OT/ICS Cybersecurity Report and Year in Review, press release
+    url: https://www.dragos.com/resources/press-release/dragos-2026-year-in-review-new-ot-threats-ransomware
+    accessed: "2026-11-08"
+    kind: researcher
+    quote: >-
+      Dragos noted persistent mischaracterization of OT incidents as “IT only”
+      due to OT devices such as engineering workstations and HMIs
+      misclassified as IT for running Windows operating systems.
+    read: direct

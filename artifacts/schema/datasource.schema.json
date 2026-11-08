@@ -1,0 +1,95 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/depalmar/ics-dfir-toolkit/artifacts/schema/datasource.schema.json",
+  "title": "Visibility data source",
+  "description": "A source of evidence an OT owner can have before an incident - passive network capture, flow, firewall, remote-access, host, controller and application logs, historian. What it records, which events matter, where it lives, how long it lasts, what collecting it risks, and what it cannot see.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "id", "name", "category", "purdue_levels", "location", "collection",
+    "events", "gaps", "confidence", "sources"
+  ],
+  "properties": {
+    "id": {"$ref": "common.schema.json#/$defs/datasource_id"},
+    "name": {"type": "string"},
+    "category": {
+      "enum": [
+        "network-passive",
+        "network-flow",
+        "perimeter-firewall",
+        "remote-access",
+        "host-windows",
+        "host-linux",
+        "controller-onboard",
+        "application-audit",
+        "historian",
+        "alarm-event",
+        "identity",
+        "physical-process"
+      ]
+    },
+    "purdue_levels": {"type": "array", "minItems": 1, "items": {"$ref": "common.schema.json#/$defs/purdue_level"}},
+    "platforms": {"type": "array", "items": {"$ref": "common.schema.json#/$defs/platform_or_all"}},
+    "protocols": {"type": "array", "items": {"$ref": "common.schema.json#/$defs/protocol_id"}},
+    "location": {"type": "string", "description": "where it is produced and where it is normally kept"},
+    "enable": {"type": "string", "description": "what must be turned on before an incident for it to exist, as the vendor documents it"},
+    "retention": {"type": "string"},
+    "collection": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["method", "impact", "description", "confidence"],
+        "properties": {
+          "method": {"type": "string"},
+          "impact": {"$ref": "common.schema.json#/$defs/collection_impact"},
+          "description": {"type": "string"},
+          "safety_note": {"type": "string"},
+          "confidence": {"$ref": "common.schema.json#/$defs/confidence"},
+          "unverified": {"type": "boolean"}
+        }
+      }
+    },
+    "events": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["event", "value", "basis"],
+        "properties": {
+          "event": {"type": "string", "description": "event id, log name and field, or diagnostic entry, as the source names it"},
+          "value": {"type": "string", "description": "what it tells an investigator"},
+          "attack": {"type": "array", "items": {"$ref": "common.schema.json#/$defs/attack_id"}},
+          "seen_in": {"type": "array", "items": {"type": "string"}},
+          "basis": {"$ref": "common.schema.json#/$defs/basis"}
+        }
+      }
+    },
+    "tooling": {
+      "type": "array",
+      "description": "open or vendor tools that produce or parse it",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["name", "url"],
+        "properties": {
+          "name": {"type": "string"},
+          "url": {"$ref": "common.schema.json#/$defs/https"},
+          "license": {"type": "string"},
+          "notes": {"type": "string"}
+        }
+      }
+    },
+    "attack_data_components": {
+      "type": "array",
+      "items": {"type": "string", "pattern": "^DC[0-9]{4}$"},
+      "description": "MITRE ATT&CK data component ids this source supplies"
+    },
+    "gaps": {"type": "array", "minItems": 1, "items": {"type": "string"}, "description": "what this source cannot see; never empty"},
+    "confidence": {"$ref": "common.schema.json#/$defs/confidence"},
+    "unverified": {"type": "boolean"},
+    "sources": {"$ref": "common.schema.json#/$defs/sources"}
+  }
+}

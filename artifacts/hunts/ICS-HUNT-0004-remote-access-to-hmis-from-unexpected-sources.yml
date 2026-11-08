@@ -1,0 +1,113 @@
+# ICS hunt ICS-HUNT-0004
+# Schema: ../schema/hunt.schema.json
+# Research notes: docs/research/2026-11-08/detections.md
+
+id: ICS-HUNT-0004
+title: Remote desktop to HMIs, and use of the OT remote-access path, from unexpected sources
+platforms: [ICS-0011, ICS-0010]
+actors: [ICS-TA-0010, ICS-TA-0011, ICS-TA-0012, ICS-TA-0013]
+incidents: [ICS-INC-0007]
+seen_in: [AA25-343A]
+hypothesis: >-
+  An internet-exposed VNC or RDP service on an HMI was reached from VPS
+  infrastructure, often after password spraying, or the brokered remote
+  access path was used outside its normal pattern (unusual account, hours or
+  source, or a break-glass account).
+data: [firewall, ics-network-capture, windows-events, remote-access, netflow]
+datasources: [ICS-DS-0004, ICS-DS-0001, ICS-DS-0006, ICS-DS-0005, ICS-DS-0003]
+data_detail: >-
+  Firewall and flow records for 5900-5910 and 3389; Zeek conn.log (and its
+  RFB and RDP analyzer output where present; log file names not verified in
+  ICS-DS-0005); Security 4624 and Sysmon Event ID 3 from HMI and EWS hosts;
+  jump-host Security logs and VPN or remote-access platform session logs.
+  Many HMIs in AA25-343A were embedded panels that log nothing; for them
+  only the network sources exist.
+method:
+  - >-
+    From firewall and flow data, list inbound sessions to 5900-5910 and 3389
+    on OT addresses from outside the owner's ranges; separate scans from
+    completed sessions as in ICS-HUNT-0001.
+  - >-
+    On Windows HMIs and EWSs, list 4624 LogonType 10 logons and Sysmon
+    inbound connections to 5900-5910 whose source is not private or
+    approved; list remote-support tools that started (AnyDesk, ScreenConnect,
+    UltraVNC, TeamViewer incoming sessions).
+  - >-
+    Look for many failed attempts from one VPS-hosted source followed by a
+    success (AA25-343A: brute force from temporary virtual private servers).
+  - >-
+    On the jump host and remote-access platform, list sessions by account,
+    source and time against the allowlist and operator working hours AA25-343A
+    recommends; any break-glass account use goes straight to the SOC's
+    highest-priority queue.
+  - >-
+    Hand each remote session interval to ICS-HUNT-0005 to check what was
+    done on the HMI during it.
+normal: >-
+  Remote desktop reaches HMIs only from the jump host, by named accounts,
+  from approved addresses, in working hours; no break-glass use outside an
+  announced test.
+suspicious: >-
+  VNC or RDP to an HMI from a hosting or VPS address; any successful
+  internet-sourced session; failed-then-successful bursts; sessions outside
+  operator hours; break-glass logons; a remote-support tool starting on an
+  HMI that has none in its inventory.
+attack: [T0883, T0886, T0822, T1021.005, T1110.003, T0859]
+rules:
+  - 02-ot-network/remote_access_inbound_to_ot.rules
+  - 01-engineering-workstations/hmi_inbound_vnc_from_public_address.yml
+  - 01-engineering-workstations/ews_hmi_rdp_logon_from_public_address.yml
+  - 01-engineering-workstations/ews_hmi_remote_access_tool_started.yml
+  - 03-remote-access/jump_host_break_glass_account_logon.yml
+inferred: >-
+  Covering RDP alongside VNC, and checking remote-support tools, extend
+  AA25-343A's VNC finding by this toolkit's judgement; AA26-097A lists both
+  RDP and VNC among services to disable.
+confidence: high
+sources:
+  - title: CISA AA25-343A - Pro-Russia Hacktivists Conduct Opportunistic Attacks Against US and Global Critical Infrastructure
+    url: https://www.cisa.gov/news-events/cybersecurity-advisories/aa25-343a
+    accessed: "2026-11-08"
+    kind: government
+    quote: >-
+      Threat actors typically search for these services on the default port
+      `5900` or other nearby ports (`5901-5910`). Their goal is to gain remote
+      access to HMI devices connected to live control networks.
+    read: direct
+  - title: CISA AA25-343A, tooling
+    url: https://www.cisa.gov/news-events/cybersecurity-advisories/aa25-343a
+    accessed: "2026-11-08"
+    kind: government
+    quote: >-
+      These pro-Russia hacktivist groups abuse popular internet-scraping
+      tools, such as `Nmap` or `OPENVAS`, to search for visible VNC services
+      and use brute force password spraying tools to access devices via known
+      default or otherwise weak credentials.
+    read: direct
+  - title: CISA AA25-343A, allowlist and working hours
+    url: https://www.cisa.gov/news-events/cybersecurity-advisories/aa25-343a
+    accessed: "2026-11-08"
+    kind: government
+    quote: >-
+      The allowlist can be refined to operator working hours to further
+      obstruct malicious threat actor activity; organizations are encouraged
+      to establish monitoring and alerting for access attempts not meeting
+      these criteria
+    read: direct
+  - title: Secure connectivity principles for Operational Technology (NCSC-UK with CISA, FBI, ASD's ACSC, Cyber Centre, BSI, NCSC-NL, NCSC-NZ), break-glass
+    url: https://www.ncsc.gov.uk/sites/default/files/documents/ncsc-secure-connectivity-for-operational-technology.pdf
+    accessed: "2026-11-08"
+    kind: government
+    quote: >-
+      It is critical that any attempt to use a break-glass account triggers
+      the highest criticality alarm within your Security Operations Centre
+      (SOC).
+    read: direct
+  - title: Best practices for event logging and threat detection (ASD's ACSC with CISA, FBI, NSA and partners, August 2024), OT considerations
+    url: https://www.cyber.gov.au/sites/default/files/2024-08/best-practices-for-event-logging-and-threat-detection.pdf
+    accessed: "2026-11-08"
+    kind: government
+    quote: >-
+      abnormal use of vendor or third-party accesses, maintenance methods, or
+      remote monitoring
+    read: direct

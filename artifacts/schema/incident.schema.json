@@ -1,0 +1,82 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/depalmar/ics-dfir-toolkit/artifacts/schema/incident.schema.json",
+  "title": "ICS incident case study",
+  "description": "A publicly reported intrusion or attack that reached, or was aimed at, industrial systems. Every claim sits in a quoted primary source. The chain is what the sources describe, in order; gaps in it are stated, not filled.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "id", "name", "date", "date_basis", "sectors", "countries", "summary",
+    "physical_consequence", "chain", "lessons", "confidence", "sources"
+  ],
+  "properties": {
+    "id": {"$ref": "common.schema.json#/$defs/incident_id"},
+    "name": {"type": "string"},
+    "aliases": {"type": "array", "items": {"type": "string"}},
+    "date": {"$ref": "common.schema.json#/$defs/fuzzy_date", "description": "when the OT effect (or the attempt) happened, only as precise as the source"},
+    "date_basis": {"type": "string", "description": "which source dates it and how"},
+    "disclosed": {"$ref": "common.schema.json#/$defs/fuzzy_date"},
+    "sectors": {"type": "array", "minItems": 1, "items": {"type": "string"}},
+    "countries": {"type": "array", "minItems": 1, "items": {"type": "string"}},
+    "victim": {"type": "string", "description": "only as named by the sources; omit when they do not name it"},
+    "actors": {"type": "array", "items": {"$ref": "common.schema.json#/$defs/actor_id"}},
+    "malware": {"type": "array", "items": {"$ref": "common.schema.json#/$defs/malware_id"}},
+    "platforms": {"type": "array", "items": {"$ref": "common.schema.json#/$defs/platform_id"}},
+    "protocols": {"type": "array", "items": {"$ref": "common.schema.json#/$defs/protocol_id"}},
+    "cves": {"type": "array", "items": {"$ref": "common.schema.json#/$defs/cve"}},
+    "iocs": {"type": "array", "items": {"$ref": "common.schema.json#/$defs/ioc_id"}},
+    "summary": {"type": "string"},
+    "physical_consequence": {
+      "enum": [
+        "none-reported",
+        "attempted-no-effect",
+        "loss-of-view",
+        "loss-of-control",
+        "service-outage",
+        "equipment-damage",
+        "safety-system-trip",
+        "manual-operations",
+        "process-manipulation",
+        "unknown"
+      ],
+      "description": "the most severe consequence a primary source states"
+    },
+    "consequence_detail": {"type": "string"},
+    "ics_effects": {"type": "array", "items": {"$ref": "common.schema.json#/$defs/ics_effect"}},
+    "chain": {
+      "type": "array",
+      "minItems": 1,
+      "description": "the intrusion as the sources describe it, in order",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["tactic", "what"],
+        "properties": {
+          "tactic": {"$ref": "common.schema.json#/$defs/evidence_type"},
+          "what": {"type": "string"},
+          "attack": {"type": "array", "items": {"$ref": "common.schema.json#/$defs/attack_id"}},
+          "evidence": {"type": "string", "description": "the artifact or data source that showed it, as the source names it"}
+        }
+      }
+    },
+    "lessons": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["lesson", "basis"],
+        "properties": {
+          "lesson": {"type": "string"},
+          "basis": {"$ref": "common.schema.json#/$defs/basis"}
+        }
+      }
+    },
+    "hunts": {"type": "array", "items": {"$ref": "common.schema.json#/$defs/hunt_id"}},
+    "packs": {"type": "array", "items": {"$ref": "common.schema.json#/$defs/pack_id"}},
+    "confidence": {"$ref": "common.schema.json#/$defs/confidence"},
+    "unverified": {"type": "boolean"},
+    "sources": {"$ref": "common.schema.json#/$defs/sources"},
+    "notes": {"type": "string"}
+  }
+}

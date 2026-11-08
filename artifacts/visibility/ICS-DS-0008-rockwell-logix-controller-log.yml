@@ -1,0 +1,185 @@
+# ICS visibility data source
+# ICS-DS-0008 - Rockwell Logix controller log and change detection audit value
+# Research notes: docs/research/2026-11-08/datasources.md
+# Platform detail (artifact paths, file layout) is in artifacts/catalog/ICS-0001-rockwell-logix-5000.yml
+
+id: ICS-DS-0008
+name: Rockwell Logix controller log and change detection audit value
+category: controller-onboard
+purdue_levels: ["1"]
+platforms: [ICS-0001]
+protocols: [ICS-PROTO-0004]
+location: >-
+  Buffered in the controller's memory; optionally written to the controller's
+  removable media as plain-text TSV files; readable by FactoryTalk
+  AssetCentre; on ControlLogix 5590 also sendable to a third-party syslog
+  collector. The Change Detection AuditValue lives in the controller and is
+  read online, by GSV, or by AssetCentre.
+enable: >-
+  Before an incident: configure the controller to write buffered entries to
+  removable media automatically (when the buffer is 80% full), or deploy
+  FactoryTalk AssetCentre, or on a ControlLogix 5590 forward to a syslog
+  collector - Rockwell recommends AssetCentre or syslog to prevent rollover.
+  Record the AuditValue after every approved download and keep the
+  ChangesToDetect mask at a documented value (Rockwell's default monitors all
+  events). Audit values need Logix Designer v20 or later; audit-log entries in
+  the controller log need v30 or later.
+retention: >-
+  Up to 100 entries buffered (Compact GuardLogix 5370, CompactLogix 5370,
+  ControlLogix 5570, GuardLogix 5570) or up to 500 (Compact GuardLogix 5380,
+  CompactLogix 5380, CompactLogix 5480, ControlLogix 5580 and 5590,
+  GuardLogix 5580). Without removable media, a full card, or auto-write, the
+  buffer is circular and the oldest entries are discarded; entries written to
+  the card leave the buffer and persist in files.
+collection:
+  - method: Export controller-log and change-detection data already collected by FactoryTalk AssetCentre
+    impact: passive
+    description: Touches no controller.
+    confidence: high
+  - method: Retrieve controller-log entries already forwarded to a syslog collector (ControlLogix 5590)
+    impact: passive
+    description: Only where the 5590 was configured to forward before the incident.
+    confidence: high
+  - method: Read the AuditValue, logging counters and controller log online with Studio 5000 Logix Designer
+    impact: online-vendor-tool
+    description: >-
+      Compare the AuditValue with the value recorded after the last approved
+      download; reconcile record numbers against the Total Entry Count.
+    safety_note: >-
+      Read-only in intent, but the same session can download, edit online,
+      force or change mode, and the session itself may be logged. Operations
+      approval required; name the operator.
+    confidence: high
+  - method: Copy controller-log files from the removable media
+    impact: process-risk
+    description: >-
+      The files are plain UTF-16 TSV and need no special tool once copied, but
+      getting them means removing the card from a running controller.
+    safety_note: >-
+      Rated process-risk by this project, not by Rockwell: the manual does not
+      say removal is safe while a write may be in progress, and removal itself
+      is logged ("Removable media removed"). Only in an agreed window with
+      operations present.
+    confidence: medium
+events:
+  - event: Entry fields - Record Number, Time of Occurrence (UTC - 24 hour clock), Entry Description, Windows User Name, Workstation Name, FactoryTalk User ID (if available), Extended Information, Change Detection Audit Value
+    value: Who made a change, from which workstation, when, and the audit value at the time.
+    basis: vendor
+  - event: '"Project download"'
+    value: A project was downloaded. AA26-097A reports actors downloading a malicious project with configuration software; such a download should leave this entry (this project's inference - CISA does not say it was found here).
+    basis: vendor
+  - event: '"Online edits modified controller program"'
+    value: Logic changed while online - check against approved change records and known workstation names.
+    basis: vendor
+  - event: '"Remote mode change" (Extended Information: Old mode, New mode) and "Keyswitch mode change" (UserName Local)'
+    value: Mode changes from software (with Windows user and workstation) versus the physical key switch.
+    basis: vendor
+  - event: I/O forces enabled, disabled, removed, or modified; SFC forces enabled, disabled, removed, or modified
+    value: Forces override logic and I/O; unexpected forces are a direct process-manipulation indicator.
+    basis: vendor
+  - event: Firmware update
+    value: Firmware changed on the controller.
+    basis: vendor
+  - event: '"Log Collected Data Cleared"'
+    value: Logged data was cleared - treat as possible anti-forensics until explained.
+    basis: vendor
+  - event: The Changes To Detect value has changed
+    value: The change-detection mask was altered, which can stop later changes from moving the AuditValue.
+    basis: vendor
+  - event: Removable media inserted or removed; USB cable connected and disconnected
+    value: Physical interaction with the controller.
+    basis: vendor
+  - event: Audit-log entries (Logix Designer v30+) - changes to component properties, edits in a routine, changes to tag values
+    value: Finer-grained record of what was changed, used by FactoryTalk AssetCentre.
+    basis: vendor
+  - event: AuditValue (GSV attribute; Controller Properties online)
+    value: A single value regenerated whenever a monitored change occurs; differs from the recorded baseline if anything monitored changed.
+    basis: vendor
+tooling:
+  - name: Studio 5000 Logix Designer and FactoryTalk AssetCentre (Rockwell Automation)
+    url: https://literature.rockwellautomation.com/idc/groups/literature/documents/pm/1756-pm015_-en-p.pdf
+    license: Commercial
+attack_data_components: [DC0038, DC0108, DC0004]
+gaps:
+  - The buffer is small (100 or 500 entries) and circular unless entries are written to the card or collected; a busy controller can lose the entries an investigation needs.
+  - 1769-L3x and 1769-L4x CompactLogix cannot store log entries to removable media and do not populate the audit value; change detection is not available on Studio 5000 Logix Emulate or SoftLogix 5860.
+  - No audit value in Logix Designer v19 and earlier; no audit-log entries before v30.
+  - The log says that a download or edit happened and who claims to have made it (Windows user and workstation names are supplied by the client), not what the new logic does; only comparison with a known-good project shows that.
+  - Rockwell MicroLogix (ICS-0002) is not covered by this source.
+  - Syslog forwarding is documented here only for ControlLogix 5590; the configuration steps were not found in a public document.
+confidence: high
+sources:
+  - title: Logix 5000 Controllers Information and Status Programming Manual (1756-PM015, Rockwell Automation) - Controller log
+    url: https://literature.rockwellautomation.com/idc/groups/literature/documents/pm/1756-pm015_-en-p.pdf
+    accessed: "2026-11-08"
+    kind: vendor
+    quote: >-
+      A controller log is a record of interactions that occurred in the
+      controller due to physical conditions such as keyswitches, changes to
+      removable media, fault conditions, and programming changes configured in
+      the application.
+    read: direct
+  - title: 1756-PM015 - Controller log buffer
+    url: https://literature.rockwellautomation.com/idc/groups/literature/documents/pm/1756-pm015_-en-p.pdf
+    accessed: "2026-11-08"
+    kind: vendor
+    quote: >-
+      If the removable media is not present, is full, or if the controller is not
+      configured to automatically write buffered entries to the removable media,
+      and the internal buffer becomes full, entries are saved in the buffer in a
+      circular fashion. As new entries are stored, the oldest entries are
+      discarded.
+    read: direct
+  - title: 1756-PM015 - Controller log buffer sizes
+    url: https://literature.rockwellautomation.com/idc/groups/literature/documents/pm/1756-pm015_-en-p.pdf
+    accessed: "2026-11-08"
+    kind: vendor
+    quote: >-
+      For the Compact GuardLogix 5370, CompactLogix 5370, ControlLogix 5570, and
+      GuardLogix 5570 controllers, the controller keeps up to 100 log entries
+      buffered in its internal memory.
+    read: direct
+  - title: 1756-PM015 - Controller Log Events (mode change)
+    url: https://literature.rockwellautomation.com/idc/groups/literature/documents/pm/1756-pm015_-en-p.pdf
+    accessed: "2026-11-08"
+    kind: vendor
+    quote: >-
+      Mode changed through keyswitch | • Time Stamp • Entry Description: Keyswitch
+      mode change • UserName: Local • Workstation Name: None • FactoryTalk Login
+      Id: None
+    read: direct
+  - title: 1756-PM015 - Change detection
+    url: https://literature.rockwellautomation.com/idc/groups/literature/documents/pm/1756-pm015_-en-p.pdf
+    accessed: "2026-11-08"
+    kind: vendor
+    quote: >-
+      A unique value that is generated when a project is downloaded to the
+      controller or loaded from removable storage. When a change is detected this
+      value is updated. To specify which changes are monitored, use the
+      ChangesToDetect attribute.
+    read: direct
+  - title: 1756-PM015 - Controller logging considerations
+    url: https://literature.rockwellautomation.com/idc/groups/literature/documents/pm/1756-pm015_-en-p.pdf
+    accessed: "2026-11-08"
+    kind: vendor
+    quote: >-
+      The 1769-L3x and 1769-L4x CompactLogix Controllers do not support storing
+      log entries to removable media, and the audit value is not populated.
+    read: direct
+  - title: Controller Logging - ControlLogix 5590 Controller User Manual (1756-UM900)
+    url: https://www.rockwellautomation.com/en-pl/docs/technical/logix5000/_online/1756-um900/controllogix-5590-controller-user-manual-ditamap/develop-secure-applications/controller-logging.html
+    accessed: "2026-11-08"
+    kind: vendor
+    quote: >-
+      The controller log stores various security-related events that can be
+      written to a memory card or accessed via FactoryTalk® AssetCentre or a
+      third-party syslog collector.
+    read: direct
+  - title: Controller Logging - 1756-UM900, rollover
+    url: https://www.rockwellautomation.com/en-pl/docs/technical/logix5000/_online/1756-um900/controllogix-5590-controller-user-manual-ditamap/develop-secure-applications/controller-logging.html
+    accessed: "2026-11-08"
+    kind: vendor
+    quote: >-
+      For more robust logging and to help prevent rollover, use FactoryTalk®
+      AssetCentre or a syslog collector.
+    read: direct

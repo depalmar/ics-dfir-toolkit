@@ -1,0 +1,47 @@
+title: Security Log Queried for Logons on an EWS or HMI
+id: 00e8143a-7548-4048-9b61-14ed49fe7ca1
+status: experimental
+description: |
+  wevtutil query-events, Get-EventLog or Get-WinEvent run against the
+  Security log or for event 4624 on an engineering workstation or HMI. The
+  joint ASD/CISA logging guidance reports Volt Typhoon using PowerShell to
+  "identify associated user and computer account names using the command
+  Get-EventLog security –instanceid 4624" and to "enumerate logs to search
+  for successful logons using wevtutil.exe and the command Get-EventLog
+  Security". Dragos notes engineering workstations and HMIs are OT assets
+  even though they run Windows. Needs process creation with command lines.
+  SigmaHQ's broader proc_creation_win_susp_eventlog_content_recon.yml covers
+  more channels and event IDs on all hosts.
+references:
+  - https://www.cyber.gov.au/sites/default/files/2024-08/best-practices-for-event-logging-and-threat-detection.pdf
+  - https://www.dragos.com/resources/press-release/dragos-2026-year-in-review-new-ot-threats-ransomware
+  - https://github.com/SigmaHQ/sigma/blob/master/rules/windows/process_creation/proc_creation_win_susp_eventlog_content_recon.yml
+author: Raymond DePalma (ics-dfir-toolkit)
+date: 2026-11-08
+tags:
+  - attack.discovery
+  - attack.t1654
+  - attack.t1033
+  - ics-dfir.ews-hmi
+logsource:
+  category: process_creation
+  product: windows
+detection:
+  selection_wevtutil_img:
+    Image|endswith: '\wevtutil.exe'
+  selection_wevtutil_verb:
+    CommandLine|contains:
+      - ' qe '
+      - ' query-events '
+  selection_ps_cmdlet:
+    CommandLine|contains:
+      - 'Get-EventLog'
+      - 'Get-WinEvent'
+  selection_target:
+    CommandLine|contains:
+      - 'Security'
+      - '4624'
+  condition: selection_target and ((selection_wevtutil_img and selection_wevtutil_verb) or selection_ps_cmdlet)
+falsepositives:
+  - Administrators or monitoring scripts that query logons for troubleshooting; baseline the accounts and script paths
+level: medium

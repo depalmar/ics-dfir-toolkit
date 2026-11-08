@@ -1,0 +1,91 @@
+id: ICS-TA-0014
+name: SYLVANITE
+aliases:
+  - name: UNC5221
+    by: "Dragos ('Overlaps with UNC5221, UNC5174, UNC5291, UNC3236, HOUKEN, Red Dev 61, CL-STA-0048, UTA0178'; 2026 press release: 'SYLVANITE shares technical overlaps with UNC5221, UNC5174, and UNC5291')"
+    equated: false
+  - name: UNC5174
+    by: Dragos, same overlap list
+    equated: false
+  - name: UNC5291
+    by: Dragos, same overlap list
+    equated: false
+  - name: UNC3236
+    by: "Dragos, same overlap list. AA24-038A lists UNC3236 as another name for Volt Typhoon (see notes)."
+    equated: false
+  - name: HOUKEN
+    by: Dragos, same overlap list
+    equated: false
+  - name: Red Dev 61
+    by: Dragos, same overlap list
+    equated: false
+  - name: CL-STA-0048
+    by: Dragos, same overlap list
+    equated: false
+  - name: UTA0178
+    by: Dragos, same overlap list
+    equated: false
+reported_by: [Dragos]
+link_confidence: medium
+stated_confidence: >-
+  Dragos gives no confidence language. It states 'Dragos has directly observed
+  SYLVANITE transferring access to VOLTZITE' and (2026) 'Dragos directly observed
+  SYLVANITE while conducting incident response at U.S. electric and water
+  utilities, where the group exploited Ivanti vulnerabilities and extracted Active
+  Directory credentials.' It lists the group's intent as 'Assessed intent is
+  initial access and credential theft passed to other threat groups, including
+  VOLTZITE'.
+state_nexus: >-
+  None stated. Dragos notes 'Multiple entities assessed to work under the same
+  overarching direction' without naming a sponsor, and 'does not corroborate nor
+  conduct political attribution'.
+motivation: unknown
+summary: >-
+  Dragos's initial-access group, named in the 2026 Year in Review. It mass-exploits
+  newly disclosed flaws in internet-facing edge products (F5, Ivanti, SAP,
+  ConnectWise), 'in several cases compromising targets before the affected vendor
+  had issued a patch'. It harvests credentials, plants memory-resident web shells
+  and tunnels laterally. Dragos says it 'does not pursue OT disruption directly' and
+  hands footholds to Stage 2 groups, VOLTZITE among them, sometimes 'within days of
+  initial access'. Dragos observed it during incident response at US electric and
+  water utilities. Its stated intent (initial access and credential theft for
+  others) fits no motivation category, so motivation is unknown.
+ics_kill_chain_stage: unknown
+stage_basis: >-
+  The Dragos pages read describe SYLVANITE as handing access 'to Stage 2 threat
+  groups' but do not label its own stage. Trade press reports Dragos classing it
+  as Stage 1; that is not used here.
+platforms: []
+malware: []
+incidents: []
+tradecraft:
+  - "Exploit (Dragos): 'N-day exploitation of internet-facing products from F5, Ivanti, SAP, and ConnectWise'. The group 'weaponizes newly disclosed exploits rapidly'."
+  - "Hands-on operator (Dragos): 'harvests credentials from backend systems, deploys memory-resident web shells to maintain persistence, and uses tunneling tools to move laterally'. Web shells: Godzilla, LIGHTWIRE, WIREFIRE. Frameworks: Cobalt Strike, Sliver, Supershell, Fast Reverse Proxy."
+  - "Hands-on operator (Dragos): 'Credential harvesting from backend databases (LDAP data, Office 365 tokens)'. At US utilities it 'exploited Ivanti vulnerabilities and extracted Active Directory credentials'."
+  - "Access hand-off (Dragos): 'Dragos has directly observed SYLVANITE transferring access to VOLTZITE'; 'The handoff can occur within days of initial access'."
+  - "Side effect (Dragos): 'Port scanning activity can cause denial-of-service conditions on OT devices'."
+  - "Infrastructure (Dragos): 'Virtual Private Servers (VPS) and compromised SOHO routers'."
+sectors: [electric power generation, transmission and distribution, water and wastewater, oil and gas, manufacturing, public administration]
+regions: [North America, United Kingdom, Europe, Japan, South Korea, Guam, Philippines, Saudi Arabia]
+first_seen: "2023 (Dragos: 'Since 2023')"
+references:
+  - title: Dragos - SYLVANITE threat group
+    url: https://www.dragos.com/threat/sylvanite/
+    accessed: "2026-11-08"
+    kind: vendor
+    quote: "SYLVANITE’s primary role is access development. The group does not pursue OT disruption directly, but instead hands established footholds to more capable Stage 2 adversaries."
+    read: direct
+  - title: Dragos - 2026 OT Cybersecurity Report / Year in Review press release (17 February 2026)
+    url: https://www.dragos.com/resources/press-release/dragos-2026-year-in-review-new-ot-threats-ransomware
+    accessed: "2026-11-08"
+    kind: vendor
+    quote: "Dragos directly observed SYLVANITE while conducting incident response at U.S. electric and water utilities, where the group exploited Ivanti vulnerabilities and extracted Active Directory credentials. SYLVANITE shares technical overlaps with UNC5221, UNC5174, and UNC5291."
+    read: direct
+notes: >-
+  Every alias is an overlap Dragos lists; none is equated. The press-release
+  subtitle calls SYLVANITE 'linked to VOLTZITE/Volt Typhoon operations', a phrase
+  that also does not equate. The reporters conflict over UNC3236: Dragos lists it
+  as a SYLVANITE overlap, AA24-038A lists it as another name for Volt Typhoon.
+  The Stage 1 label in trade press (Industrial Cyber, Cyber Magazine) is a lead
+  only; the full Year in Review report was not read. The edge products exploited
+  are IT edge devices, not catalogued OT platforms, so no platform id is listed.

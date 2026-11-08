@@ -1,0 +1,163 @@
+# ICS visibility data source
+# ICS-DS-0009 - Siemens S7 diagnostic buffer
+# Research notes: docs/research/2026-11-08/datasources.md
+
+id: ICS-DS-0009
+name: Siemens S7 diagnostic buffer
+category: controller-onboard
+purdue_levels: ["1"]
+platforms: [ICS-0003, ICS-0004]
+protocols: [ICS-PROTO-0002, ICS-PROTO-0003]
+location: >-
+  A buffered memory area in each CPU (and some other modules) that logs
+  diagnostic events in order of occurrence, newest first. Readable on the
+  S7-1500 CPU display (menu "Diagnostics"), through the CPU web server page
+  "Diagnostics" > "Diagnostics buffer", and online in TIA Portal under
+  "Online & Diagnostics" > "Diagnostics" > "Diagnostics buffer".
+enable: >-
+  The buffer itself is always on. To read it without going online with TIA
+  Portal, the CPU web server must already be enabled and an account
+  configured (S7-1500 web server function manual; enablement steps not read
+  here). From S7-1500 firmware V3.1 the CPU also records security-relevant
+  events as syslog messages (see ICS-DS-0013), which is the better place to
+  forward them off the controller.
+retention: >-
+  Size depends on the CPU. On S7-1500 a portion of the buffer is retentive:
+  the latest entries survive power failure and a memory reset and are deleted
+  only by reset to factory settings; the non-retentive portion is initialised
+  at POWER ON. The S7-1500 web server can load the last 250 entries or the
+  whole buffer. For S7-300 CPU 31x, Siemens' CPU 31xC/31x technical
+  specifications manual (web server section) states the diagnostic buffer can
+  save up to 500 messages, shown in intervals of 100 entries.
+collection:
+  - method: Read the diagnostics buffer on the S7-1500 CPU display (Diagnostics menu)
+    impact: read-only
+    description: >-
+      Read and photograph the entries at the CPU. Changes no state; requires
+      physical access to the cabinet.
+    confidence: high
+  - method: Read the diagnostics buffer through the CPU web server ("Diagnostics" > "Diagnostics buffer")
+    impact: read-only
+    description: >-
+      A vendor-documented read path over HTTP(S) to the CPU. Load "all"
+      entries rather than the last 250 and save the page; the page does not
+      refresh automatically when new entries arrive.
+    safety_note: >-
+      Only where the web server was already enabled - do not enable it during
+      an incident (that is a configuration download). The web server also
+      offers controls that change the CPU; the investigator must not use them.
+    confidence: high
+  - method: Read the diagnostics buffer online in TIA Portal (Online & Diagnostics > Diagnostics > Diagnostics buffer) and save it ("Save as...")
+    impact: online-vendor-tool
+    description: >-
+      Shows event details (event ID, module, rack/slot, incoming/outgoing) and
+      lets the buffer be saved from the details area.
+    safety_note: >-
+      Going online with TIA Portal can download, force or change mode in the
+      same session. Operations approval required.
+    confidence: high
+events:
+  - event: 'Operating mode transitions (e.g., from RUN to STOP), shown for example as "Communication initiated request: STOP - CPU changes from RUN to ..."'
+    value: >-
+      When and by what kind of request the CPU stopped or restarted; a
+      communication-initiated STOP or WARM RESTART outside a change window
+      needs explaining.
+    basis: vendor
+  - event: Security events
+    value: Siemens lists security events among the entry types in the S7-1500 diagnostics buffer.
+    basis: vendor
+  - event: Secure PG/HMI communication status changes (for example the CPU changing from the provisioning phase to Secure Mode after a configuration with a password is loaded)
+    value: Changes to the CPU's secure-communication state, which follow configuration downloads.
+    basis: vendor
+  - event: Removal/insertion of modules
+    value: Physical changes to the station.
+    basis: vendor
+  - event: Errors in the user program; system errors in the CPU; internal and external errors on a module
+    value: Faults that can follow a malicious or faulty logic change, or a crash induced over the network.
+    basis: vendor
+  - event: Entry details - Event ID (for example 16# 08:0011), module, rack/slot, incoming/outgoing, event type
+    value: Lets each entry be looked up in Siemens' help and placed on the station.
+    basis: vendor
+attack_data_components: [DC0038, DC0108]
+gaps:
+  - A ring buffer of limited size; routine diagnostic noise can push security-relevant entries out, and only the retentive portion survives a power cycle on S7-1500.
+  - Entries record events, not the logic that was loaded; a download is visible only through its side effects (mode changes, configuration state) - compare logic with a known-good project.
+  - The sources read do not show that entries name the client IP address or user responsible; do not assume attribution from the buffer alone.
+  - The S7-300 500-message figure comes from the CPU 31xC/31x manual's web server section; S7-300 retention across power loss and S7-400 buffer size were not read.
+  - Reading via TIA Portal is an online session with the controller; the web server and display paths need prior enablement or physical access.
+confidence: high
+sources:
+  - title: System Diagnostics with S7-1500 and TIA Portal (Siemens application example 68011497, V2.0)
+    url: https://support.industry.siemens.com/cs/attachments/68011497/68011497_S7-1500_Diagnose_DOKU_v20_en.pdf
+    accessed: "2026-11-08"
+    kind: vendor
+    quote: >-
+      The diagnostics buffer is used as a log file for the diagnostics events
+      that occurred on the CPU and the modules assigned to it. These are entered
+      in the order of their occurrence, with the latest event shown at the top.
+    read: direct
+  - title: System Diagnostics with S7-1500 and TIA Portal - entry types
+    url: https://support.industry.siemens.com/cs/attachments/68011497/68011497_S7-1500_Diagnose_DOKU_v20_en.pdf
+    accessed: "2026-11-08"
+    kind: vendor
+    quote: >-
+      The entries available in the diagnostics buffer include: • Internal and
+      external errors on a module • System errors in the CPU • Operating mode
+      transitions (e.g., from RUN to STOP) • Errors in the user program •
+      Removal/insertion of modules • Security events
+    read: direct
+  - title: System Diagnostics with S7-1500 and TIA Portal - TIA Portal path
+    url: https://support.industry.siemens.com/cs/attachments/68011497/68011497_S7-1500_Diagnose_DOKU_v20_en.pdf
+    accessed: "2026-11-08"
+    kind: vendor
+    quote: >-
+      To display the diagnostics buffer of a CPU in TIA Portal, first establish
+      an online connection to the CPU and start the "Online & Diagnostics"
+      function of the CPU directly from the project tree. In the "Diagnostics"
+      folder, select the "Diagnostics buffer" subfolder.
+    read: direct
+  - title: S7-1500 Structure and Use of the CPU Memory function manual (A5E03461664-01, 01/2013)
+    url: https://cache.industry.siemens.com/dl/files/101/59193101/att_80162/v1/s71500_structure_and_use_of_the_PLC_memory_function_manual_en-US_en-US.pdf
+    accessed: "2026-11-08"
+    kind: vendor
+    quote: >-
+      With the S7-1500 CPUs, a portion of the diagnostic buffer is retentive. The
+      number of retentive diagnostic buffer entries depends on the type of CPU.
+      The latest entries in the diagnostic buffer are retained after power
+      failure, and are not affected by a memory reset The retentive portion of
+      the diagnostic buffer can only be deleted by resetting to factory settings.
+    read: direct
+  - title: S7-1500 web server function manual (TIA Portal help) - Diagnostics buffer
+    url: https://docs.tia.siemens.cloud/r/simatic_s7_1500_et_200mp_manual_collection_enus_21/comprehensive-information/cpu-function-manuals/web-server/system-web-pages/diagnostics/diagnostics-buffer
+    accessed: "2026-11-08"
+    kind: vendor
+    quote: >-
+      With "Diagnostics" > "Diagnostics buffer", you open the diagnostics buffer
+      of the CPU and load the diagnostics buffer into the web server.
+    read: direct
+  - title: S7-1500 web server function manual (TIA Portal help) - Diagnostics buffer reload
+    url: https://docs.tia.siemens.cloud/r/simatic_s7_1500_et_200mp_manual_collection_enus_21/comprehensive-information/cpu-function-manuals/web-server/system-web-pages/diagnostics/diagnostics-buffer
+    accessed: "2026-11-08"
+    kind: vendor
+    quote: >-
+      It is possible that not all diagnostics buffer entries are displayed. With
+      the button at the top right of the screen, you can reload either the last
+      250 or all entries:
+    read: direct
+  - title: TIA Portal V20 help - Secure PG/HMI communication, diagnostics buffer
+    url: https://docs.tia.siemens.cloud/r/en-us/v20/editing-devices-and-networks/configure-networks/secure-communication-s7-1200-s7-1500-s7-1500t/secure-pg/hmi-communication-s7-1200-s7-1500-s7-1500t/pg/hmi-communication-based-on-standardized-security-mechanisms-s7-1200-s7-1500-s7-1500t
+    accessed: "2026-11-08"
+    kind: vendor
+    quote: >-
+      The diagnostics buffer provides you with information if its status changes
+      due to events in connection with the Secure PG/HMI Communication.
+    read: direct
+  - title: CPU 31xC and CPU 31x Technical specifications (Siemens S7-300 manual)
+    url: https://cache.industry.siemens.com/dl/files/906/12996906/att_70325/v1/s7300_cpu_31xc_and_cpu_31x_manual_en-US_en-US.pdf
+    accessed: "2026-11-08"
+    kind: vendor
+    quote: >-
+      The diagnostic buffer can save up to 500 messages. Select an interval for
+      the entries from the drop-down list box. Each interval comprises 100
+      entries.
+    read: direct

@@ -1,0 +1,16 @@
+# 02-ot-network/remote_access_inbound_to_ot.rules
+# Remote-access sessions into the OT range from outside HOME_NET: VNC on the
+# ports CISA AA25-343A reports hacktivists searching (5900 and 5901-5910),
+# and SSH, which CISA AA26-097A reports the actors used through Dropbear on
+# victim modems. Header, flow and threshold keywords only.
+#
+# Set HOME_NET to the OT ranges, including the addresses of cellular modems
+# and gateways. A completed session from outside is the finding; the brokered
+# remote-access path should be the only route in (NCSC-led secure
+# connectivity principles: "remove inbound port exposure").
+#
+# Linked from ICS-PACK-0001, ICS-PACK-0002 and ICS-HUNT-0001, ICS-HUNT-0004,
+# ICS-HUNT-0007.
+
+alert tcp $EXTERNAL_NET any -> $HOME_NET 5900:5910 (msg:"ICS-DFIR VNC session to 5900-5910/tcp in the OT range from outside HOME_NET"; flow:established,to_server; threshold:type limit, track by_both, count 1, seconds 3600; reference:url,www.cisa.gov/news-events/cybersecurity-advisories/aa25-343a; classtype:policy-violation; sid:9000010; rev:1;)
+alert tcp $EXTERNAL_NET any -> $HOME_NET $SSH_PORTS (msg:"ICS-DFIR SSH session into the OT range (modem or gateway) from outside HOME_NET"; flow:established,to_server; threshold:type limit, track by_both, count 1, seconds 3600; reference:url,www.cisa.gov/news-events/cybersecurity-advisories/aa26-097a; classtype:policy-violation; sid:9000011; rev:1;)

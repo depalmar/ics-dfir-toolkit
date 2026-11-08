@@ -1,0 +1,141 @@
+# ICS hunt ICS-HUNT-0008
+# Schema: ../schema/hunt.schema.json
+# Research notes: docs/research/2026-11-08/detections.md
+
+id: ICS-HUNT-0008
+title: PLC project files archived, copied or sent from engineering workstations
+platforms: [ICS-0010]
+actors: [ICS-TA-0015, ICS-TA-0006, ICS-TA-0019]
+incidents: [ICS-INC-0009]
+seen_in: [AA26-097A, AZURITE and VOLTZITE (Dragos 2026 Year in Review)]
+hypothesis: >-
+  An intruder on an engineering workstation or project file server gathered
+  PLC project files and archives - the logic and configuration of the plant
+  - to take them out.
+data: [windows-events, edr, firewall, netflow]
+datasources: [ICS-DS-0006, ICS-DS-0007, ICS-DS-0004, ICS-DS-0003]
+data_detail: >-
+  Process creation with command lines (Sysmon Event ID 1, or Security 4688
+  with command-line auditing enabled; empty by default), Sysmon Event ID 11
+  FileCreate, EDR file and network telemetry where present, outbound flow
+  and firewall records from the EWS, and hashes of the approved projects in
+  version control or FactoryTalk AssetCentre. Project and archive
+  extensions: Rockwell .ACD; Siemens TIA Portal .ap<version> projects and
+  .zap<version> archives; Schneider Control Expert .STU, .STA, .ZEF and
+  .XEF; Unitronics VisiLogic .vlp.
+method:
+  - >-
+    List process starts of archivers (7-Zip, RAR, tar, PowerShell
+    Compress-Archive), bulk-copy tools (robocopy, xcopy) and curl whose
+    command line names a project or archive file.
+  - >-
+    List FileCreate events for project extensions written by any process
+    other than the engineering suite, or into staging locations (Temp,
+    Users\Public, Downloads, removable or network drive letters the site
+    uses).
+  - >-
+    Around those times, look for large outbound transfers from the EWS to
+    the internet or the IT network in flow or firewall data.
+  - >-
+    Hash the project files on the EWS and compare with the approved copies;
+    a modified copy is evidence of tampering, not just theft.
+  - >-
+    Remember the gap: AA26-097A's actors pulled project files straight from
+    the PLCs with their own copies of the vendor software, which leaves
+    nothing on the owner's EWS. ICS-HUNT-0001 and ICS-HUNT-0003 cover that
+    route.
+normal: >-
+  Project files saved by the engineering software into project folders;
+  archives created by named engineers into the change-management system
+  during working hours.
+suspicious: >-
+  Archivers or copy tools run on project files by unusual accounts, at odd
+  hours or from a remote session; archives staged in Temp or Public; large
+  outbound transfers soon after; project files on the EWS whose hashes
+  differ from the approved copies.
+attack: [T0893, T0882, T1560.001, T1005, T1041]
+rules:
+  - 01-engineering-workstations/ews_project_file_archived_or_copied_by_cli.yml
+inferred: >-
+  Watching the EWS for the collection step is this toolkit's inference from
+  CISA's and Dragos's reporting that project and configuration files are
+  what these actors take; CISA does not describe EWS-side collection in
+  AA26-097A.
+confidence: high
+sources:
+  - title: CISA AA26-097A - Iranian-Affiliated Cyber Actors Exploit Programmable Logic Controllers Across US Critical Infrastructure, exfiltration
+    url: https://www.cisa.gov/news-events/cybersecurity-advisories/aa26-097a
+    accessed: "2026-11-08"
+    kind: government
+    quote: >-
+      The authoring agencies observed Iranian-affiliated APT actors using
+      configuration software—such as Rockwell Automation’s Studio 5000 Logix
+      Designer, Schneider Electric’s EcoStruxure Control Expert, and Siemens’
+      Totally Integrated Automation (TIA) Portal—on leased, third-party hosted
+      infrastructure to exfiltrate device project files from PLC devices to
+      threat-actor-controlled infrastructure
+    read: direct
+  - title: CISA AA26-097A, footnote on project files
+    url: https://www.cisa.gov/news-events/cybersecurity-advisories/aa26-097a
+    accessed: "2026-11-08"
+    kind: government
+    quote: >-
+      Project file refers to the software file that contains ladder logic and
+      configuration settings. On Rockwell Automation devices, it is referred
+      to as an .ACD file.
+    read: direct
+  - title: Dragos 2026 OT/ICS Cybersecurity Report and Year in Review, press release (AZURITE)
+    url: https://www.dragos.com/resources/press-release/dragos-2026-year-in-review-new-ot-threats-ransomware
+    accessed: "2026-11-08"
+    kind: researcher
+    quote: >-
+      focuses on long-term access and OT data theft, targeting OT engineering
+      workstations and exfiltrating operational data including network
+      diagrams, alarm data, and process information for downstream capability
+      development.
+    read: direct
+  - title: Dragos 2026 Year in Review press release (VOLTZITE)
+    url: https://www.dragos.com/resources/press-release/dragos-2026-year-in-review-new-ot-threats-ransomware
+    accessed: "2026-11-08"
+    kind: researcher
+    quote: >-
+      Dragos observed the group manipulating engineering workstation software
+      to extract configuration files and alarm data, specifically
+      investigating what operational conditions would trigger process
+      shutdowns.
+    read: direct
+  - title: TIA Portal V20 help - Working with project archives (Siemens)
+    url: https://docs.tia.siemens.cloud/r/en-us/v20/editing-projects/archiving-and-retrieving-projects/working-with-project-archives
+    accessed: "2026-11-08"
+    kind: vendor
+    quote: >-
+      Project archives have the file extension ".zap[version number of the
+      TIA Portal]". Projects created with TIA Portal V20 have the file
+      extension ".zap20".
+    read: direct
+  - title: TIA Portal V20 help - Working with project archives (Siemens), project extension
+    url: https://docs.tia.siemens.cloud/r/en-us/v20/editing-projects/archiving-and-retrieving-projects/working-with-project-archives
+    accessed: "2026-11-08"
+    kind: vendor
+    quote: >-
+      Projects of the TIA Portal V20 have the extension ".ap20". Older
+      projects of the TIA Portal have the extension ".ap[version number]".
+    read: direct
+  - title: Schneider Electric FAQ000259996 - What is the difference between .STU, .STA, .ZEF, and .XEF files in EcoStruxure Control Expert?
+    url: https://www.se.com/us/en/faqs/FAQ000259996/
+    accessed: "2026-11-08"
+    kind: vendor
+    quote: EcoStruxure Control Expert has four formats .STU, .STA, .ZEF, and .XEF.
+    read: direct
+  - title: Unitronics VisiLogic Knowledgebase - Updating Project Versions
+    url: https://www.unitronicsplc.com/Download/SoftwareHelp/VisiLogic_Knowledgebase/PLC_types/Updating_Project_Versions.htm
+    accessed: "2026-11-08"
+    kind: vendor
+    quote: This backup file does not have the .vlp (VisiLogic) file extension.
+    read: direct
+  - title: Best practices for event logging and threat detection (ASD's ACSC with CISA, FBI, NSA and partners, August 2024), anomalous behaviour examples
+    url: https://www.cyber.gov.au/sites/default/files/2024-08/best-practices-for-event-logging-and-threat-detection.pdf
+    accessed: "2026-11-08"
+    kind: government
+    quote: downloading or exporting a large volume of data
+    read: direct

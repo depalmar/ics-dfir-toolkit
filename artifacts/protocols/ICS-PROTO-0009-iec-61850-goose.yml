@@ -1,0 +1,45 @@
+# ICS protocol identity record
+# ICS-PROTO-0009 - IEC 61850 GOOSE
+# Research notes: docs/research/2026-11-08/datasources.md
+# Identity only: operations (message contents and their effects) are deliberately omitted.
+
+id: ICS-PROTO-0009
+name: IEC 61850 GOOSE
+slug: iec-61850-goose
+aliases:
+  - Generic Object Oriented Substation Event
+  - IEC 61850 peer-to-peer profile (with Sampled Values, SV)
+spec_owner: IEC Technical Committee 57
+transport:
+  - layer: ethernet
+    notes: >-
+      IEC states GOOSE and SV are IEC 61850 profiles that do not run over
+      TCP/IP. The EtherType was not stated in any source read and is omitted
+      rather than assumed.
+authentication:
+  native: none
+  detail: >-
+    Not verified. The sources read name only IEC 62351-6 as the security
+    standard for the GOOSE/SV peer-to-peer profiles; no native authentication
+    was described. Treat as unauthenticated.
+  secure_variant: IEC 62351-6 (security for IEC 61850 peer-to-peer profiles)
+encryption: None documented in the sources read.
+parsers: []
+platforms: [ICS-0014]
+notes: >-
+  Because GOOSE is not carried over IP, IP flow records (ICS-DS-0003) and
+  firewall logs (ICS-DS-0004) will not show it; only a capture on the
+  station/process bus segment can (this project's inference). No open-source
+  Zeek parser for GOOSE was found in ICSNPP or Malcolm in this round.
+confidence: low
+unverified: true
+sources:
+  - title: IEC 62351 - Cybersecurity for IEC 61850 (IEC 61850 website)
+    url: https://iec61850.dvl.iec.ch/what-is-61850/technical-principles/61850-cybersecurity/
+    accessed: "2026-11-08"
+    kind: standard
+    quote: >-
+      IEC 62351-6: Data and Communication Security – Security for IEC 61850
+      Peer-to-Peer Profiles. These security standards cover profiles in: – IEC
+      61850 that do not run over TCP/IP – GOOSE and SV
+    read: direct

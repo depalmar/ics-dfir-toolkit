@@ -1,0 +1,447 @@
+# ICS platform catalog entry
+# ICS-0002 - Rockwell Automation MicroLogix 1100 / 1400
+# Research notes: docs/research/2026-11-08/platforms-round2.md
+
+id: ICS-0002
+name: Rockwell Automation MicroLogix 1100 / 1400
+vendor: Rockwell Automation
+products:
+  - MicroLogix 1400 (1766-L32 catalog numbers, Series A, B and C)
+  - MicroLogix 1100 (1763-L16 catalog numbers, Series A, B and C)
+asset_class: plc
+purdue_levels: ["1"]
+protocols: [ICS-PROTO-0004, ICS-PROTO-0005, ICS-PROTO-0001, ICS-PROTO-0006]
+os_base: >-
+  Proprietary controller operating system; the series and firmware revision
+  (FRN) are shown on the MicroLogix 1400 LCD System Information screen.
+  Internals are not published.
+filesystem: >-
+  No customer-visible filesystem. Program and data are non-volatile in the
+  controller. An optional 1766-MM1 memory module (MicroLogix 1400) holds one
+  user program with data, datalog and recipe as a separate backup.
+customer_shell: "no"
+memory_acquisition: not-available
+program_access: vendor-software-upload
+operating_modes: >-
+  On the MicroLogix 1400 the mode switch is a screen on the LCD with
+  positions PROGRAM, REMOTE and RUN; every LCD screen except the boot message
+  shows the current position at top right. REMOTE allows remote program,
+  download, run and test modes. No source read documents any record of a mode
+  change on the controller. FBI and Rockwell recommend leaving it in RUN
+  except while downloading.
+integrity_features:
+  - feature: Memory module Program Compare (status bit S:2/9)
+    description: >-
+      When enabled, the controller will not enter run or test mode if the
+      program in the memory module differs from the program in the
+      controller. A memory module can also be made permanently write-protected
+      ("write-once, read-many"), which keeps a fixed copy of the approved
+      program. Both must have been set up before an incident.
+    versions: MicroLogix 1400 with 1766-MM1 (MicroLogix 1100 not read)
+    confidence: high
+    sources:
+      - title: MicroLogix 1400 Programmable Controllers User Manual (1766-UM001P-EN-P, March 2024)
+        url: https://literature.rockwellautomation.com/idc/groups/literature/documents/um/1766-um001_-en-p.pdf
+        accessed: "2026-11-08"
+        kind: vendor
+        quote: >-
+          The memory module can also provide application security, allowing
+          you to specify that if the program stored in the memory module does
+          not match the program in the controller, the controller will not enter
+          an executing (run or test) mode.
+        read: direct
+      - title: MicroLogix 1400 Programmable Controllers User Manual (1766-UM001P-EN-P, March 2024)
+        url: https://literature.rockwellautomation.com/idc/groups/literature/documents/um/1766-um001_-en-p.pdf
+        accessed: "2026-11-08"
+        kind: vendor
+        quote: Once set, write protection cannot be removed.
+        read: direct
+  - feature: Controller password, LCD password and Enhanced Password Security
+    description: >-
+      A controller password protects program access; from firmware FRN 21 the
+      MicroLogix 1400 LCD has a Security menu with its own LCD password.
+      Rockwell's SD1790 asks MicroLogix 1400 Series B owners to apply FRN
+      21.002 or later and enable Enhanced Password Security. A password is
+      access control, not an audit record: no source read describes the
+      controller logging when one is set or changed.
+    versions: LCD password FRN 21 and later; Enhanced Password Security on Series B FRN 21.002 and later
+    confidence: high
+    sources:
+      - title: Rockwell Automation SD1790 - Important Hardening Guidance ... Restoring Access When the Password Is Unknown (rev. 5.0)
+        url: https://www.rockwellautomation.com/en-us/trust-center/security-advisories/advisory.SD1790.html
+        accessed: "2026-11-08"
+        kind: vendor
+        quote: >-
+          On MicroLogix™ 1400 Series B, apply firmware FRN 21.002 or later and
+          enable Enhanced Password Security.
+        read: direct
+collection:
+  - method: Logs already held by the cellular modem, firewall or remote-access gateway in front of the PLC
+    impact: passive
+    description: >-
+      The only record of who connected, since no on-controller log is
+      documented. FBI asks owners to enable and review modem logs; CISA warns
+      the modems are often undocumented integrator or vendor installs.
+    confidence: high
+    references:
+      - https://www.ic3.gov/PSA/2026/PSA260730.pdf
+      - https://www.cisa.gov/news-events/alerts/2026/07/30/cisa-urges-water-and-wastewater-systems-sector-protect-ot-against-activity-targeting-plcs
+  - method: Passive capture of EtherNet/IP (PCCC), Modbus TCP, DNP3 and HTTP traffic to the PLC (TAP or SPAN)
+    impact: passive
+    description: >-
+      Shows the sessions that changed configuration or logic and the
+      addresses they came from, independent of the controller.
+    confidence: medium
+  - method: Collect the offline project (.RSS) backups and any memory module taken before the incident
+    impact: passive
+    description: >-
+      The known-good reference for comparison and the only way to restore
+      after a password lockout. Establish when each backup was taken and that
+      it predates the compromise.
+    confidence: high
+    references:
+      - https://www.rockwellautomation.com/en-us/trust-center/security-advisories/advisory.SD1790.html
+  - method: Read and photograph the MicroLogix 1400 LCD - mode position, ENET Cfg Status (MAC and IP), Fault Code, System Information
+    impact: read-only
+    description: >-
+      Main Menu → Advanced Set → ENET Cfg → Status shows the MAC and IP
+      addresses; Advanced Set also leads to the Fault Code and System
+      Information (operating system series and firmware version) screens.
+      Needs someone at the cabinet, no network session.
+    safety_note: >-
+      The mode switch is itself an LCD screen and the IP address is editable
+      from the same ENET Cfg menu. Navigate only to the status, fault-code and
+      system-information screens; do not open the Mode Switch, IP Address or
+      Security screens. Agree the visit with operations.
+    confidence: high
+    references:
+      - https://literature.rockwellautomation.com/idc/groups/literature/documents/um/1766-um001_-en-p.pdf
+  - method: View the MicroLogix 1400 embedded web server (module information, TCP/IP configuration, diagnostics)
+    impact: read-only
+    description: >-
+      A browser view of configuration and diagnostics. Only if the web server
+      was already enabled; Rockwell advises disabling it when not required, so
+      do not enable it now.
+    safety_note: >-
+      Firmware since FRN3 supports writing data files through the web server;
+      view only, and do not use data-table write pages.
+    confidence: high
+    references:
+      - https://literature.rockwellautomation.com/idc/groups/literature/documents/um/1766-um001_-en-p.pdf
+  - method: Upload the running program with RSLogix 500 / RSLogix Micro into a new file and compare it with the known-good .RSS
+    impact: online-vendor-tool
+    description: >-
+      The logic is the primary artifact; FBI asks owners to compare the running
+      program with known-good logic. Not possible when an unknown password has
+      been set, which is what the July 2026 campaign did.
+    safety_note: >-
+      The same session can download, change mode or change the IP address.
+      Operations approval required; upload into a new, empty project so the
+      investigator's copy cannot be downloaded by mistake.
+    confidence: high
+    references:
+      - https://www.ic3.gov/PSA/2026/PSA260730.pdf
+volatility:
+  - >-
+    Rockwell's SD1790 recovery for an unknown password erases the evidence: on
+    the MicroLogix 1400, battery removal clears program, data and IP
+    configuration; on the 1100, a firmware update over DF1 serial clears the
+    user program and the password. SD1790 (rev. 5.0, read directly at
+    integration on 2026-11-08): "The IP address and program are now erased" and
+    "The firmware update process will clear the user program and any configured
+    controller password, restoring access to the device." Capture everything
+    else first, and keep a record that the attacker's logic could not be
+    uploaded.
+  - >-
+    No on-controller audit or event log is documented in the sources read. An
+    IP or password change leaves no record on the PLC that this project could
+    find; network capture and modem logs are the event record.
+  - The LCD fault code is not shown automatically; only the FAULT LED flashes until someone opens the Fault Code screen.
+anti_forensics:
+  - technique: Password turned on and set where none existed, locking owners out of program upload
+    seen_in: US water-sector MicroLogix campaign, July 2026 (FBI/EPA I-073026-PSA; Rockwell SD1790)
+    detail: >-
+      Besides denying control, the lockout prevents uploading the modified
+      logic for comparison, and the vendor's recovery erases it.
+  - technique: Controller IP address changed, disconnecting the PLC from HMI and SCADA
+    seen_in: US water-sector MicroLogix campaign, July 2026 (FBI/EPA I-073026-PSA)
+datasources: [ICS-DS-0001, ICS-DS-0002, ICS-DS-0003, ICS-DS-0004, ICS-DS-0012, ICS-DS-0014, ICS-DS-0010, ICS-DS-0011]
+confidence: high
+references:
+  - title: MicroLogix 1400 Programmable Controllers User Manual (1766-UM001P-EN-P, March 2024)
+    url: https://literature.rockwellautomation.com/idc/groups/literature/documents/um/1766-um001_-en-p.pdf
+    accessed: "2026-11-08"
+  - title: Rockwell Automation SD1790 - Important Hardening Guidance ... Restoring Access When the Password Is Unknown (rev. 5.0)
+    url: https://www.rockwellautomation.com/en-us/trust-center/security-advisories/advisory.SD1790.html
+    accessed: "2026-11-08"
+  - title: FBI/EPA PSA I-073026-PSA - Malicious Cyber Actors Targeting Water and Wastewater Sector Internet-Facing PLCs
+    url: https://www.ic3.gov/PSA/2026/PSA260730.pdf
+    accessed: "2026-11-08"
+  - title: CISA - CISA Urges Water and Wastewater Systems Sector to Protect OT Against Activity Targeting PLCs (30 July 2026)
+    url: https://www.cisa.gov/news-events/alerts/2026/07/30/cisa-urges-water-and-wastewater-systems-sector-protect-ot-against-activity-targeting-plcs
+    accessed: "2026-11-08"
+last_verified: "2026-11-08"
+notes: >-
+  Kept deliberately thin. Round 2 still found no vendor or researcher source
+  for an on-controller audit log, change-detection value or syslog on either
+  model, so none is listed; that absence is itself the main finding for an
+  investigator. All controller detail comes from the MicroLogix 1400 user
+  manual; the MicroLogix 1100 user manual (1763-UM001) and both reference
+  manuals (1766-RM001 for password and master-password behaviour) were not
+  read, so 1100 specifics are not evaluated beyond its SD1790 recovery path.
+  The FBI notes the impact differed between 1100 and 1400 without saying how.
+  Rockwell's SD1790 rev. 5.0 also covers Micro820 and Micro850, which are not
+  part of this record. Whether a password-protected program can be stored to
+  a memory module from the LCD was not found; do not try it untested.
+  Protocols come from the 1400 manual: "The MicroLogix 1400 supports
+  EtherNet/IP™ communication via the Ethernet communication Channel 1. In
+  addition, either Modbus TCP or DNP3 over IP can be enabled for Channel 1",
+  and its firmware history lists "ST file type for all PCCC commands".
+response: baseline
+artifacts:
+  - locator: LCD Main Menu → Advanced Set → ENET Cfg → Status (MAC and IP address); embedded web server TCP/IP page
+    class: config
+    volatility: live
+    forensic_value: high
+    evidence_type: [impact, inhibit-response-function, configuration]
+    confidence: high
+    collection_impact: read-only
+    description: The controller's current Ethernet identity, readable at the panel without a network session.
+    seen_in: [US water-sector MicroLogix campaign, July 2026]
+    provides: Whether the IP address was changed away from the value the HMI and SCADA expect.
+    normal: IP address matches the asset register and the HMI/SCADA communication configuration.
+    suspicious: An IP address that differs from the register, or an unreachable or nonsensical value, with no approved change.
+    basis: government
+    sources:
+      - title: MicroLogix 1400 Programmable Controllers User Manual (1766-UM001P-EN-P)
+        url: https://literature.rockwellautomation.com/idc/groups/literature/documents/um/1766-um001_-en-p.pdf
+        accessed: "2026-11-08"
+        kind: vendor
+        quote: >-
+          The Ethernet configuration screen of the LCD displays the MAC and IP
+          addresses assigned to the controller.
+        read: direct
+      - title: FBI/EPA PSA I-073026-PSA
+        url: https://www.ic3.gov/PSA/2026/PSA260730.pdf
+        accessed: "2026-11-08"
+        kind: government
+        quote: >-
+          After remotely accessing internet-facing devices, the actors changed
+          the IP addresses and passwords, resulting in a loss of monitoring and
+          control functionality.
+        read: direct
+  - locator: Password prompt when the owner's RSLogix 500 / RSLogix Micro connects to the controller
+    class: identity
+    volatility: stable
+    forensic_value: high
+    evidence_type: [inhibit-response-function, impact]
+    confidence: high
+    collection_impact: online-vendor-tool
+    description: >-
+      Evidence by absence of access: the site's own software is challenged for
+      a password nobody at the site set.
+    seen_in: [US water-sector MicroLogix campaign, July 2026]
+    provides: Confirmation that a password was turned on by someone else.
+    normal: No password, or the site's documented password held in its vault.
+    suspicious: A password prompt on a controller documented as having none; the documented password rejected.
+    basis: vendor
+    sources:
+      - title: Rockwell Automation SD1790
+        url: https://www.rockwellautomation.com/en-us/trust-center/security-advisories/advisory.SD1790.html
+        accessed: "2026-11-08"
+        kind: vendor
+        quote: >-
+          Threat actors have reportedly targeted these controllers to remotely
+          tamper with device configurations by changing IP addresses and
+          turning on and setting passwords where no passwords were previously
+          set, resulting in a loss of operator view.
+        read: direct
+  - locator: Mode switch position shown at the top right of every MicroLogix 1400 LCD screen
+    class: config
+    volatility: live
+    forensic_value: medium
+    evidence_type: [initial-access, configuration]
+    confidence: high
+    collection_impact: read-only
+    description: PROGRAM, REMOTE or RUN; REMOTE permits remote download and mode changes.
+    provides: Whether the controller could be reprogrammed remotely at the time.
+    normal: RUN outside approved programming work (FBI and Rockwell recommendation).
+    suspicious: REMOTE or PROGRAM with no programming work scheduled.
+    basis: vendor
+    sources:
+      - title: MicroLogix 1400 Programmable Controllers User Manual (1766-UM001P-EN-P)
+        url: https://literature.rockwellautomation.com/idc/groups/literature/documents/um/1766-um001_-en-p.pdf
+        accessed: "2026-11-08"
+        kind: vendor
+        quote: >-
+          All the built-in LCD screens except the Boot Message screen display
+          the current mode switch position, at their top right portion
+        read: direct
+  - locator: Running ladder program uploaded with RSLogix 500 / RSLogix Micro, compared with the known-good .RSS
+    class: control-logic
+    volatility: stable
+    forensic_value: high
+    evidence_type: [impair-process-control, inhibit-response-function, impact]
+    confidence: high
+    collection_impact: online-vendor-tool
+    description: >-
+      The logic itself. Unavailable while an unknown password is set, and
+      destroyed by the SD1790 recovery; record that it was not evaluated
+      rather than treating the controller as unmodified.
+    seen_in: [US water-sector MicroLogix campaign, July 2026]
+    provides: The controller's actual behaviour for diffing against the approved project.
+    normal: Identical to the approved project apart from documented changes.
+    suspicious: Rungs, timers or setpoints that differ from the approved project; differences repeated across sites set up by the same integrator.
+    basis: government
+    sources:
+      - title: FBI/EPA PSA I-073026-PSA
+        url: https://www.ic3.gov/PSA/2026/PSA260730.pdf
+        accessed: "2026-11-08"
+        kind: government
+        quote: >-
+          At least one organization reported modified PLC project files after
+          noticing ladder logic discrepancies across several sites.
+        read: direct
+  - locator: Offline project (.RSS) backups and 1766-MM1 memory module copies held by the owner or integrator
+    class: project-files
+    volatility: stable
+    forensic_value: high
+    evidence_type: [configuration, impair-process-control]
+    confidence: high
+    collection_impact: passive
+    description: >-
+      The reference for comparison and the source for recovery. A backup taken
+      after the compromise reinstalls the attacker's logic.
+    provides: Known-good logic and configuration, if it predates the incident.
+    normal: A dated, approved .RSS held off the controller, matching change records.
+    suspicious: No backup at all; a backup whose date falls inside the intrusion window; a backup that differs from the integrator's copy.
+    basis: government
+    sources:
+      - title: FBI/EPA PSA I-073026-PSA
+        url: https://www.ic3.gov/PSA/2026/PSA260730.pdf
+        accessed: "2026-11-08"
+        kind: government
+        quote: >-
+          If restoring backups, verify the backup does not contain malicious
+          logic before deployment.
+        read: direct
+      - title: Rockwell Automation SD1790
+        url: https://www.rockwellautomation.com/en-us/trust-center/security-advisories/advisory.SD1790.html
+        accessed: "2026-11-08"
+        kind: vendor
+        quote: >-
+          The following procedure erases the controller’s program, data, and
+          network (IP) configuration.
+        read: direct
+  - locator: Program Compare setting (status bit S:2/9) and the memory module's stored program
+    class: integrity
+    volatility: stable
+    forensic_value: medium
+    evidence_type: [impair-process-control, configuration]
+    confidence: high
+    collection_impact: online-vendor-tool
+    description: >-
+      Where Program Compare was enabled with a write-protected module, the
+      controller should refuse to run a program that differs from the module's
+      (vendor behaviour); whether a mismatch was ever hit is not logged in any
+      source read.
+    provides: A hardware-held copy of the approved program and a run-time gate on changes.
+    normal: S:2/9 set and a write-protected module holding the approved program, where the site uses it.
+    suspicious: S:2/9 cleared on a controller documented as using it; a controller that will not enter run after a mode change (possible mismatch).
+    basis: vendor
+  - locator: LCD Fault Code and System Information screens (operating system series, firmware version)
+    class: diagnostics
+    volatility: live
+    forensic_value: medium
+    evidence_type: [impact, configuration]
+    confidence: high
+    collection_impact: read-only
+    description: The current fault code, if any, and the firmware the controller runs.
+    provides: Whether the controller faulted, and whether its firmware matches the register.
+    normal: No fault code; firmware revision as recorded in the asset register.
+    suspicious: A fault after an unexplained configuration change; a firmware revision that differs from the register.
+    basis: vendor
+    sources:
+      - title: MicroLogix 1400 Programmable Controllers User Manual (1766-UM001P-EN-P)
+        url: https://literature.rockwellautomation.com/idc/groups/literature/documents/um/1766-um001_-en-p.pdf
+        accessed: "2026-11-08"
+        kind: vendor
+        quote: >-
+          When a fault occurs, the Fault Code screen does not display
+          automatically. Only the FAULT LED on the controller flashes in red
+          light.
+        read: direct
+  - locator: Embedded web server pages (module information, TCP/IP configuration, diagnostics, data table monitor)
+    class: diagnostics
+    volatility: live
+    forensic_value: low
+    evidence_type: [configuration]
+    confidence: high
+    collection_impact: read-only
+    description: A browser view of the same configuration and diagnostics; its presence is also exposure.
+    provides: Configuration readable without the programming software.
+    normal: Web server disabled (Rockwell's advice), or enabled and reachable only from the control network.
+    suspicious: Web server reachable from the internet; data-file write through the web server in use.
+    basis: vendor
+    sources:
+      - title: MicroLogix 1400 Programmable Controllers User Manual (1766-UM001P-EN-P)
+        url: https://literature.rockwellautomation.com/idc/groups/literature/documents/um/1766-um001_-en-p.pdf
+        accessed: "2026-11-08"
+        kind: vendor
+        quote: Added Data file write feature through web server.
+        read: direct
+  - locator: Connections to the PLC (EtherNet/IP, Modbus TCP, DNP3, HTTP) through a cellular modem or from internet addresses
+    class: network
+    volatility: off-box
+    forensic_value: high
+    evidence_type: [initial-access, impact]
+    confidence: high
+    collection_impact: passive
+    description: >-
+      FBI and CISA describe the campaign as reaching internet-exposed PLCs,
+      commonly through cellular modems; no source names the protocol used for
+      the changes.
+    seen_in: [US water-sector MicroLogix campaign, July 2026]
+    provides: Who reached the controller from where, independent of controller logging.
+    normal: Connections only from the site's HMI, engineering laptops and SCADA.
+    suspicious: Sessions from internet addresses, especially hosting providers; any session through a modem nobody documented.
+    basis: government
+    sources:
+      - title: FBI/EPA PSA I-073026-PSA
+        url: https://www.ic3.gov/PSA/2026/PSA260730.pdf
+        accessed: "2026-11-08"
+        kind: government
+        quote: >-
+          Block access from unauthorized or threat actor-controlled IP
+          addresses, such as those associated with hosting providers
+        read: direct
+      - title: CISA - Protect OT Against Activity Targeting PLCs
+        url: https://www.cisa.gov/news-events/alerts/2026/07/30/cisa-urges-water-and-wastewater-systems-sector-protect-ot-against-activity-targeting-plcs
+        accessed: "2026-11-08"
+        kind: government
+        quote: >-
+          this targeting activity includes cellular modems installed by
+          operators, vendors, or system integrators that may not be documented
+          or included in routine attack surface scans.
+        read: direct
+  - locator: Cellular modem connection logs (modem in front of the PLC)
+    class: off-box
+    volatility: off-box
+    forensic_value: high
+    evidence_type: [initial-access, timeline]
+    confidence: high
+    collection_impact: passive
+    description: Where logging was enabled, the modem's record of inbound sessions; see ICS-0013 for gateway specifics.
+    provides: Session times and source addresses when nothing on the PLC records them.
+    normal: Sessions from the integrator's or utility's documented remote-access addresses.
+    suspicious: Inbound sessions from unknown addresses around the time the PLC changed; logging disabled.
+    basis: government
+    sources:
+      - title: FBI/EPA PSA I-073026-PSA
+        url: https://www.ic3.gov/PSA/2026/PSA260730.pdf
+        accessed: "2026-11-08"
+        kind: government
+        quote: >-
+          Enable logs for connected modems and regularly review for suspicious
+          activity to detect intrusions and improve incident response speed.
+        read: direct

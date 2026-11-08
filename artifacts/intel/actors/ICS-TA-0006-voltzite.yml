@@ -1,0 +1,84 @@
+id: ICS-TA-0006
+name: VOLTZITE
+aliases:
+  - name: Volt Typhoon
+    by: >-
+      Dragos ('a Dragos-tracked threat group that has operational overlaps with
+      Volt Typhoon (Microsoft)'; 2026: 'VOLTZITE shares technical overlaps with
+      Volt Typhoon'). CISA/NSA/FBI AA24-038A lists 'Voltzite' among Volt Typhoon's
+      'also known as' names, but Dragos, which owns the name, states overlap only.
+      Its own record, ICS-TA-0007 in this toolkit.
+    equated: false
+  - name: BRONZE SILHOUETTE
+    by: "Dragos ('Overlap with Volt Typhoon and BRONZE SILHOUETT', spelling as printed)"
+    equated: false
+reported_by: [Dragos]
+link_confidence: medium
+stated_confidence: >-
+  Dragos gives no confidence language. It states VOLTZITE 'was performing
+  reconnaissance and enumeration of multiple US-based electric companies' and
+  (2026 Year in Review) 'VOLTZITE compromised Sierra Wireless Airlink cellular
+  gateways to access U.S. midstream pipeline operations and then pivoted to
+  engineering workstations.'
+state_nexus: >-
+  None stated. Dragos 'does not corroborate nor conduct political attribution to
+  threat activity'.
+motivation: mixed
+summary: >-
+  Dragos cluster that leans on living-off-the-land techniques and slow
+  reconnaissance. It targets US electric transmission and distribution, emergency
+  services, telecommunications, defence industrial base and satellite services,
+  plus organisations in Africa and Southeast Asia. Dragos read its 2023 behaviour
+  as espionage and information gathering. It also says the targeting signals
+  'clear objectives to identify vulnerability within the country’s critical
+  infrastructure that can be exploited in the future with destructive or
+  disruptive cyber attacks', hence motivation mixed. In 2025 Dragos elevated
+  VOLTZITE to Stage 2. It reached US midstream pipeline operations through
+  compromised Sierra Wireless AirLink gateways, pivoted to engineering
+  workstations, and used engineering software to pull configuration files and
+  alarm data. Dragos has directly observed SYLVANITE handing VOLTZITE its access.
+ics_kill_chain_stage: stage-2
+stage_basis: >-
+  Dragos 2026 Year in Review: 'VOLTZITE was elevated to Stage 2 of the ICS Cyber
+  Kill Chain: Dragos observed the group manipulating engineering workstation
+  software to extract configuration files and alarm data, specifically
+  investigating what operational conditions would trigger process shutdowns.'
+platforms: [ICS-0013, ICS-0010]
+malware: []
+incidents: []
+tradecraft:
+  - "Hands-on operator (Dragos, 2025): 'manipulating engineering workstation software to extract configuration files and alarm data, specifically investigating what operational conditions would trigger process shutdowns'."
+  - "Hands-on operator (Dragos, 2025): compromised Sierra Wireless AirLink cellular gateways to reach US midstream pipeline operations, then pivoted to engineering workstations."
+  - "Hands-on operator (Dragos): 'Heavy use of living off the land techniques'; 'Slow steady reconnaissance to evade detection'; 'Use of Fast Reverse Proxy, multiple web shells'."
+  - "Infrastructure (Dragos): 'Uses internet-facing SOHO networking equipment for communications'."
+  - "Access hand-off (Dragos): 'Dragos has directly observed SYLVANITE transferring access to VOLTZITE' (see ICS-TA-0014)."
+sectors: [electric power transmission and distribution, oil and gas midstream pipelines, emergency services, telecommunications, defense industrial base, satellite services]
+regions: [United States, Guam, Africa, Southeast Asia]
+first_seen: "2023 (Dragos: 'Since 2023')"
+last_seen: "2025 (Dragos 2026 Year in Review)"
+references:
+  - title: Dragos - VOLTZITE threat group
+    url: https://www.dragos.com/threat/voltzite
+    accessed: "2026-11-08"
+    kind: vendor
+    quote: "VOLTZITE, a Dragos-tracked threat group that has operational overlaps with Volt Typhoon (Microsoft), was performing reconnaissance and enumeration of multiple US-based electric companies"
+    read: direct
+  - title: Dragos - 2026 OT Cybersecurity Report / Year in Review press release (17 February 2026)
+    url: https://www.dragos.com/resources/press-release/dragos-2026-year-in-review-new-ot-threats-ransomware
+    accessed: "2026-11-08"
+    kind: vendor
+    quote: "VOLTZITE compromised Sierra Wireless Airlink cellular gateways to access U.S. midstream pipeline operations and then pivoted to engineering workstations. VOLTZITE shares technical overlaps with Volt Typhoon."
+    read: direct
+  - title: Dragos - SYLVANITE threat group (hand-off to VOLTZITE)
+    url: https://www.dragos.com/threat/sylvanite/
+    accessed: "2026-11-08"
+    kind: vendor
+    quote: "Dragos has directly observed SYLVANITE transferring access to VOLTZITE, a group with a demonstrated history of stealing OT data and manipulating industrial systems."
+    read: direct
+notes: >-
+  VOLTZITE is not Volt Typhoon. Reporters conflict on the relationship: US
+  agencies (AA24-038A, February 2024) list 'Voltzite' as another name for Volt
+  Typhoon, while Dragos describes 'operational overlaps' and 'technical overlaps'.
+  The toolkit follows the naming party and keeps two records. The
+  Stage 2 elevation and Sierra Wireless detail come from the press release; the
+  full Year in Review report was not read.

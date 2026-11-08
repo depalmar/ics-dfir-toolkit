@@ -1,0 +1,83 @@
+# ICS hunt ICS-HUNT-0010
+# Schema: ../schema/hunt.schema.json
+# Research notes: docs/research/2026-11-08/detections.md
+
+id: ICS-HUNT-0010
+title: Unitronics PLC/HMI sessions on 20256 or 20257 from outside the site
+platforms: [ICS-0006, ICS-0013]
+actors: [ICS-TA-0009]
+incidents: [ICS-INC-0005]
+cves: [CVE-2023-6448]
+seen_in: [AA23-335A]
+hypothesis: >-
+  Internet-connected Unitronics Vision or Samba PLC/HMIs were reached on the
+  default remote-communication port with a default or empty password, and a
+  device now answering on 20257 was moved there by the actors.
+data: [firewall, netflow, ics-network-capture, exposure-scan]
+datasources: [ICS-DS-0004, ICS-DS-0003, ICS-DS-0001, ICS-DS-0014]
+data_detail: >-
+  Firewall and flow records at the internet or cellular edge; passive
+  capture of the PLC's programming port where a sensor exists (no Zeek
+  parser for this traffic was found, so it appears as conn.log entries only);
+  gateway port-forward configuration (ICS-0013); internet exposure data for
+  the owner's ranges (ICS-HUNT-0012). AA23-335A does not name the protocol on
+  these ports.
+method:
+  - >-
+    List sessions from outside the owner's ranges to 20256/tcp and any
+    session to 20257/tcp; separate completed sessions from probes.
+  - >-
+    Check gateway port forwards for 20256 or 20257 to PLC addresses.
+  - >-
+    For a device that answers on 20257 where its project uses 20256, treat
+    the port change as AA23-335A tampering until shown otherwise, and check
+    the device name, upload and download settings and logic software version
+    against the approved project (ICS-PACK-0003).
+  - >-
+    The actors did not burn their logic to the device; passive capture of
+    the programming port during the session is the realistic place to
+    recover what was downloaded (ICS-INC-0005).
+normal: >-
+  No sessions from the internet to Unitronics ports; remote programming only
+  through a VPN; devices answer on the port in their project.
+suspicious: >-
+  Completed sessions from internet addresses on 20256; any traffic to 20257
+  on a site that never chose it; port forwards to these ports on a gateway.
+attack: [T0883, T0885, T1110, T1078.001]
+rules:
+  - 02-ot-network/unitronics_port_inbound.rules
+confidence: high
+sources:
+  - title: CISA AA23-335A - IRGC-Affiliated Cyber Actors Exploit PLCs in Multiple Sectors, Including US Water and Wastewater Systems Facilities (revised December 18, 2024)
+    url: https://www.cisa.gov/news-events/cybersecurity-advisories/aa23-335a
+    accessed: "2026-11-08"
+    kind: government
+    quote: >-
+      The actors compromised multiple Unitronics Vision Series devices by
+      authenticating to internet-connected devices with communications set to
+      the default TCP port `20256`
+    read: direct
+  - title: CISA AA23-335A, port change
+    url: https://www.cisa.gov/news-events/cybersecurity-advisories/aa23-335a
+    accessed: "2026-11-08"
+    kind: government
+    quote: >-
+      The actors changed the default port number for communicating remotely
+      with the PLC device (from `20256` to `20257`)
+    read: direct
+  - title: CISA AA23-335A, logic not burned
+    url: https://www.cisa.gov/news-events/cybersecurity-advisories/aa23-335a
+    accessed: "2026-11-08"
+    kind: government
+    quote: >-
+      The actors did not burn their ladder logic file to the device,
+      preventing the retrieval of the ladder logic file from the device.
+    read: direct
+  - title: CISA AA23-335A, network intrusion detection
+    url: https://www.cisa.gov/news-events/cybersecurity-advisories/aa23-335a
+    accessed: "2026-11-08"
+    kind: government
+    quote: >-
+      Use this to monitor for logon activity for unexpected or unusual access
+      to devices from the internet.
+    read: direct

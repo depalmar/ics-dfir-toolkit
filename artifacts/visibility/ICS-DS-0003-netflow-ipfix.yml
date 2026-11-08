@@ -1,0 +1,107 @@
+# ICS visibility data source
+# ICS-DS-0003 - NetFlow / IPFIX at the IT/OT boundary and inside OT
+# Research notes: docs/research/2026-11-08/datasources.md
+
+id: ICS-DS-0003
+name: NetFlow / IPFIX at the IT/OT boundary and inside OT
+category: network-flow
+purdue_levels: ["2", "3", "3.5"]
+platforms: [ALL]
+location: >-
+  Flow records exported by routers, layer-3 switches or firewalls at the IT/OT
+  boundary and between OT zones, kept on a flow collector or SIEM. Network
+  sensors can produce equivalent per-session summaries (for example Suricata
+  EVE "flow" records) from a TAP or SPAN feed.
+enable: >-
+  Flow export must be configured on the network devices (or a sensor deployed)
+  and a collector must be receiving before an incident. Turning flow export on
+  for an in-service OT router or switch is a configuration change to network
+  infrastructure; schedule it with operations and the device vendor (this
+  project's caution - no vendor procedure was read). Export at the boundary
+  and between zones, not only at the internet edge: the joint NCSC/CISA
+  connectivity principles call for continuous monitoring of data flows within
+  and between segments.
+retention: >-
+  Set by the collector. Flow records are compact, so they can usually be kept
+  far longer than packet capture; the joint ASD/CISA logging guidance warns
+  that intrusions can take up to 18 months to discover.
+collection:
+  - method: Export flow records already held by the collector, SIEM or sensor
+    impact: passive
+    description: Copies existing records; nothing is sent to the control network.
+    confidence: high
+events:
+  - event: Flow record - source and destination address and port, protocol, start/end time, packet and byte counts (exporter-specific field names)
+    value: >-
+      Who talked to whom, when and how much, without payload. Enough to find
+      a host that began talking to PLCs it never used to, outbound sessions
+      from OT to the internet, and beaconing.
+    basis: toolkit
+  - event: Internal device talking to devices it normally does not connect to
+    value: The joint ASD/CISA logging guidance names this netflow pattern as an example of anomalous behaviour to detect.
+    basis: government
+  - event: Outbound traffic from OT showing beaconing or unexpected protocols
+    value: AA25-343A tells owners to monitor outbound traffic patterns at OT perimeter firewalls for exactly these anomalies.
+    basis: government
+  - event: Sessions to OT protocol ports (44818, 2222, 102, 502) from foreign hosting-provider addresses
+    value: AA26-097A asks owners to check logs for suspicious traffic on these ports, especially from foreign hosting providers.
+    attack: [T0883, T0885]
+    basis: government
+  - event: Suricata eve.json event_type "flow" - pkts_toserver, pkts_toclient, bytes_toserver, bytes_toclient
+    value: Flow summaries from a passive sensor where routers cannot export flows.
+    basis: vendor
+tooling:
+  - name: Suricata (EVE flow records)
+    url: https://suricata.io/
+    license: GPL-2.0
+attack_data_components: [DC0078, DC0082]
+gaps:
+  - No payload - a flow cannot distinguish a Modbus read from a write, or a project upload from a download; pair with ICS-DS-0001.
+  - Traffic that never crosses an exporting device (two hosts on the same switch or VLAN) is not recorded.
+  - Layer-2-only industrial traffic such as GOOSE and PROFINET real-time frames is not IP and so absent from IP flow records (this project's inference).
+  - Sampled export (where configured) misses short sessions; NAT at the boundary can hide the internal host (this project's caution).
+  - No exporter vendor documentation was read in this round, so exporter field names, defaults and sampling behaviour are not recorded here.
+confidence: medium
+sources:
+  - title: Best practices for event logging and threat detection (ASD's ACSC with CISA, FBI, NSA and partners, August 2024)
+    url: https://www.cyber.gov.au/sites/default/files/2024-08/best-practices-for-event-logging-and-threat-detection.pdf
+    accessed: "2026-11-08"
+    kind: government
+    quote: >-
+      netflow data indicating one device talking to other internal devices it
+      normally does not connect to
+    read: direct
+  - title: Secure connectivity principles for Operational Technology (NCSC-UK with CISA, FBI, ASD's ACSC, Cyber Centre, BSI, NCSC-NL, NCSC-NZ)
+    url: https://www.ncsc.gov.uk/sites/default/files/documents/ncsc-secure-connectivity-for-operational-technology.pdf
+    accessed: "2026-11-08"
+    kind: government
+    quote: >-
+      Continuous monitoring of data flows within and between network segments is
+      crucial to enable you to validate segmentation policies, and identify early
+      signs of compromise or misconfiguration in your controls.
+    read: direct
+  - title: CISA AA25-343A - Pro-Russia Hacktivists Conduct Opportunistic Attacks Against US and Global Critical Infrastructure
+    url: https://www.cisa.gov/news-events/cybersecurity-advisories/aa25-343a
+    accessed: "2026-11-08"
+    kind: government
+    quote: >-
+      Regularly audit firewall rulesets and monitor outbound traffic patterns for
+      anomalies indicative of threat actor activity, such as beaconing or
+      unexpected protocol usage.
+    read: direct
+  - title: CISA AA26-097A - Iranian-Affiliated Cyber Actors Exploit Programmable Logic Controllers Across US Critical Infrastructure
+    url: https://www.cisa.gov/news-events/cybersecurity-advisories/aa26-097a
+    accessed: "2026-11-08"
+    kind: government
+    quote: >-
+      Query available logs for the provided indicators of compromise (IOCs) and
+      check available logs for suspicious traffic on the ports associated with OT
+      devices, including `44818`, `2222`, `102`, and `502`, especially traffic
+      originating from foreign hosting providers.
+    read: direct
+  - title: Suricata User Guide - 15.1.2 EVE JSON Format, Event type Flow
+    url: https://docs.suricata.io/en/latest/output/eve/eve-json-format.html
+    accessed: "2026-11-08"
+    kind: vendor
+    quote: '"bytes_toserver": total bytes count to server'
+    read: direct

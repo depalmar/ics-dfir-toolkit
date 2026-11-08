@@ -1,0 +1,54 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/depalmar/ics-dfir-toolkit/artifacts/schema/watch.schema.json",
+  "title": "Advisory watch configuration and triage ledger",
+  "description": "What the advisory watch compares CISA's KEV catalog (and, later, CISA ICS advisories) against. A KEV entry on a watched ICS platform is either covered by a pack or carries a dated human triage decision here.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["kev_url", "since", "platforms", "upstream", "triaged"],
+  "properties": {
+    "kev_url": {"$ref": "common.schema.json#/$defs/https"},
+    "since": {"$ref": "common.schema.json#/$defs/date"},
+    "platforms": {
+      "type": "object",
+      "propertyNames": {"pattern": "^ICS-[0-9]{4}$"},
+      "additionalProperties": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["vendor", "product"],
+        "properties": {
+          "vendor": {"type": "string", "description": "regex searched in KEV vendorProject"},
+          "product": {"type": "string", "description": "regex searched in KEV product"},
+          "exclude": {"type": "string"}
+        }
+      }
+    },
+    "upstream": {
+      "type": "object",
+      "propertyNames": {"pattern": "^ICS-IOC-[0-9]{4}$"},
+      "additionalProperties": {"type": "string", "pattern": "^[0-9a-f]{64}$"}
+    },
+    "triaged": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["cve", "platform", "decision", "date", "basis"],
+        "properties": {
+          "cve": {"$ref": "common.schema.json#/$defs/cve"},
+          "platform": {"$ref": "common.schema.json#/$defs/platform_id"},
+          "kev_vendor": {"type": "string"},
+          "kev_product": {"type": "string"},
+          "kev_date_added": {"$ref": "common.schema.json#/$defs/date"},
+          "decision": {
+            "enum": ["iocs", "no-indicators", "lab-only", "out-of-scope", "deferred"],
+            "description": "deferred means not yet read against primary sources - never use it for a decision you made"
+          },
+          "refs": {"type": "array", "items": {"type": "string", "pattern": "^ICS-(IOC|PACK|HUNT|INC)-[0-9]{4}$"}},
+          "date": {"$ref": "common.schema.json#/$defs/date"},
+          "basis": {"type": "string", "minLength": 10}
+        }
+      }
+    }
+  }
+}

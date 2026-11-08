@@ -1,0 +1,84 @@
+# ICS protocol identity record
+# ICS-PROTO-0012 - Schneider UMAS (Modbus function code 90)
+# Research notes: docs/research/2026-11-08/datasources.md
+# Identity only: operations (UMAS functions and their effects) are deliberately omitted.
+
+id: ICS-PROTO-0012
+name: Schneider UMAS (Modbus function code 90)
+slug: umas
+aliases:
+  - Unified Messaging Application Services
+  - Modbus function code 90 (0x5A)
+spec_owner: Schneider Electric (proprietary; no public specification)
+transport:
+  - layer: tcp
+    port: 502
+    notes: Carried inside Modbus TCP (ICS-PROTO-0001) under reserved function code 90 (0x5A).
+authentication:
+  native: optional
+  detail: >-
+    Kaspersky ICS CERT describes a "reservation" procedure that acts as
+    authentication before changes can be made to a PLC, and an Application
+    Password mechanism (Modicon M340 firmware 3.01 and later) enabled in
+    project settings; it reports authentication-bypass flaws in both
+    (CVE-2020-28212, CVE-2021-22779). Schneider's own Modicon cybersecurity
+    guide lists "Login problem (Control Expert application password through
+    Modbus-Umas)" among M580 syslog events, corroborating the
+    application-password mechanism.
+  secure_variant: >-
+    Application Password ("Project & Controller Protection") and, on M580,
+    IPsec for Control Expert communications per Schneider; neither was
+    examined in depth here.
+encryption: None documented for UMAS itself in the sources read.
+parsers:
+  - tool: Zeek built-in Modbus analyzer (logs the Modbus header including the function code; UMAS payloads are not decoded)
+    url: https://github.com/zeek/zeek/blob/master/scripts/base/protocols/modbus/main.zeek
+    logs: [modbus.log]
+    license: BSD-style (Zeek COPYING)
+platforms: [ICS-0005]
+notes: >-
+  ICSNPP-Modbus states vendor- and product-specific Modbus functions are not
+  included in its parser, so UMAS activity is visible to Zeek only as Modbus
+  traffic with function code 90 on the connection (this project's reading of
+  the two READMEs).
+confidence: medium
+sources:
+  - title: The secrets of Schneider Electric's UMAS protocol (Kaspersky ICS CERT, Securelist)
+    url: https://securelist.com/the-secrets-of-schneider-electrics-umas-protocol/107435/
+    accessed: "2026-11-08"
+    kind: researcher
+    quote: >-
+      UMAS is based on the Modbus/TCP protocol.
+    read: direct
+  - title: The secrets of Schneider Electric's UMAS protocol (Kaspersky ICS CERT, Securelist), packet structure
+    url: https://securelist.com/the-secrets-of-schneider-electrics-umas-protocol/107435/
+    accessed: "2026-11-08"
+    kind: researcher
+    quote: >-
+      Schneider Electric uses Function Code 90 (0x5A) to define that the value in
+      the Data field is UMAS compliant.
+    read: direct
+  - title: The secrets of Schneider Electric's UMAS protocol (Kaspersky ICS CERT, Securelist), reservation
+    url: https://securelist.com/the-secrets-of-schneider-electrics-umas-protocol/107435/
+    accessed: "2026-11-08"
+    kind: researcher
+    quote: >-
+      A “reservation” procedure is required to make changes to a PLC. The
+      procedure acts as authentication.
+    read: direct
+  - title: ModiPwn (Armis)
+    url: https://www.armis.com/research/modipwn/
+    accessed: "2026-11-08"
+    kind: researcher
+    quote: >-
+      Modicon chose to extend the Modbus implementation under a reserved Modbus
+      function code. The extended protocol is called UMAS, and it adds
+      authentication, binary data transfer, firmware updates, and additional
+      features to the basic Modbus protocol.
+    read: direct
+  - title: Modicon Platform Cybersecurity User Guide (EIO0000001999, Schneider Electric)
+    url: https://download.se.com/files?p_Doc_Ref=EIO0000001999&p_enDocType=User+guide
+    accessed: "2026-11-08"
+    kind: vendor
+    quote: Login problem (Control Expert application password through Modbus-Umas)
+    read: direct

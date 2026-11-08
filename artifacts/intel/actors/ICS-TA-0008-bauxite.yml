@@ -1,0 +1,73 @@
+id: ICS-TA-0008
+name: BAUXITE
+aliases:
+  - name: CyberAv3ngers
+    by: >-
+      Dragos ('Based on capabilities and network infrastructure, this group shares
+      substantial technical overlaps with the pro-Iranian hacktivist persona
+      CyberAv3ngers'; 2026: 'BAUXITE exhibits technical overlap with activity the
+      U.S. Government assesses is aligned with CyberAv3ngers and IRGC-CEC').
+      AA26-097A lists 'Bauxite' among names private industry uses for
+      CyberAv3ngers. Its own record, ICS-TA-0009 in this toolkit.
+    equated: false
+reported_by: [Dragos]
+link_confidence: medium
+stated_confidence: >-
+  Dragos gives no confidence language. It states 'Dragos-designated threat group
+  BAUXITE was implicated in multiple global campaigns targeting OT/ICS entities
+  and specific devices' and (2026 Year in Review) 'BAUXITE deployed two custom
+  wiper malware variants against Israeli targets during the Iran-Israel conflict
+  in June 2025, escalating from prior access and disruption to destructive
+  intent.'
+state_nexus: >-
+  Dragos: 'BAUXITE’s targeting strategies and operational focus evolved under
+  state-sponsored directives or geopolitical pressures', and its activity overlaps
+  'activity the U.S. Government assesses is aligned with CyberAv3ngers and
+  IRGC-CEC'. Dragos names no sponsor itself and 'does not corroborate nor conduct
+  political attribution'.
+motivation: disruption
+summary: >-
+  Dragos cluster that compromises PLCs, modifies ladder logic and deploys custom
+  backdoors on OT devices. Its victims are in the US, Australia, the UK and
+  Israel. Dragos says it uses public exploits and Kali tools, follows OEM security
+  advisories, and runs a Linux backdoor with command and control over MQTT. In
+  June 2025, during the Iran-Israel conflict, Dragos reports it deployed two custom
+  wipers against Israeli targets. Dragos files this under hacktivists evolving
+  'from symbolic attacks to operationally capable campaigns'. Motivation is taken
+  from Dragos's 'attempt to conduct disruptive operations' and 'destructive
+  intent'.
+ics_kill_chain_stage: stage-2
+stage_basis: "Dragos: 'BAUXITE is capable of Stage 2 ICS Cyber Kill Chain and has demonstrated the ability to compromise PLCs and deploy custom backdoors on OT devices.'"
+platforms: []
+malware: []
+incidents: []
+tradecraft:
+  - "Hands-on operator (Dragos): 'Uses publicly known exploits'; 'Leverages tools built into Kali Linux'; 'Consumes Security Advisories from OT/ICS OEMs'."
+  - "Malware (Dragos): 'Linux Backdoor with C2 over MQTT'. Dragos does not name the family on the page read."
+  - "Malware (Dragos, June 2025): 'two custom wiper malware variants against Israeli targets'. No toolkit malware id has been assigned to them yet."
+  - "Hands-on operator (Dragos): demonstrated ability to 'compromise PLCs, modify ladder logic, and deploy custom backdoors on OT devices'."
+  - "Infrastructure (Dragos): 'Use/reuse of bulletproof hosting providers & owned infrastructure'; 'Different infrastructure for CNA/CNE, Scanning & Research'."
+regions: [United States, Australia, United Kingdom, Israel]
+first_seen: "2017 (Dragos: 'Since 2017')"
+last_seen: "2025-06 (Dragos: wipers against Israeli targets)"
+references:
+  - title: Dragos - BAUXITE threat group
+    url: https://www.dragos.com/threat/bauxite
+    accessed: "2026-11-08"
+    kind: vendor
+    quote: "Based on capabilities and network infrastructure, this group shares substantial technical overlaps with the pro-Iranian hacktivist persona CyberAv3ngers."
+    read: direct
+  - title: Dragos - 2026 OT Cybersecurity Report / Year in Review press release (17 February 2026)
+    url: https://www.dragos.com/resources/press-release/dragos-2026-year-in-review-new-ot-threats-ransomware
+    accessed: "2026-11-08"
+    kind: vendor
+    quote: "BAUXITE exhibits technical overlap with activity the U.S. Government assesses is aligned with CyberAv3ngers and IRGC-CEC."
+    read: direct
+notes: >-
+  BAUXITE is not CyberAv3ngers. The reporters conflict: CISA's AA26-097A says
+  'Private industry and open sources also refer to this group as ... Bauxite' of
+  CyberAv3ngers, while Dragos, the naming party, states overlap only. The toolkit
+  follows the naming party. Dragos's MQTT backdoor and Claroty's IOCONTROL (which
+  also uses MQTT) are not linked here. No reporter read equates them, and the
+  toolkit does not compute attribution. The CyberAv3ngers Unitronics incident
+  (ICS-INC-0005) is not listed: Dragos's pages read do not tie BAUXITE to it.

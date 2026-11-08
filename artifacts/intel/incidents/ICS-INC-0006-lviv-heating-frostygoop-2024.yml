@@ -1,0 +1,85 @@
+# Lviv district heating disruption (FrostyGoop), January 2024.
+# Schema: ../../schema/incident.schema.json
+# Research notes: docs/research/2026-11-08/incidents-and-kev.md
+id: ICS-INC-0006
+name: Lviv district heating disruption (FrostyGoop / BUSTLEBERM)
+date: '2024-01'
+date_basis: >-
+  Dragos intelligence brief landing page (read directly): the attack "impacted a municipal
+  district energy company in Ukraine in January 2024". Dragos's blog, read directly, gives no month.
+disclosed: '2024-07-23'
+sectors:
+  - district heating
+countries:
+  - Ukraine
+victim: >-
+  A municipal district energy company in Lviv that "fed over 600 apartment buildings" (Dragos, from the
+  Security Service of Ukraine's Cyber Security Situation Center).
+malware:
+  - ICS-MAL-0009
+protocols:
+  - ICS-PROTO-0001
+summary: >-
+  Ukraine's CSSC told Dragos of an attack on a Lviv district energy company in which adversaries sent
+  Modbus commands to ENCO heating controllers, "causing inaccurate measurements and system malfunctions"
+  and a loss of heating that took almost two days to remediate. Dragos assesses FrostyGoop, a Golang
+  Modbus TCP tool it found in April 2024, was likely used: an associated configuration file held the IP of
+  an ENCO control device. Access possibly came through an undetermined vulnerability in an externally
+  facing router, and the router, management servers and controllers were not adequately segmented.
+physical_consequence: service-outage
+consequence_detail: >-
+  "a two-day loss of heating to customers" (Dragos blog); the landing page adds that the civilian
+  population "had to endure sub-zero temperatures".
+ics_effects:
+  - loss-of-availability
+chain:
+  - tactic: initial-access
+    what: >-
+      "the adversaries possibly gained access to the victim network through an undetermined vulnerability in
+      an externally facing router" (Dragos).
+  - tactic: configuration
+    what: >-
+      "The network assets, including the router, management servers, and district heating system
+      controllers, were not adequately segmented, facilitating the cyber attack."
+  - tactic: impair-process-control
+    what: >-
+      "The adversaries sent Modbus commands to ENCO controllers, causing inaccurate measurements and system
+      malfunctions"; Dragos assesses with moderate confidence FrostyGoop targeted ENCO controllers "through
+      Modbus TCP port 502 open to the internet".
+    evidence: FrostyGoop configuration file containing an ENCO device IP address (Dragos)
+lessons:
+  - lesson: >-
+      Implement the SANS five critical controls: ICS incident response, defensible architecture, ICS network
+      visibility and monitoring, secure remote access, and risk-based vulnerability management.
+    basis: researcher
+  - lesson: >-
+      FrostyGoop binaries were undetected by most antivirus vendors, so OT network monitoring with Modbus
+      protocol awareness is the realistic detection layer.
+    basis: researcher
+confidence: low
+unverified: true
+sources:
+  - title: 'How to Protect Against FrostyGoop: ICS Malware Targeting Operational Technology (Dragos)'
+    url: https://www.dragos.com/blog/protect-against-frostygoop-ics-malware-targeting-operational-technology
+    accessed: '2026-11-08'
+    kind: researcher
+    quote: >-
+      the Cyber Security Situation Center (CSSC), a part of the Security Service of Ukraine (Служба безпеки
+      України), shared details with Dragos about a disruptive cyber attack on a district energy company in
+      Ukraine, which resulted in a two-day loss of heating to customers.
+    read: direct
+  - title: Impact of FrostyGoop ICS Malware on Connected OT Systems (Dragos intelligence brief landing page)
+    url: https://hub.dragos.com/report/frostygoop-ics-malware-impacting-operational-technology
+    accessed: '2026-11-08'
+    kind: researcher
+    quote: >-
+      The Cyber Security Situation Center (CSSC), a part of the Security Service of Ukraine, shared details
+      with Dragos about a cyber attack that impacted a municipal district energy company in Ukraine in
+      January 2024.
+    read: direct
+notes: >-
+  Low and unverified because every source is Dragos relaying CSSC; no Ukrainian government statement was
+  read. No actor is attributed in the sources read. Possible tension: Dragos says access was possibly via
+  an externally facing router, yet also assesses FrostyGoop targeted controllers on port 502 "open to the
+  internet"; both appear in the same post. A third-party write-up mentions a "Dragos versus SCADASEC"
+  disagreement over the incident; not read. ENCO controllers and the router have no registry platform id.

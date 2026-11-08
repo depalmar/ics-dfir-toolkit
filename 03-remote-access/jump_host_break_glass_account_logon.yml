@@ -1,0 +1,38 @@
+title: Break-Glass Account Logon on an OT Jump Host or Remote-Access Server
+id: ede81e48-1d8f-4501-8126-58a3b772945a
+status: experimental
+description: |
+  A successful logon (Security 4624) by a break-glass account on a Windows
+  jump host or remote-access server in the OT DMZ. The NCSC-led secure
+  connectivity principles (co-sealed by CISA, FBI, ASD's ACSC, the Cyber
+  Centre, BSI, NCSC-NL and NCSC-NZ) say break-glass access "should not be
+  used as a standard remote access method" and that "any attempt to use a
+  break-glass account triggers the highest criticality alarm" in the SOC.
+  The account names below are placeholders: replace them with the site's
+  break-glass account names before deploying, or the rule matches nothing.
+  Failed attempts (event 4625) also count as attempts under the principle;
+  that event's fields were not read for this rule, so it is not included.
+references:
+  - https://www.ncsc.gov.uk/sites/default/files/documents/ncsc-secure-connectivity-for-operational-technology.pdf
+  - https://learn.microsoft.com/en-us/previous-versions/windows/it-pro/windows-10/security/threat-protection/auditing/event-4624
+author: Raymond DePalma (ics-dfir-toolkit)
+date: 2026-11-08
+tags:
+  - attack.initial-access
+  - attack.persistence
+  - attack.t1078
+  - attack.t0859
+  - ics-dfir.remote-access
+logsource:
+  product: windows
+  service: security
+detection:
+  selection:
+    EventID: 4624
+    TargetUserName:
+      - 'BREAKGLASS-PLACEHOLDER-1'
+      - 'BREAKGLASS-PLACEHOLDER-2'
+  condition: selection
+falsepositives:
+  - Announced break-glass tests; the SOC should still receive the alarm and close it against the test record
+level: critical

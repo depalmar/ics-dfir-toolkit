@@ -1,0 +1,114 @@
+# ICS visibility data source
+# ICS-DS-0011 - Historian process data
+# Research notes: docs/research/2026-11-08/datasources.md
+
+id: ICS-DS-0011
+name: Historian process data
+category: historian
+purdue_levels: ["2", "3", "3.5"]
+platforms: [ICS-0012]
+location: >-
+  On the plant historian (for example AVEVA PI Data Archive) and any DMZ or
+  enterprise replica: time-series values for configured tags, plus the
+  historian's own audit database where enabled. For PI Data Archive the
+  online audit database is three files - pibasessAudit.dat,
+  piarchssAudit.dat and pisnapssAudit.dat - stored in the PI\log directory.
+enable: >-
+  Process data exists for whatever tags, scan rates and compression the site
+  configured; investigation-relevant tags (setpoints, modes, safety trips,
+  controller status) must be historised before an incident. PI Data Archive
+  auditing is controlled by the EnableAudit tuning parameter, a bitmask with
+  one bit per database; changes take effect only after the affected subsystem
+  restarts.
+retention: >-
+  Set by archive sizing and the site's retention policy (not read for any
+  product in this round). The PI audit database records changes, not routine
+  data collection.
+collection:
+  - method: Export tag history and audit records from a historian replica, backup or DMZ copy
+    impact: passive
+    description: Reads copies; no effect on the control network.
+    confidence: high
+  - method: Query the production historian with its client tools (for PI, PI AuditViewer for audit records)
+    impact: read-only
+    description: >-
+      Reads the historian, not the controllers. Large queries can load a
+      historian that also feeds operators' trends.
+    safety_note: >-
+      Agree timing with operations; prefer a replica. Do not edit, annotate or
+      recalculate archived values - that would itself create audit records and
+      alter evidence.
+    confidence: medium
+events:
+  - event: Time-series values of setpoints, modes, alarms and process variables around the incident window
+    value: >-
+      Reconstructs what the process actually did and when - the physical
+      timeline against which network and host events are placed. The joint
+      ASD/CISA guidance calls historians an additional source of event log
+      data for OT networks.
+    basis: government
+  - event: PI Audit Database - editing and deleting time-series data (for example archive values)
+    value: Shows after-the-fact changes to historical values, which could hide or fabricate a process record.
+    basis: vendor
+  - event: PI Audit Database - creating, deleting and editing configuration on time-series data (for example PI point configuration and access permissions for secure objects)
+    value: Tag reconfiguration or permission changes on the historian.
+    basis: vendor
+tooling:
+  - name: AVEVA PI Server (PI Data Archive, PI AuditViewer)
+    url: https://docs.aveva.com/bundle/pi-server-s-da-reference/page/1021193.html
+    license: Commercial
+attack_data_components: [DC0107, DC0038]
+gaps:
+  - Records only the tags, rates and resolution the site configured; fast transients and untagged points are not there.
+  - Faithfully records what the controller reports - if a compromised controller or HMI falsifies values, the historian stores the falsified values (this project's inference).
+  - The PI audit database does not audit normal operations such as interfaces adding data, and auditing is per database by bitmask; what the site enabled must be checked.
+  - Only AVEVA PI was documented in this round; other historians' audit features are not described here.
+confidence: high
+sources:
+  - title: Audit Database overview for PI Data Archive (AVEVA documentation)
+    url: https://docs.aveva.com/bundle/pi-server-s-da-reference/page/1021193.html
+    accessed: "2026-11-08"
+    kind: vendor
+    quote: >-
+      The PI Audit Database contains records of changes made to Data Archive
+      data. The following changes are recorded: - Editing and deleting
+      time-series data, such as values in the archive files. - Creating,
+      deleting, and editing configuration information on time-series data.
+      Examples include PI point configuration data and access permissions for
+      secure objects.
+    read: direct
+  - title: Audit Database overview for PI Data Archive (AVEVA documentation), scope and files
+    url: https://docs.aveva.com/bundle/pi-server-s-da-reference/page/1021193.html
+    accessed: "2026-11-08"
+    kind: vendor
+    quote: >-
+      Note:Normal operations, such as interfaces adding data, are not audited.
+    read: direct
+  - title: EnableAudit tuning parameter (AVEVA PI Data Archive documentation)
+    url: https://docs.aveva.com/bundle/pi-server-s-da-reference/page/1018845.html
+    accessed: "2026-11-08"
+    kind: vendor
+    quote: >-
+      You can enable auditing on individual database tables. Auditing is
+      controlled through the EnableAudit tuning parameter. The value is a bitmask
+      where each bit controls auditing to a specific database. A bit value of 1
+      enables auditing for the corresponding database.
+    read: direct
+  - title: PI AuditViewer (AVEVA documentation)
+    url: https://docs.aveva.com/bundle/pi-server-s-da-reference/page/1221516.html
+    accessed: "2026-11-08"
+    kind: vendor
+    quote: >-
+      PI AuditViewer is a utility that enables you to search for and view audit
+      records in the PI Audit database.
+    read: direct
+  - title: Best practices for event logging and threat detection (ASD's ACSC with CISA, FBI, NSA and partners, August 2024)
+    url: https://www.cyber.gov.au/sites/default/files/2024-08/best-practices-for-event-logging-and-threat-detection.pdf
+    accessed: "2026-11-08"
+    kind: government
+    quote: >-
+      Data historians may be implemented on some operational assets to record
+      and store time-series data of industrial processes running on the computer
+      system. These can provide an additional source of event log data for OT
+      networks.
+    read: direct

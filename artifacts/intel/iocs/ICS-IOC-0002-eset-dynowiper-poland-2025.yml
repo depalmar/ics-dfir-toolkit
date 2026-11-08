@@ -1,0 +1,184 @@
+# Indicators ICS-IOC-0002 - parsed in code from ESET's own malware-ioc files, never retyped.
+# Source: https://github.com/eset/malware-ioc at commit 825b826c5cbffcc1e59c16581ffdf7d527e8b695 (directory
+# dynowiper/, added in commit c4cc6a8 on 2026-01-30), fetched from raw.githubusercontent.com:
+#   dynowiper/README.adoc    1273 bytes, sha256 766ef2c3d41f4d2929193d6d227e399d946677450419a4746214f111bf677ccd
+#   dynowiper/samples.sha1    287 bytes, sha256 005064e52a8ab7703e0d034627d4805c892e5b9eba35bc2fe1b9f1714e381697
+#   dynowiper/samples.sha256  455 bytes, sha256 dbc94905b4a6d4082027d4fb653199140ba9bcd657cb0d79e9320b89888f9b71
+#   dynowiper/samples.md5     231 bytes, sha256 ce091f02c35e94c092af1ca9c5b1f97b4a24f8dab3050ff34800d71a52bbcef1
+#   LICENSE                  1300 bytes, sha256 995182e185856186fbbe49f150409ae026aa4cda7e94f83c6ed737cbb77fa9c7
+# Parser: artifacts/scripts/parse_iocs.py eset-dynowiper (python3 -I). samples.sha1 holds exactly the README's seven
+# SHA-1 values. ESET does not map samples.sha256 or samples.md5 (seven values each) to README rows, so those carry
+# role unknown. Roles and context quote ESET's README columns and its WeLiveSecurity post (page_url, read directly).
+# The two ZOV wiper rows are from ESET's comparison with earlier Ukrainian incidents, not from the Poland intrusion.
+# Values are live, not defanged.
+# Licence: ESET malware-ioc LICENSE (BSD 2-Clause), reproduced below as its first condition requires.
+#   Copyright (c) 2014-2018 ESET spol. s r.o.
+#   All rights reserved.
+#
+#   Redistribution and use in source and binary forms, with or without
+#   modification, are permitted provided that the following conditions are met:
+#
+#   1. Redistributions of source code must retain the above copyright notice, this
+#   list of conditions and the following disclaimer.
+#
+#   2. Redistributions in binary form must reproduce the above copyright notice,
+#   this list of conditions and the following disclaimer in the documentation
+#   and/or other materials provided with the distribution.
+#
+#   THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
+#   AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+#   IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
+#   DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE
+#   FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
+#   DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR
+#   SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
+#   CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
+#   OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+#   OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+# Schema: ../../schema/ioc.schema.json
+
+id: ICS-IOC-0002
+title: ESET - DynoWiper update (Poland energy sector, December 2025) - file and network indicators
+publisher: ESET Research
+published: '2026-01-30'
+page_url: https://www.welivesecurity.com/en/eset-research/dynowiper-update-technical-analysis-attribution/
+file_url: https://raw.githubusercontent.com/eset/malware-ioc/825b826c5cbffcc1e59c16581ffdf7d527e8b695/dynowiper/README.adoc
+file_format: text
+license: >-
+  BSD 2-Clause (eset/malware-ioc LICENSE, "Copyright (c) 2014-2018 ESET spol. s r.o. All rights reserved."); the
+  copyright notice, conditions and disclaimer are reproduced in this file's header.
+accessed: '2026-11-08'
+actors:
+- ICS-TA-0001
+malware:
+- ICS-MAL-0013
+incidents:
+- ICS-INC-0008
+staleness: >-
+  ESET: "All three samples were deployed on the same day – December 29th, 2025"; the attackers tried rsocx "In
+  early December 2025" and Rubeus "In early stages of the attack". The SOCKS5 server was first seen 2024-10-27 and, per ESET, "was likely
+  compromised", so it belongs to a third party. ESET adds that Sandworm rarely reuses a known sample: "We rarely see
+  Sandworm attempt to deploy a destructive malware sample that was used in an earlier attack (for example, one with
+  a known hash) or one that is already detected at the time of deployment." Use the hashes for retrospective
+  searches, not as a prevention control. Attribution in actors is ESET's: "We attribute DynoWiper to Sandworm with
+  medium confidence".
+indicators:
+- type: sha1
+  value: 472ca448f82a7ff6f373a32fdb9586fd7c38b631
+  role: actor-controlled
+  context: 'ZOV wiper sample, listed by ESET for comparison and not reported in the Poland intrusion; ESET describes
+    ZOV cases at a financial institution in Ukraine (November 2025) and an energy company in Ukraine (25 January
+    2024) without saying which sample came from which, and attributes ZOV to Sandworm with high confidence. File
+    name TMP_Backup.tmp.exe, ESET detection Win32/KillFiles.NMJ (README Files table: ''ZOV wiper.'')'
+- type: sha1
+  value: 4f8e9336a784a196353023133e0f8fa54f6a92e2
+  role: actor-controlled
+  context: 'ZOV wiper sample, listed by ESET for comparison and not reported in the Poland intrusion; ESET describes
+    ZOV cases at a financial institution in Ukraine (November 2025) and an energy company in Ukraine (25 January
+    2024) without saying which sample came from which, and attributes ZOV to Sandworm with high confidence. File
+    name TS_5WB.tmp.exe, ESET detection Win32/KillFiles.NMJ (README Files table: ''ZOV wiper.'')'
+- type: sha1
+  value: 4ec3c90846af6b79ee1a5188eefa3fd21f6d4cf6
+  role: actor-controlled
+  context: 'DynoWiper sample; ESET: the attackers deployed DynoWiper to C:\inetpub\pub\ at a Polish energy company
+    on 29 December 2025. File name <redacted>_update.exe, ESET detection Win32/KillFiles.NMO (README Files table:
+    ''DynoWiper.'')'
+- type: sha1
+  value: 86596a5c5b05a8bfbd14876de7404702f7d0d61b
+  role: actor-controlled
+  context: 'DynoWiper sample; ESET: the attackers deployed DynoWiper to C:\inetpub\pub\ at a Polish energy company
+    on 29 December 2025. File name schtask.exe, ESET detection Win32/KillFiles.NMO (README Files table: ''DynoWiper.'')'
+- type: sha1
+  value: 69ede7e341fd26fa0577692b601d80cb44778d93
+  role: actor-controlled
+  context: 'DynoWiper sample; ESET: the attackers deployed DynoWiper to C:\inetpub\pub\ at a Polish energy company
+    on 29 December 2025. File name schtask2.exe, ESET detection Win32/KillFiles.NMO (README Files table: ''DynoWiper.'')'
+- type: sha1
+  value: 9ec4c38394ea2048ca81d48b1bd66de48d8bd4e8
+  role: actor-controlled
+  context: 'ESET: the attackers ''tried to download and launch a publicly available SOCKS5 proxy tool called rsocx''
+    in reverse-connect mode in early December 2025. File name rsocx.exe, ESET detection Win64/HackTool.Rsocx.A (README
+    Files table: ''rsocx SOCKS5 proxy tool.'')'
+- type: sha1
+  value: 410c8a57fe6e09edbfebaba7d5d3e4797ca80a19
+  role: actor-controlled
+  context: 'ESET: ''In early stages of the attack, attackers attempted to download the publicly available Rubeus
+    tool''. File name Rubeus.exe, ESET detection MSIL/Riskware.Rubeus.A (README Files table: ''Rubeus toolset for
+    Kerberos attacks.'')'
+- type: ipv4
+  value: 31.172.71.5
+  role: compromised-infrastructure
+  context: 'SOCKS5 server, the rsocx reverse-connect target on port 8008; ESET: ''This server is used by ProGame
+    (progamevl[.]ru), a programming school for kids in Vladivostok, Russia, and was likely compromised.'' (README
+    Network table: ''SOCKS5 server.'')'
+  first_seen: '2024-10-27'
+- type: sha256
+  value: 38361aa24a7e5b01654eb8e3d85201ab69ca15385d935824d63b66e0d82922b3
+  role: unknown
+  context: 'ESET DynoWiper IoCs, samples.sha256: one of the 7 sample hashes in the same directory as the README;
+    ESET does not map it to a README row'
+- type: sha256
+  value: 40a4b5e54fecce52c9d8ef5b2fa3973a3dd748c5bcedd7bde1154aa4a936c2e1
+  role: unknown
+  context: 'ESET DynoWiper IoCs, samples.sha256: one of the 7 sample hashes in the same directory as the README;
+    ESET does not map it to a README row'
+- type: sha256
+  value: 60c70cdcb1e998bffed2e6e7298e1ab6bb3d90df04e437486c04e77c411cae4b
+  role: unknown
+  context: 'ESET DynoWiper IoCs, samples.sha256: one of the 7 sample hashes in the same directory as the README;
+    ESET does not map it to a README row'
+- type: sha256
+  value: 648c2067ef3d59eb94b54c43e798707b030e0383b3651bcc6840dae41808d3a9
+  role: unknown
+  context: 'ESET DynoWiper IoCs, samples.sha256: one of the 7 sample hashes in the same directory as the README;
+    ESET does not map it to a README row'
+- type: sha256
+  value: 835b0d87ed2d49899ab6f9479cddb8b4e03f5aeb2365c50a51f9088dcede68d5
+  role: unknown
+  context: 'ESET DynoWiper IoCs, samples.sha256: one of the 7 sample hashes in the same directory as the README;
+    ESET does not map it to a README row'
+- type: sha256
+  value: bfda142bc5c44913eed9ef1cf2a8ad07b7a71312a26e4c7c519bf1a3fedeb6a0
+  role: unknown
+  context: 'ESET DynoWiper IoCs, samples.sha256: one of the 7 sample hashes in the same directory as the README;
+    ESET does not map it to a README row'
+- type: sha256
+  value: d1389a1ff652f8ca5576f10e9fa2bf8e8398699ddfc87ddd3e26adb201242160
+  role: unknown
+  context: 'ESET DynoWiper IoCs, samples.sha256: one of the 7 sample hashes in the same directory as the README;
+    ESET does not map it to a README row'
+- type: md5
+  value: 5249503900c735425130477649872dfb
+  role: unknown
+  context: 'ESET DynoWiper IoCs, samples.md5: one of the 7 sample hashes in the same directory as the README; ESET
+    does not map it to a README row'
+- type: md5
+  value: 75fec5afb2deebab6dd9c16d9de35032
+  role: unknown
+  context: 'ESET DynoWiper IoCs, samples.md5: one of the 7 sample hashes in the same directory as the README; ESET
+    does not map it to a README row'
+- type: md5
+  value: 999f11534d07201572ac21337da1d223
+  role: unknown
+  context: 'ESET DynoWiper IoCs, samples.md5: one of the 7 sample hashes in the same directory as the README; ESET
+    does not map it to a README row'
+- type: md5
+  value: 9d896e0e3e369c2edf1c8fb070f49c22
+  role: unknown
+  context: 'ESET DynoWiper IoCs, samples.md5: one of the 7 sample hashes in the same directory as the README; ESET
+    does not map it to a README row'
+- type: md5
+  value: a727362416834fa63672b87820ff7f27
+  role: unknown
+  context: 'ESET DynoWiper IoCs, samples.md5: one of the 7 sample hashes in the same directory as the README; ESET
+    does not map it to a README row'
+- type: md5
+  value: c4379da51e8b9e86ec3de934f9373f4a
+  role: unknown
+  context: 'ESET DynoWiper IoCs, samples.md5: one of the 7 sample hashes in the same directory as the README; ESET
+    does not map it to a README row'
+- type: md5
+  value: f5271a6d909091527ed9f30eafa0ded6
+  role: unknown
+  context: 'ESET DynoWiper IoCs, samples.md5: one of the 7 sample hashes in the same directory as the README; ESET
+    does not map it to a README row'

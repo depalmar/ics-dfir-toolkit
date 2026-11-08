@@ -1,0 +1,76 @@
+# ICS protocol identity record
+# ICS-PROTO-0004 - EtherNet/IP and CIP
+# Research notes: docs/research/2026-11-08/datasources.md
+# Identity only: operations (services and their effects) are deliberately omitted.
+
+id: ICS-PROTO-0004
+name: EtherNet/IP and CIP
+slug: enip-cip
+aliases:
+  - EtherNet/IP (ENIP)
+  - Common Industrial Protocol (CIP)
+  - CIP explicit messaging (TCP) and implicit I/O (UDP)
+spec_owner: ODVA
+transport:
+  - layer: tcp
+    port: 44818
+    notes: Encapsulation layer and explicit messaging.
+  - layer: udp
+    port: 44818
+  - layer: udp
+    port: 2222
+    notes: Implicit (cyclic) CIP I/O.
+  - layer: tls
+    notes: CIP Security uses TLS for TCP-based communications.
+authentication:
+  native: none
+  detail: >-
+    ODVA presents authentication of devices and users as capabilities that CIP
+    Security adds to EtherNet/IP; no authentication in base EtherNet/IP was
+    found in the sources read ("none" is this project's reading). CIP Security
+    provides device authentication with X.509 certificates or pre-shared keys
+    over TLS/DTLS, and a CIP User Authentication Profile based on OpenID
+    Connect.
+  secure_variant: CIP Security (EtherNet/IP Confidentiality Profile, CIP User Authentication Profile, Resource-Constrained Profile)
+encryption: >-
+  None in base EtherNet/IP. CIP Security uses TLS for TCP and DTLS for UDP
+  class 0/1 transport; ODVA lists message encryption as optional.
+parsers:
+  - tool: CISA ICSNPP-ENIP (Zeek plugin)
+    url: https://github.com/cisagov/icsnpp-enip
+    logs: [enip.log, cip.log, cip_io.log, cip_identity.log]
+    license: BSD-3-Clause
+  - tool: Suricata (ENIP/CIP app-layer parser and enip_command / cip_service keywords; disabled by default in suricata.yaml)
+    url: https://github.com/OISF/suricata/blob/main/doc/userguide/rules/enip-keyword.rst
+    license: GPL-2.0
+platforms: [ICS-0001]
+notes: >-
+  PCCC (ICS-PROTO-0005) can be carried encapsulated in CIP. CISA AA26-097A
+  lists 44818 and 2222 among the ports targeted on internet-facing PLCs.
+confidence: high
+sources:
+  - title: CIP Security (ODVA)
+    url: https://www.odva.org/technology-standards/distinct-cip-services/cip-security/
+    accessed: "2026-11-08"
+    kind: standard
+    quote: >-
+      CIP Security leverages trusted industry-standard protocols, including the
+      IETF-standard TLS (RFC 5246) and DTLS (RFC 6347) protocols to provide a
+      secure transport for EtherNet/IP traffic.
+    read: direct
+  - title: CIP Security (ODVA), device authentication
+    url: https://www.odva.org/technology-standards/distinct-cip-services/cip-security/
+    accessed: "2026-11-08"
+    kind: standard
+    quote: >-
+      Device authentication — ensures both the sender and receiver are trusted
+      using X.509 certificates or pre-shared keys.
+    read: direct
+  - title: ICSNPP-ENIP README (cisagov/icsnpp-enip)
+    url: https://raw.githubusercontent.com/cisagov/icsnpp-enip/main/README.md
+    accessed: "2026-11-08"
+    kind: government
+    quote: >-
+      In its default configuration, this parser processes Ethernet/IP and CIP
+      traffic on UDP port 2222 and TCP/UDP port 44818.
+    read: direct

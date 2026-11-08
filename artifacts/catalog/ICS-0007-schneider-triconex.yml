@@ -1,0 +1,278 @@
+# ICS platform catalog entry
+# ICS-0007 - Schneider Electric Triconex safety controllers
+# Research notes: docs/research/2026-11-08/platforms.md
+
+id: ICS-0007
+name: Schneider Electric Triconex safety controllers (Tricon, Tricon CX)
+vendor: Schneider Electric
+products:
+  - Tricon (v9 to v11; Model 3008 Main Processors)
+  - Tricon CX (v11.4 and later)
+  - TriStation 1131 engineering software
+asset_class: safety-controller
+purdue_levels: ["1"]
+protocols: [ICS-PROTO-0016, ICS-PROTO-0001]
+os_base: Proprietary firmware on triple-redundant Main Processors (Model 3008 uses Motorola MPC860)
+customer_shell: "no"
+memory_acquisition: not-available
+program_access: vendor-software-upload
+operating_modes: >-
+  Four-position keyswitch on the Main Chassis: RUN (normal operation,
+  read-only - program-variable writes from TriStation, Modbus masters or
+  external hosts are rejected unless the program opens a gated window),
+  PROGRAM (program loading and checkout, including Download All and Download
+  Changes), STOP (halts the control program and forces non-retentive outputs
+  to 0) and REMOTE (variable writes allowed, logic changes not allowed). The
+  keyswitch setting is readable by the controller, TriStation 1131 and the
+  control program itself, which is what makes an operator-station alarm on
+  PROGRAM possible. Whether a key change is written to a persistent log was
+  not found in the sources read.
+integrity_features:
+  - feature: Keyswitch state readable by the controller, TriStation and the control program
+    description: >-
+      Lets the DCS or operator station display and historise the key position;
+      the FBI recommends an alarm whenever the key is in PROGRAM.
+    versions: Tricon v10 Technical Product Guide (later versions not read)
+    confidence: medium
+    sources:
+      - title: Technical Product Guide for Tricon v10 Systems, distributor-hosted copy
+        url: https://www.rms-dcs.com/uploads/8312.pdf
+        accessed: "2026-11-08"
+        kind: vendor
+        quote: >-
+          The keyswitch setting is readable by Tricon controllers, TriStation
+          1131 software, and the control programs.
+        read: direct
+      - title: FBI PIN 20220324-001 - TRITON Malware Remains Threat to Global Critical Infrastructure ICS
+        url: https://www.ic3.gov/CSA/2022/220325.pdf
+        accessed: "2026-11-08"
+        kind: government
+        quote: >-
+          Operator stations should be configured to display an alarm whenever the
+          SIS safety controller key switch is in the “PROGRAM” mode.
+        read: direct
+  - feature: Main Processor diagnostics and user-memory validation across redundant processors
+    description: >-
+      The MPs validate user memory through TriBus hardware voting. In the 2017
+      incident, application code that differed between redundant processors
+      failed validation, produced an MP diagnostic failure and tripped the
+      process to a safe state - which is how the intrusion was discovered.
+    confidence: medium
+    sources:
+      - title: Technical Product Guide for Tricon v10 Systems, distributor-hosted copy
+        url: https://www.rms-dcs.com/uploads/8312.pdf
+        accessed: "2026-11-08"
+        kind: vendor
+        quote: Validate user memory by means of the TriBus hardware-voting circuitry
+        read: direct
+      - title: Mandiant - Attackers Deploy New ICS Attack Framework TRITON
+        url: https://cloud.google.com/blog/topics/threat-intelligence/attackers-deploy-new-ics-attack-framework-triton
+        accessed: "2026-11-08"
+        kind: researcher
+        quote: >-
+          The investigation found that the SIS controllers initiated a safe
+          shutdown when application code between redundant processing units
+          failed a validation check -- resulting in an MP diagnostic failure
+          message.
+        read: direct
+collection:
+  - method: Walk down and record the physical keyswitch position of every Main Chassis
+    impact: passive
+    description: Photograph and log the position with time; do not turn the key.
+    confidence: high
+  - method: Keyswitch-state alarms and SIS diagnostic alarms already historised by the DCS, operator station or historian
+    impact: passive
+    description: Exists only where the site wired the keyswitch state into alarms or history, as the FBI recommends.
+    confidence: medium
+    references:
+      - https://www.ic3.gov/CSA/2022/220325.pdf
+  - method: Passive capture of TriStation (UDP) traffic on the safety network
+    impact: passive
+    description: Shows which hosts spoke TriStation to the controllers and when.
+    confidence: medium
+  - method: Connect with TriStation 1131 or the Triconex diagnostic tools to read status, diagnostics and the program for comparison with the approved project
+    impact: online-vendor-tool
+    description: >-
+      The procedure for a read-only connection and program comparison was not
+      read for this record; consult Schneider Triconex support before
+      connecting.
+    safety_note: >-
+      This is a safety instrumented system: the connection needs operations
+      and the site's safety authority, under the safety case. Never move the
+      keyswitch to collect evidence; PROGRAM is the state the attackers needed.
+    confidence: low
+    unverified: true
+volatility:
+  - TRITON overwrote its own program with a dummy program when the controller faulted; what remains on the controller after a trip may not be what ran.
+  - The SOE buffer holds process-variable state changes, not security events.
+anti_forensics:
+  - technique: Overwriting the injected program with a dummy program if the controller did not recover
+    seen_in: TRITON
+    detail: Mandiant assessed this as anti-forensics to hide the attacker code on the controller.
+  - technique: Attack tool named after the legitimate Trilog application on the SIS engineering workstation
+    seen_in: TRITON
+datasources: [ICS-DS-0001, ICS-DS-0006, ICS-DS-0007, ICS-DS-0010, ICS-DS-0011]
+confidence: medium
+references:
+  - title: Technical Product Guide for Tricon v10 Systems, distributor-hosted copy
+    url: https://www.rms-dcs.com/uploads/8312.pdf
+    accessed: "2026-11-08"
+  - title: Mandiant - Attackers Deploy New ICS Attack Framework TRITON
+    url: https://cloud.google.com/blog/topics/threat-intelligence/attackers-deploy-new-ics-attack-framework-triton
+    accessed: "2026-11-08"
+  - title: FBI PIN 20220324-001 - TRITON Malware Remains Threat to Global Critical Infrastructure ICS
+    url: https://www.ic3.gov/CSA/2022/220325.pdf
+    accessed: "2026-11-08"
+last_verified: "2026-11-08"
+notes: >-
+  The Tricon description comes from a distributor-hosted copy of the v10
+  Technical Product Guide; Tricon CX (v11.4+) security changes were not read.
+  The NRC-hosted TriStation 1131 v4.1 manual (ML093290419) timed out on fetch
+  and should be read next, along with Schneider's Triconex security
+  notification cited by the FBI and CISA MAR HatMan. Program upload and
+  compare in TriStation is assumed to be the comparison path but was not read
+  in vendor documentation.
+response: baseline
+artifacts:
+  - locator: Physical four-position keyswitch on the Tricon Main Chassis (also readable by TriStation and the control program)
+    class: config
+    volatility: live
+    forensic_value: high
+    evidence_type: [inhibit-response-function, configuration]
+    confidence: high
+    collection_impact: passive
+    description: >-
+      PROGRAM is required for Download All and Download Changes. A key left in
+      PROGRAM is what lets a compromised engineering workstation reprogram the
+      SIS.
+    seen_in: [TRITON]
+    provides: Whether the SIS could be reprogrammed at the time.
+    normal: RUN, with keys held under change management and audited.
+    suspicious: PROGRAM (or REMOTE) outside scheduled programming events; keys left in the switch.
+    basis: government
+    sources:
+      - title: FBI PIN 20220324-001
+        url: https://www.ic3.gov/CSA/2022/220325.pdf
+        accessed: "2026-11-08"
+        kind: government
+        quote: >-
+          Implement change management procedures for safety controller run-state
+          key positions and regularly audit physical keys.
+        read: direct
+      - title: Mandiant - Attackers Deploy New ICS Attack Framework TRITON
+        url: https://cloud.google.com/blog/topics/threat-intelligence/attackers-deploy-new-ics-attack-framework-triton
+        accessed: "2026-11-08"
+        kind: researcher
+        quote: >-
+          On Triconex controllers, keys should not be left in the PROGRAM mode
+          other than during scheduled programming events.
+        read: direct
+      - title: Technical Product Guide for Tricon v10 Systems, distributor-hosted copy
+        url: https://www.rms-dcs.com/uploads/8312.pdf
+        accessed: "2026-11-08"
+        kind: vendor
+        quote: >-
+          For program loading and checkout. Allows control of the Tricon system
+          from the TriStation 1131 platform, including Download All and Download
+          Changes.
+        read: direct
+  - locator: MP diagnostic messages and safe-state trip records (Triconex diagnostic tools; DCS alarm history)
+    class: diagnostics
+    volatility: rotating
+    forensic_value: high
+    evidence_type: [inhibit-response-function, impair-process-control, timeline]
+    confidence: medium
+    collection_impact: online-vendor-tool
+    description: >-
+      Diagnostic failures from the Main Processors' validation of user memory.
+      Retention and storage location were not found in the sources read.
+    seen_in: [TRITON]
+    provides: Evidence that application code changed or diverged between processors.
+    normal: No MP validation failures; trips explained by process conditions.
+    suspicious: >-
+      An MP diagnostic failure or a safe-state trip with no process cause,
+      especially near a time when an engineering workstation communicated
+      with the controller.
+    basis: researcher
+  - locator: Programs in the controller's execution table compared with the approved TriStation project
+    class: control-logic
+    volatility: stable
+    forensic_value: high
+    evidence_type: [inhibit-response-function, persistence, impact]
+    confidence: medium
+    collection_impact: online-vendor-tool
+    description: >-
+      TRITON appended an attacker program to the execution table and left the
+      legitimate programs in place; the FBI describes in-memory modification
+      adding programming.
+    seen_in: [TRITON]
+    provides: Whether the SIS runs anything beyond the approved safety logic.
+    normal: Exactly the programs in the approved TriStation project.
+    suspicious: Extra programs or functions in the execution table; programs that differ from the approved project.
+    basis: researcher
+    sources:
+      - title: Mandiant - Attackers Deploy New ICS Attack Framework TRITON
+        url: https://cloud.google.com/blog/topics/threat-intelligence/attackers-deploy-new-ics-attack-framework-triton
+        accessed: "2026-11-08"
+        kind: researcher
+        quote: >-
+          The TRITON sample Mandiant analyzed added an attacker-provided program
+          to the execution table of the Triconex controller.
+        read: direct
+      - title: FBI PIN 20220324-001
+        url: https://www.ic3.gov/CSA/2022/220325.pdf
+        accessed: "2026-11-08"
+        kind: government
+        quote: >-
+          TRITON malware affected Triconex Tricon safety controllers by modifying
+          in-memory firmware to add additional programming, potentially leading to
+          damage of a facility, system downtime, and even loss of life should the
+          SIS fail to initiate safe shutdown procedures.
+        read: direct
+  - locator: TriStation protocol traffic (UDP) on the safety network
+    class: network
+    volatility: off-box
+    forensic_value: high
+    evidence_type: [lateral-movement, discovery, execution]
+    confidence: low
+    unverified: true
+    collection_impact: passive
+    description: >-
+      TRITON implemented TriStation over UDP; its library could discover
+      controllers by a TriStation "ping" sent to IP broadcast.
+    seen_in: [TRITON]
+    provides: Which hosts communicated with the safety controllers.
+    normal: TriStation only from the designated SIS engineering workstation during scheduled work (toolkit expectation).
+    suspicious: TriStation from any other host; broadcast discovery; sessions when no programming was scheduled.
+    basis: researcher
+    sources:
+      - title: Mandiant - Attackers Deploy New ICS Attack Framework TRITON
+        url: https://cloud.google.com/blog/topics/threat-intelligence/attackers-deploy-new-ics-attack-framework-triton
+        accessed: "2026-11-08"
+        kind: researcher
+        quote: >-
+          This leverages a "ping" message over the TriStation protocol using IP
+          broadcast to find controllers that are reachable via a router from
+          where the script is invoked.
+        read: direct
+  - locator: Sequence of Events (SOE) blocks
+    class: process-data
+    volatility: rotating
+    forensic_value: medium
+    evidence_type: [impact, timeline]
+    confidence: medium
+    collection_impact: online-vendor-tool
+    description: State changes of designated discrete variables, time-stamped by the MPs each scan.
+    provides: An exact process timeline around a trip, to separate process causes from cyber causes.
+    normal: Event sequences explained by the process.
+    suspicious: Trips or output changes with no initiating process event.
+    basis: vendor
+    sources:
+      - title: Technical Product Guide for Tricon v10 Systems, distributor-hosted copy
+        url: https://www.rms-dcs.com/uploads/8312.pdf
+        accessed: "2026-11-08"
+        kind: vendor
+        quote: >-
+          When an event occurs, the MPs save the current variable state and time
+          stamp in the buffer of an SOE block.
+        read: direct

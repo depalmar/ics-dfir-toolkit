@@ -1,0 +1,119 @@
+# Detection pack ICS-PACK-0003
+# Schema: ../schema/pack.schema.json
+# Research notes: docs/research/2026-11-08/detections.md
+#
+# Detections of type "check" name an evaluation step for the triage engine,
+# which is not built yet (docs/ROADMAP.md); until then they are manual steps.
+# None of them requires logging in to the PLC: the comparisons use the
+# approved project, passive capture and what the HMI screen shows.
+
+id: ICS-PACK-0003
+name: AA23-335A - CyberAv3ngers compromise of Unitronics Vision PLC/HMIs
+platforms: [ICS-0006, ICS-0013]
+cves: [CVE-2023-6448]
+actors: [ICS-TA-0009]
+incidents: [ICS-INC-0005]
+summary: >-
+  CISA AA23-335A (revised December 18, 2024) reports IRGC-affiliated actors
+  using the CyberAv3ngers persona authenticating to internet-connected
+  Unitronics Vision Series PLC/HMIs on the default TCP port 20256 with a
+  default or empty password, erasing the ladder logic and downloading a file
+  with no inputs or outputs, renaming the devices, setting the logic's
+  software version older, disabling upload and download, password-protecting
+  upload, moving the port from 20256 to 20257, not burning their logic, and
+  putting a defacement splash page on the HMI. CISA assigned CVE-2023-6448 to
+  the default password. AA26-097A says the malicious ladder logic "continues
+  to be observed to date". CISA does not name the protocol on these ports,
+  so no protocol id is asserted.
+confidence: high
+references:
+  - title: CISA AA23-335A - IRGC-Affiliated Cyber Actors Exploit PLCs in Multiple Sectors, Including US Water and Wastewater Systems Facilities (revised December 18, 2024)
+    url: https://www.cisa.gov/news-events/cybersecurity-advisories/aa23-335a
+    accessed: "2026-11-08"
+  - title: CISA AA26-097A - Iranian-Affiliated Cyber Actors Exploit Programmable Logic Controllers Across US Critical Infrastructure (background on the 2023 campaign)
+    url: https://www.cisa.gov/news-events/cybersecurity-advisories/aa26-097a
+    accessed: "2026-11-08"
+
+detect:
+  - id: aa23335a-inbound-20256-session
+    title: Completed session to 20256/tcp from outside the site
+    type: network
+    tier: possible
+    evidence_class: network
+    datasources: [ICS-DS-0002, ICS-DS-0004]
+    attack: [T0883, T1110, T1078.001]
+    rules: [02-ot-network/unitronics_port_inbound.rules]
+    notes: >-
+      sid 9000012. CISA: the actors authenticated to internet-connected
+      devices "with communications set to the default TCP port 20256".
+
+  - id: aa23335a-traffic-to-20257
+    title: Traffic to 20257/tcp on a site whose projects use 20256
+    type: network
+    tier: likely
+    evidence_class: network
+    datasources: [ICS-DS-0002, ICS-DS-0001]
+    attack: [T1499]
+    rules: [02-ot-network/unitronics_port_inbound.rules]
+    notes: >-
+      sid 9000013. The actors moved devices "from 20256 to 20257"; CISA maps
+      the port change to T1499. Likely only where the site never chose 20257
+      itself; disable the sid otherwise.
+
+  - id: aa23335a-device-settings-differ
+    title: Device name, communication port, upload/download settings or logic software version differ from the approved project
+    type: check
+    check: unitronics_config_compare
+    args:
+      fields: [plc_name, tcp_port, upload_download_enabled, upload_password_set, logic_software_version]
+    tier: likely
+    evidence_class: config
+    datasources: [ICS-DS-0007]
+    attack: [T1531, T1499, T1565.001]
+    notes: >-
+      Each field is one of the changes AA23-335A lists. Operators typically
+      notice them as an inability to connect from the EWS (wrong name, port or
+      software version); record what was observed before anyone factory
+      resets the device.
+
+  - id: aa23335a-logic-without-io
+    title: Running ladder logic contains no inputs or outputs, or otherwise differs from the known-good project
+    type: logic_compare
+    tier: confirmed
+    evidence_class: control-logic
+    datasources: [ICS-DS-0007, ICS-DS-0001]
+    attack: [T1565.001, T0889]
+    notes: >-
+      CISA: the actors' ladder logic file "contained no inputs or outputs". The
+      actors did not burn it to the device, so CISA says it could not be
+      retrieved from the device; passive capture of the programming port at
+      the time is the realistic source (ICS-INC-0005). Without the known-good
+      project or that capture, this is not evaluated.
+
+  - id: aa23335a-hmi-defacement
+    title: HMI shows the CyberAv3ngers defacement splash page or text file
+    type: check
+    check: hmi_display_inspection
+    tier: confirmed
+    evidence_class: integrity
+    attack: [T1491.001]
+    notes: >-
+      Photograph the screen before recovery. CISA quotes the message “You
+      have been hacked, down with Israel. Every equipment ‘made in Israel’ is
+      Cyberav3ngers legal target.” and notes an older device showed it as a
+      text file.
+
+  - id: aa23335a-default-or-no-password-in-project
+    title: The approved project or configuration record shows a default or empty PLC password
+    type: check
+    check: unitronics_project_password_review
+    tier: possible
+    evidence_class: identity
+    datasources: [ICS-DS-0007]
+    attack: [T1078.001]
+    notes: >-
+      A weakness, not an intrusion: CISA says these devices "either had a
+      default password in place or no password". Review the project offline;
+      testing a password against a live PLC is an online action that needs
+      operations approval. AA25-343A: an exposed device with a weak or default
+      password should be treated as compromised.

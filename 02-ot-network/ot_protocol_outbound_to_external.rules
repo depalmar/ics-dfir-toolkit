@@ -1,0 +1,18 @@
+# 02-ot-network/ot_protocol_outbound_to_external.rules
+# A host inside HOME_NET opening a session to an industrial protocol port
+# outside HOME_NET. The NCSC-led secure connectivity principles call for
+# "Continuous monitoring of data flows within and between network segments",
+# and AA25-343A asks owners to monitor outbound traffic at OT perimeter
+# firewalls for "unexpected protocol usage". Controllers and HMIs have no
+# reason to speak these protocols to the internet; an OT host doing so is
+# either misconfigured or being used as a relay. Header, flow and threshold
+# keywords only.
+#
+# Set HOME_NET to the OT ranges. Documented cross-boundary flows (for
+# example an OPC UA client in the DMZ pulling from an OT server) arrive from
+# outside and are not matched here; flows a site deliberately sends outward
+# need a pass rule or a narrower HOME_NET.
+#
+# Linked from ICS-HUNT-0009.
+
+alert tcp $HOME_NET any -> $EXTERNAL_NET [102,502,2222,2404,4840,20000,20256,44818] (msg:"ICS-DFIR OT host opened an industrial-protocol-port session to outside HOME_NET"; flow:established,to_server; threshold:type limit, track by_both, count 1, seconds 3600; reference:url,www.ncsc.gov.uk/sites/default/files/documents/ncsc-secure-connectivity-for-operational-technology.pdf; classtype:policy-violation; sid:9000014; rev:1;)

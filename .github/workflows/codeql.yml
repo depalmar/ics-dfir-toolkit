@@ -1,0 +1,42 @@
+name: codeql
+
+# Static analysis of the Python in this repository: the validator and the
+# maintenance scripts, the icstriage parsers (which read files that may come
+# from a compromised engineering workstation) and the site generator.
+# Results appear under Security > Code scanning. Default setup in the
+# repository settings must stay off while this workflow exists: GitHub refuses
+# SARIF from an advanced-setup workflow when default setup is enabled.
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  schedule:
+    - cron: '41 6 * * 4'    # Thursdays 06:41 UTC
+
+permissions:
+  contents: read
+
+concurrency:
+  group: codeql-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  analyze:
+    name: CodeQL (python)
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      security-events: write   # upload the results
+      packages: read           # CodeQL query packs
+    steps:
+      - uses: actions/checkout@v4
+      - uses: github/codeql-action/init@v3
+        with:
+          languages: python
+          build-mode: none
+          queries: security-extended
+      - uses: github/codeql-action/analyze@v3
+        with:
+          category: "/language:python"

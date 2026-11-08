@@ -113,6 +113,18 @@ pip install -r requirements.txt
 python artifacts/scripts/validate.py
 ```
 
+Maintenance, all report-only (they never edit records):
+
+- `artifacts/scripts/mappings.py` generates [MAPPINGS.md](MAPPINGS.md) - ATT&CK
+  coverage by technique: who uses it, which data sources see it, which hunts and
+  packs look for it, and the **gaps** where adversary use is recorded but nothing
+  detects it. CI fails if it is stale.
+- `artifacts/scripts/check_quotes.py` re-fetches every quoted page and reports
+  quotes that are gone; a monthly workflow opens an issue.
+- `artifacts/scripts/advisory_watch.py` compares CISA's KEV catalog with the
+  packs and the triage ledger, lists CVEs not yet searched for exploitation
+  dates, and re-hashes indicator files; a weekly workflow opens an issue.
+
 The validator checks every record against its schema and against every other
 record: ids are unique and files are named after them, every id mentioned
 anywhere has a record, `low` confidence is always `unverified`, a record whose

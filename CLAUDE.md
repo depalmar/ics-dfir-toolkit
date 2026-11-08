@@ -30,9 +30,20 @@ records were built from are in `docs/research/<date>/`.
 ## Commands
 
 ```bash
-python artifacts/scripts/validate.py     # the gate; never commit while it fails
-python3.11 -m py_compile <changed .py>   # CI runs 3.11
+python artifacts/scripts/validate.py              # the gate; never commit while it fails
+python artifacts/scripts/mappings.py [--check]     # MAPPINGS.md is generated; CI checks it is current
+python -m pytest -q tests/                         # offline tests for the scripts
+python artifacts/scripts/check_quotes.py [--only f.yml] [--out r.md]   # every quote vs its live page; reports, never edits
+python artifacts/scripts/advisory_watch.py [--kev f.json] [--upstream] [--draft]   # KEV vs packs and ledger; reports, never edits
+python artifacts/scripts/parse_iocs.py ...         # publisher indicator files to YAML, run with python3 -I
+python3.11 -m py_compile <changed .py>             # CI runs 3.11
 ```
+
+Regenerate `MAPPINGS.md` whenever a record's `attack` ids, a pack or a rule
+changes. Its "Gaps" section (techniques recorded in use with nothing hunting or
+detecting them) is the detection backlog. The monthly `quote-check` and weekly
+`advisory-watch` workflows open issues; they never commit. A source the runner
+cannot fetch is reported as unfetched, never as changed.
 
 ## Rules that are not negotiable
 

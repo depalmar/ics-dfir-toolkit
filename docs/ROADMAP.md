@@ -55,11 +55,15 @@ Ordered by value. The knowledge base comes first because every later layer
 1. **Second-read every `read: summariser` quote** against the rendered page and
    log corrections in `docs/VERIFICATION.md`. A record loses `unverified` only
    after a direct read.
-2. **`check_quotes.py`** (port from edge-dfir-toolkit): re-fetch every quoted
-   source and report quotes that are gone; a monthly workflow opens an issue.
-3. **KEV triage.** Turn every `deferred` entry in `artifacts/watch/kev-watch.yml`
-   into a decision with a basis, and add an `advisory_watch.py` that compares
-   the KEV feed (and CISA ICS advisories) against the ledger weekly.
+2. ~~**`check_quotes.py`**~~ - done in round 3, with a monthly `quote-check`
+   workflow.
+3. **KEV triage.** `advisory_watch.py` and the weekly `advisory-watch` workflow
+   landed in round 3. Still to do: turn the remaining `deferred` ledger entry
+   (CVE-2018-4063) into a decision, and extend the watch to CISA ICS advisories
+   (ICSA), not only KEV.
+4. ~~**`MAPPINGS.md`**~~ - generated in round 3 with an ATT&CK gap list; the 40
+   techniques recorded in use with no hunt or detection are the next detection
+   backlog.
 4. **Indicator sets.** Parse CISA's STIX bundles (AA26-097A, AA23-335A,
    AA25-343A) and vendor GitHub IOC files into `artifacts/intel/iocs/` in code,
    keeping each publisher's role per value.

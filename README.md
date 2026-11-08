@@ -85,6 +85,22 @@ ics-dfir-toolkit/
 Rule directories (`NN-*`, Sigma / YARA / Suricata) arrive with the first
 detection packs.
 
+## What is in it (round 1, 2026-11-08)
+
+| Records | Count | Highlights |
+| --- | --- | --- |
+| Platforms | 9 | Rockwell Logix (controller log, Change Detection AuditValue), Siemens S7-1200/1500 (diagnostics buffer survives memory reset but is not in TIA Portal backups), S7-300/400, Modicon (M580 syslog; M340 has none), Unitronics, Triconex, Windows EWS and HMI/SCADA hosts, cellular gateways |
+| Protocols | 20 | Identity records: transport, native authentication, open parsers. Operations tables come later |
+| Data sources | 14 | Many of the most useful logs ship disabled (Suricata ICS parsers, Control Expert event logging, Windows 4688 command line, Ignition audit) |
+| Threat actors | 19 | Dragos, US Government, Mandiant, ESET and CERT Polska clusters kept apart; Poland 2025's three-way attribution listed as reported |
+| Malware | 16 | Stuxnet to the 2025 wipers (DynoWiper, LazyWiper, PathWiper, GigaWiper); every record states its detection gap |
+| Incidents | 12 | Ukraine 2015 to the July 2026 US water-sector MicroLogix campaign |
+| Hardening | 76 controls | Cross-platform baseline plus Rockwell, Siemens, Unitronics and remote-access gateways |
+| Response | 1 | Safety-first baseline playbook with a sourced `do_not` list |
+
+The research notes behind every record are in `docs/research/2026-11-08/`;
+what is still missing is in [docs/ROADMAP.md](docs/ROADMAP.md).
+
 ## Validate
 
 ```bash

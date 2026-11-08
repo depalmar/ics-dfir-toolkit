@@ -1,0 +1,78 @@
+# ICS protocol identity record
+# ICS-PROTO-0017 - PROFINET (incl. DCP)
+# Research notes: docs/research/2026-11-08/datasources.md
+# Identity only: operations (services and their effects) are deliberately omitted.
+
+id: ICS-PROTO-0017
+name: PROFINET (incl. DCP)
+slug: profinet
+aliases:
+  - PROFINET IO
+  - PROFINET IO CM (Context Manager, DCE/RPC)
+  - PROFINET DCP (Discovery and basic Configuration Protocol)
+spec_owner: PROFIBUS & PROFINET International (PI); IEC 61158 / IEC 61784 (ICSNPP cites IEC 61158-6-10:2019 for IO CM)
+transport:
+  - layer: udp
+    port: 34964
+    notes: PROFINET IO Context Manager over DCE/RPC (default for ICSNPP and the Amazon zeek-plugin-profinet).
+  - layer: ethernet
+    notes: >-
+      Real-time cyclic data and DCP run directly on Ethernet. The EtherType was
+      not stated in any source read and is omitted rather than assumed.
+authentication:
+  native: none
+  detail: >-
+    Not verified directly. PI describes PROFINET Security Classes; per search
+    snippets of PI pages (not read directly), Security Class 3 ensures
+    integrity, authenticity and confidentiality of all services and Classes 2
+    and 3 require certificate handling. "None" for baseline PROFINET is this
+    project's reading.
+  secure_variant: PROFINET Security Classes 1-3 (PI)
+encryption: None in baseline PROFINET per the sources read; confidentiality only in Security Class 3 (PI, via snippet).
+parsers:
+  - tool: CISA ICSNPP-PROFINET-IO-CM (Zeek Spicy plugin)
+    url: https://github.com/cisagov/icsnpp-profinet-io-cm
+    logs: [profinet_io_cm.log]
+    license: BSD-3-Clause
+  - tool: Amazon zeek-plugin-profinet (bundled in CISA Malcolm)
+    url: https://github.com/amzn/zeek-plugin-profinet
+    license: BSD-3-Clause
+platforms: [ICS-0003, ICS-0004]
+notes: >-
+  ICSNPP says roughly 10% of the specification is covered, primarily header
+  information. Layer-2 PROFINET traffic is invisible to IP flow and firewall
+  logs (this project's inference). Platform links rest on Siemens' S7-1500
+  diagnostics example, which uses a PROFINET IO system.
+confidence: medium
+sources:
+  - title: ICSNPP-PROFINET-IO-CM README (cisagov/icsnpp-profinet-io-cm)
+    url: https://raw.githubusercontent.com/cisagov/icsnpp-profinet-io-cm/main/README.md
+    accessed: "2026-11-08"
+    kind: government
+    quote: >-
+      The parser analyzes PROFINET IO CM DCE/RPC over UDP. It uses both
+      port-based analyzer registration and a UDP payload signature. The default
+      server port is `34964/udp`.
+    read: direct
+  - title: ICSNPP-PROFINET-IO-CM README (cisagov/icsnpp-profinet-io-cm), coverage
+    url: https://raw.githubusercontent.com/cisagov/icsnpp-profinet-io-cm/main/README.md
+    accessed: "2026-11-08"
+    kind: government
+    quote: >-
+      Roughly 10% of the defined protocol specification is covered by this
+      parser.
+    read: direct
+  - title: Security Classes for PROFINET (PI North America)
+    url: https://us.profinet.com/security-classes-profinet/
+    accessed: "2026-11-08"
+    kind: standard
+    quote: >-
+      Security Class 3 ensures the integrity, authenticity, and confidentiality
+      of all services.
+    read: summariser
+  - title: PROFINET Security - Comprehensive Concept (profinet.com)
+    url: https://www.profinet.com/profinet-explained/security
+    accessed: "2026-11-08"
+    kind: standard
+    quote: The handling of certificates is required in Security Class 2 and 3.
+    read: summariser

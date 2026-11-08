@@ -1,0 +1,133 @@
+# ICS visibility data source
+# ICS-DS-0014 - Internet exposure data for the owner's own ranges (Shodan, Censys, CISA Cyber Hygiene)
+# Research notes: docs/research/2026-11-08/datasources.md
+
+id: ICS-DS-0014
+name: Internet exposure data for the owner's own ranges (Shodan, Censys, CISA Cyber Hygiene)
+category: perimeter-firewall
+purdue_levels: ["1", "2", "3.5"]
+platforms: [ALL]
+protocols: [ICS-PROTO-0001, ICS-PROTO-0002, ICS-PROTO-0004, ICS-PROTO-0013]
+location: >-
+  Held outside the plant: internet search platforms and attack-surface
+  management services that index exposed services, and CISA Cyber Hygiene
+  vulnerability-scanning reports (weekly reports plus ad-hoc alerts) for
+  enrolled U.S. critical infrastructure organisations.
+enable: >-
+  Know and record the organisation's public address ranges, including those
+  set up by integrators, vendors and cellular providers. For CISA Cyber
+  Hygiene, U.S. critical infrastructure organisations enrol by email
+  (vulnerability@cisa.dhs.gov, subject "Requesting Cyber Hygiene Services");
+  CISA says services typically begin within three business days and reports
+  within two weeks of scanning start. AA25-343A asks owners to use attack
+  surface management services and web-based search platforms to find exposed
+  systems in their ranges, especially connections set up by third parties.
+retention: >-
+  Point-in-time; each platform keeps its own history. Save dated copies of
+  results relevant to an incident.
+collection:
+  - method: Query existing internet search-platform and attack-surface-management results for the owner's own ranges
+    impact: passive
+    description: >-
+      Reads data third parties already collected; nothing is sent to the
+      plant. Record query time and platform with every result.
+    confidence: high
+  - method: Retrieve existing CISA Cyber Hygiene reports and alerts
+    impact: passive
+    description: Reports already delivered to an enrolled organisation.
+    confidence: high
+  - method: Enrol in CISA Cyber Hygiene vulnerability scanning, or run any active scan of the owner's public ranges
+    impact: process-risk
+    description: >-
+      CISA's service continuously scans internet-accessible assets (public,
+      static IPv4 addresses). Where a controller is directly exposed, that is
+      active traffic to a live controller.
+    safety_note: >-
+      Rated process-risk by this project's rule that active scanning of
+      control assets is always process-risk, not by CISA. Before enrolling or
+      scanning, identify and agree with operations any directly exposed PLC,
+      HMI or gateway; better, remove the exposure first.
+    confidence: high
+events:
+  - event: Owner addresses answering on OT ports (44818, 2222, 102, 502) or with PLC banners
+    value: AA26-097A reports these ports targeted on internet-facing PLCs; exposure in the owner's ranges marks assets that may already have been accessed.
+    attack: [T0883]
+    basis: government
+  - event: Owner addresses offering VNC (5900-5910) to HMIs
+    value: AA25-343A reports hacktivists finding VNC-connected HMIs this way and brute-forcing weak or default credentials.
+    attack: [T0886, T1021.005]
+    basis: government
+  - event: Owner addresses offering TCP 20256 (Unitronics PCOM)
+    value: CISA reports actors probing for TCP 20256 to find Unitronics PLCs.
+    basis: government
+  - event: Modem or gateway addresses offering SSH on 22
+    value: AA26-097A reports actors gaining access to modems through port 22.
+    basis: government
+  - event: CISA Cyber Hygiene urgent-finding alerts (potentially risky services, known exploited vulnerabilities)
+    value: CISA's own alerting on exposed risky services in the enrolled ranges.
+    basis: government
+attack_data_components: [DC0106, DC0104, DC0110]
+gaps:
+  - Point-in-time snapshots - an exposure that was opened and closed between scans can be missed.
+  - CISA's vulnerability scanning covers public, static IPv4 addresses; dynamic, carrier-NAT or IPv6 cellular addresses may not be covered.
+  - Shows exposure, not compromise; an exposed PLC still needs device- and network-side evidence.
+  - Services on non-standard ports or behind protocol-specific handshakes may not be identified by search platforms (this project's caution).
+  - Search-platform documentation (Shodan, Censys) was not read in this round; their coverage and retention are not described here.
+confidence: high
+sources:
+  - title: CISA AA25-343A - Pro-Russia Hacktivists Conduct Opportunistic Attacks Against US and Global Critical Infrastructure
+    url: https://www.cisa.gov/news-events/cybersecurity-advisories/aa25-343a
+    accessed: "2026-11-08"
+    kind: government
+    quote: >-
+      Asset owners should use attack surface management services and web-based
+      search platforms to scan the internet. This mitigation can help identify if
+      there are VNC systems exposed within the IP ranges they own, especially for
+      connections set up by third parties.
+    read: direct
+  - title: CISA AA25-343A, exposure
+    url: https://www.cisa.gov/news-events/cybersecurity-advisories/aa25-343a
+    accessed: "2026-11-08"
+    kind: government
+    quote: >-
+      Many devices can be found by searching for open ports on public IP ranges
+      with search engine tools to target victims with OT components
+    read: direct
+  - title: CISA Cyber Hygiene Services
+    url: https://www.cisa.gov/cyber-hygiene-services
+    accessed: "2026-11-08"
+    kind: government
+    quote: >-
+      Vulnerability Scanning: This service continuously monitors and assesses
+      internet-accessible network assets (public, static IPv4 addresses) to
+      evaluate their host and vulnerability status. In addition to weekly
+      reports of all findings, you’ll receive ad-hoc alerts about urgent
+      findings, like potentially risky services and known exploited
+      vulnerabilities.
+    read: direct
+  - title: CISA Cyber Hygiene Services, start time
+    url: https://www.cisa.gov/cyber-hygiene-services
+    accessed: "2026-11-08"
+    kind: government
+    quote: >-
+      Cyber Hygiene services typically begin within three business days after
+      completing sign up, and reports can be expected within two weeks of the
+      scanning start date.
+    read: direct
+  - title: CISA AA26-097A - Iranian-Affiliated Cyber Actors Exploit Programmable Logic Controllers Across US Critical Infrastructure
+    url: https://www.cisa.gov/news-events/cybersecurity-advisories/aa26-097a
+    accessed: "2026-11-08"
+    kind: government
+    quote: >-
+      Inbound malicious traffic has been observed targeting PLC devices on the
+      following ports: `44818`, `2222`, `102`, and `502`, as well as targeting
+      modems on port `22`.
+    read: direct
+  - title: CISA Alert - Exploitation of Unitronics PLCs used in Water and Wastewater Systems
+    url: https://www.cisa.gov/news-events/alerts/2023/11/28/exploitation-unitronics-plcs-used-water-and-wastewater-systems
+    accessed: "2026-11-08"
+    kind: government
+    quote: >-
+      Cyber actors are actively targeting TCP 20256 after identifying it through
+      network probing as a port associated to Unitronics PLC.
+    read: direct

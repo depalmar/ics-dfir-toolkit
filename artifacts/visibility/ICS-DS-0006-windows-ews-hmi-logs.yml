@@ -1,0 +1,176 @@
+# ICS visibility data source
+# ICS-DS-0006 - Windows Security, Sysmon and PowerShell logs on EWS / HMI hosts
+# Research notes: docs/research/2026-11-08/datasources.md
+
+id: ICS-DS-0006
+name: Windows Security, Sysmon and PowerShell logs on EWS / HMI hosts
+category: host-windows
+purdue_levels: ["2", "3"]
+platforms: [ICS-0010, ICS-0011]
+location: >-
+  On each Windows engineering workstation, HMI and SCADA server: the Security
+  event log (Microsoft-Windows-Security-Auditing provider), the Sysmon log
+  "Applications and Services Logs/Microsoft/Windows/Sysmon/Operational", and
+  the PowerShell operational logs (PowerShellCore/Operational for PowerShell 7;
+  Microsoft's decryption example on the same page queries
+  Microsoft-Windows-PowerShell/Operational for event 4104). Copies
+  exist off-host only where Windows Event Forwarding or a SIEM agent was set
+  up.
+enable: >-
+  Process creation (4688) needs the "Audit Process Creation" subcategory, and
+  its command line needs the policy "Administrative Templates\System\Audit
+  Process Creation\Include command line in process creation events" - by
+  default the Process Command Line field is empty. Sysmon must be installed
+  with a configuration (its network-connection event is disabled by default).
+  PowerShell script block logging must be turned on ("Turn on PowerShell
+  Script Block Logging" under Administrative Templates -> PowerShell Core for
+  PowerShell 7; Windows PowerShell 5.1 is configured as described in
+  about_Logging, not read here). Microsoft recommends Protected Event Logging
+  with script block logging. Confirm with the HMI/SCADA vendor that agents
+  and audit policy changes are supported on qualified systems (this project's
+  caution).
+retention: >-
+  Local logs are kept only up to their configured size; the joint ASD/CISA
+  guidance warns many systems overwrite old logs when their storage
+  allocation is exhausted and that default retention is often insufficient.
+  Forward to central storage.
+collection:
+  - method: Export events already forwarded to the SIEM or Windows Event Collector
+    impact: passive
+    description: Copies existing records; no action on the host.
+    confidence: high
+  - method: Export the live .evtx logs (Security, Sysmon/Operational, PowerShell operational) from the host with built-in Windows tools
+    impact: read-only
+    description: >-
+      Reads the host's own logs. The host is an OT asset: an HMI may be the
+      operators' only view of the process.
+    safety_note: >-
+      Agree timing with operations; do not reboot, log off the operator
+      session, install software or run heavy collection on an HMI that is in
+      use. Collect from a redundant or standby HMI first where one exists.
+    confidence: medium
+events:
+  - event: Security 4688 - A new process has been created (New Process Name, Creator Process Name, Process Command Line, Token Elevation Type, Mandatory Label)
+    value: >-
+      Every program started on the EWS/HMI, by which account and parent;
+      with command-line auditing on, the arguments too. Reveals engineering
+      tools started at odd hours, scripts and LOTL binaries.
+    basis: vendor
+  - event: Security 4624 - An account was successfully logged on (correlate by Logon ID with 4688)
+    value: Logons to the EWS/HMI; the Logon ID links a session to the processes it started.
+    basis: vendor
+  - event: Sysmon Event ID 1 - Process creation (full command line, parent process, file hash per HashType, ProcessGUID)
+    value: Process start with full command line, parent and file hash; ProcessGuid survives PID reuse for correlation.
+    basis: vendor
+  - event: Sysmon Event ID 3 - Network connection (disabled by default)
+    value: Which process on the EWS/HMI opened each TCP/UDP connection - ties a session to a PLC (for example to 44818, 102 or 502) to the program that made it.
+    basis: vendor
+  - event: Sysmon Event ID 11 - FileCreate
+    value: Files created or overwritten, including dropped tools and new or modified project files.
+    basis: vendor
+  - event: Sysmon Event ID 22 - DNSEvent (DNS query)
+    value: Per-process DNS lookups, showing which programs on an OT host looked up external infrastructure.
+    basis: vendor
+  - event: PowerShell 4104 (script block logging) in PowerShellCore/Operational or Microsoft-Windows-PowerShell/Operational
+    value: The content of PowerShell scriptblocks processed on the host, whether interactive or automated.
+    basis: vendor
+  - event: Use of event-log enumeration such as Get-EventLog security -instanceid 4624 or wevtutil
+    value: The joint ASD/CISA guidance reports Volt Typhoon enumerating logons this way; seeing it on an EWS suggests an intruder mapping accounts.
+    basis: government
+  - event: Unexpected clearing of logs
+    value: Listed by the joint ASD/CISA guidance as anomalous behaviour; on an OT host it should be treated as an incident until explained.
+    basis: government
+tooling:
+  - name: Sysmon (Microsoft Sysinternals)
+    url: https://learn.microsoft.com/en-us/sysinternals/downloads/sysmon
+    license: Microsoft Sysinternals EULA (proprietary freeware)
+    notes: Also a built-in optional feature on Windows 11 and Windows Server 2025 per Microsoft.
+  - name: CISA Logging Made Easy
+    url: https://www.cisa.gov/resources-tools/services/logging-made-easy
+    notes: Named by the joint ASD/CISA guidance as a no-cost log management option for small and medium organisations; licence not read.
+attack_data_components: [DC0032, DC0064, DC0029, DC0067, DC0039, DC0082]
+gaps:
+  - Command lines are absent unless the include-command-line policy was set; Sysmon network events are off unless configured.
+  - Shows what ran on the EWS/HMI, not what the engineering software then sent to a controller or whether the controller accepted it.
+  - An actor using their own copy of engineering software on their own infrastructure (as CISA AA26-097A reports) never touches the plant's EWS, so nothing appears here.
+  - Older or vendor-locked HMIs may not support Sysmon or current audit policy; agents may be restricted by the vendor's support terms.
+  - A local administrator can clear or stop logging; only forwarded copies are trustworthy after compromise.
+  - Event 1102 (audit log cleared) and service-installation events were not read from Microsoft documentation in this round and are not listed.
+confidence: high
+sources:
+  - title: 4688(S) A new process has been created (Microsoft Learn)
+    url: https://learn.microsoft.com/en-us/previous-versions/windows/it-pro/windows-10/security/threat-protection/auditing/event-4688
+    accessed: "2026-11-08"
+    kind: vendor
+    quote: >-
+      You must enable "Administrative Templates\System\Audit Process
+      Creation\Include command line in process creation events" group policy to
+      include command line in process creation events:
+    read: direct
+  - title: 4688(S) A new process has been created (Microsoft Learn), default
+    url: https://learn.microsoft.com/en-us/previous-versions/windows/it-pro/windows-10/security/threat-protection/auditing/event-4688
+    accessed: "2026-11-08"
+    kind: vendor
+    quote: By default Process Command Line field is empty.
+    read: direct
+  - title: 4688(S) A new process has been created (Microsoft Learn), Logon ID correlation
+    url: https://learn.microsoft.com/en-us/previous-versions/windows/it-pro/windows-10/security/threat-protection/auditing/event-4688
+    accessed: "2026-11-08"
+    kind: vendor
+    quote: >-
+      hexadecimal value that can help you correlate this event with recent events
+      that might contain the same Logon ID, for example, "4624: An account was
+      successfully logged on."
+    read: direct
+  - title: Sysmon v15.22 (Microsoft Sysinternals)
+    url: https://learn.microsoft.com/en-us/sysinternals/downloads/sysmon
+    accessed: "2026-11-08"
+    kind: vendor
+    quote: >-
+      On Vista and higher, events are stored in
+      `Applications and Services Logs/Microsoft/Windows/Sysmon/Operational`, and on
+      older systems events are written to the `System` event log.
+    read: direct
+  - title: Sysmon v15.22 (Microsoft Sysinternals), Event ID 3
+    url: https://learn.microsoft.com/en-us/sysinternals/downloads/sysmon
+    accessed: "2026-11-08"
+    kind: vendor
+    quote: >-
+      The network connection event logs TCP/UDP connections on the machine. It
+      is disabled by default. Each connection is linked to a process through
+      the `ProcessId` and `ProcessGuid` fields.
+    read: direct
+  - title: about_Logging_Windows (PowerShell 7.6, Microsoft Learn)
+    url: https://learn.microsoft.com/en-us/powershell/module/microsoft.powershell.core/about/about_logging_windows
+    accessed: "2026-11-08"
+    kind: vendor
+    quote: >-
+      When you enable Script Block Logging, PowerShell records the content of all
+      scriptblocks that it processes. Once enabled, any new PowerShell session
+      logs this information.
+    read: direct
+  - title: about_Logging_Windows (PowerShell 7.6, Microsoft Learn), event table
+    url: https://learn.microsoft.com/en-us/powershell/module/microsoft.powershell.core/about/about_logging_windows
+    accessed: "2026-11-08"
+    kind: vendor
+    quote: >-
+      When Script Block Logging is enabled, PowerShell logs the following events
+      to the PowerShellCore/Operational log:
+    read: direct
+  - title: Best practices for event logging and threat detection (ASD's ACSC with CISA, FBI, NSA and partners, August 2024)
+    url: https://www.cyber.gov.au/sites/default/files/2024-08/best-practices-for-event-logging-and-threat-detection.pdf
+    accessed: "2026-11-08"
+    kind: government
+    quote: >-
+      Always enable detailed logging that includes process creation events and
+      command-line auditing. This enhances log visibility and facilitates threat
+      hunting, if needed.
+    read: direct
+  - title: Best practices for event logging and threat detection, Volt Typhoon case study
+    url: https://www.cyber.gov.au/sites/default/files/2024-08/best-practices-for-event-logging-and-threat-detection.pdf
+    accessed: "2026-11-08"
+    kind: government
+    quote: >-
+      enumerate logs to search for successful logons using wevtutil.exe and the
+      command Get-EventLog Security [T1654].
+    read: direct

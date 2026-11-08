@@ -1,0 +1,66 @@
+# ICS protocol identity record
+# ICS-PROTO-0018 - BACnet/IP
+# Research notes: docs/research/2026-11-08/datasources.md
+# Identity only: operations (services and their effects) are deliberately omitted.
+
+id: ICS-PROTO-0018
+name: BACnet/IP
+slug: bacnet
+aliases:
+  - BACnet (Building Automation and Control networks)
+  - ASHRAE 135 / ISO 16484-5
+spec_owner: ASHRAE SSPC 135 (BACnet Committee); BACnet International runs testing and the BACnet/SC reference implementation
+transport:
+  - layer: udp
+    port: 47808
+  - layer: tls
+    notes: BACnet/SC uses WebSockets over TLS; no port was given in the sources read.
+authentication:
+  native: none
+  detail: >-
+    BACnet International presents peer authentication and encryption as what
+    BACnet/SC adds; it describes BACnet/SC as doing the same job as BACnet/IP
+    and MS/TP, with the key difference that it encrypts the information sent.
+    No authentication in BACnet/IP itself was found in the sources read
+    ("none" is this project's reading).
+  secure_variant: BACnet Secure Connect (BACnet/SC, Addendum 135-2016bj)
+encryption: None in BACnet/IP; BACnet/SC uses TLS.
+parsers:
+  - tool: CISA ICSNPP-BACnet (Zeek plugin)
+    url: https://github.com/cisagov/icsnpp-bacnet
+    logs: [bacnet.log, bacnet_discovery.log, bacnet_property.log, bacnet_device_control.log]
+    license: BSD-3-Clause
+platforms: []
+notes: >-
+  No registry platform is a building-automation controller; BACnet is recorded
+  because OT networks often carry building systems. ICSNPP's default detection
+  uses both UDP/47808 registration and a payload signature, which it notes may
+  produce false positives.
+confidence: medium
+sources:
+  - title: BACnet Secure Connect (BACnet International)
+    url: https://bacnetinternational.org/bacnetsc/
+    accessed: "2026-11-08"
+    kind: standard
+    quote: >-
+      BACnet/SC, defined in Addendum 135-2016 bj, uses WebSockets and TLS to
+      implement peer authentication, message encryption, and reliable
+      connection-oriented communication between BACnet/SC devices.
+    read: direct
+  - title: BACnet Secure Connect (BACnet International), comparison with BACnet/IP
+    url: https://bacnetinternational.org/bacnetsc/
+    accessed: "2026-11-08"
+    kind: standard
+    quote: >-
+      The key difference is that BACnet/SC encrypts the information being sent
+      so that no device on the network can determine the content of secure
+      messages unless they have the appropriate encryption keys.
+    read: direct
+  - title: ICSNPP-BACnet README (cisagov/icsnpp-bacnet)
+    url: https://raw.githubusercontent.com/cisagov/icsnpp-bacnet/main/README.md
+    accessed: "2026-11-08"
+    kind: government
+    quote: >-
+      Default configuration, using both the UDP/47808 registration and payload
+      signature detection, which may produce false positives:
+    read: direct

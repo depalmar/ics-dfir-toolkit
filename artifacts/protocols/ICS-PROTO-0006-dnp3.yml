@@ -1,0 +1,81 @@
+# ICS protocol identity record
+# ICS-PROTO-0006 - DNP3
+# Research notes: docs/research/2026-11-08/datasources.md
+# Identity only: operations (function codes and their effects) are deliberately omitted.
+
+id: ICS-PROTO-0006
+name: DNP3
+slug: dnp3
+aliases:
+  - Distributed Network Protocol 3
+  - IEEE 1815
+spec_owner: DNP Users Group; standardised as IEEE 1815
+transport:
+  - layer: tcp
+    port: 20000
+  - layer: udp
+    port: 20000
+  - layer: serial
+    notes: DNP3 is also used on serial links; IEC 62351-5 covers both serial and networked profiles.
+authentication:
+  native: none
+  detail: >-
+    Basic DNP3 carries no authentication; the DNP Users Group calls SAv2 "a
+    significantly higher level of operational security than basic DNP3
+    without secure authentication". DNP3 Secure Authentication (application
+    layer) authenticates the source and integrity of messages; SAv5 (IEEE
+    1815-2012) supersedes SAv2 and the two are not directly interoperable.
+  secure_variant: DNP3 Secure Authentication version 5 (SAv5, IEEE 1815-2012); IEC 62351-5 and, over TCP/IP, IEC 62351-3 (TLS)
+encryption: >-
+  Secure Authentication authenticates messages but the sources read do not
+  describe it as encrypting them; TLS profiles for DNP3 over TCP/IP are
+  covered by IEC 62351-3.
+parsers:
+  - tool: Zeek (built-in DNP3 analyzer)
+    url: https://github.com/zeek/zeek/blob/master/scripts/base/protocols/dnp3/main.zeek
+    logs: [dnp3.log]
+    license: BSD-style (Zeek COPYING)
+  - tool: CISA ICSNPP-DNP3 (Zeek package)
+    url: https://github.com/cisagov/icsnpp-dnp3
+    logs: [dnp3_control.log, dnp3_objects.log]
+    license: BSD-3-Clause
+  - tool: Suricata (DNP3 app-layer parser and dnp3_* keywords; disabled by default in suricata.yaml)
+    url: https://github.com/OISF/suricata/blob/main/doc/userguide/rules/dnp3-keywords.rst
+    license: GPL-2.0
+platforms: [ICS-0014]
+confidence: high
+sources:
+  - title: Further Information Regarding the Release of DNP3 Secure Authentication Version 5 (DNP Users Group, 1 December 2011)
+    url: https://www.dnp.org/Portals/0/Public%20Documents/DNP3%20SAv5%20Further%20Info%20Announcement%2020111201.pdf
+    accessed: "2026-11-08"
+    kind: standard
+    quote: >-
+      DNP3 Secure Authentication provides application layer functions and data
+      objects that permit devices to authenticate DNP3 communication messages by
+      verifying the source of the message and that the message was transmitted
+      without modification.
+    read: direct
+  - title: Further Information Regarding the Release of DNP3 Secure Authentication Version 5 (DNP Users Group)
+    url: https://www.dnp.org/Portals/0/Public%20Documents/DNP3%20SAv5%20Further%20Info%20Announcement%2020111201.pdf
+    accessed: "2026-11-08"
+    kind: standard
+    quote: >-
+      Systems that are currently deployed that use SAv2 or that will be deployed
+      before SAv5 implementations become available, should continue to use SAv2
+      as this provides a significantly higher level of operational security than
+      basic DNP3 without secure authentication.
+    read: direct
+  - title: Zeek base DNP3 analysis script (scripts/base/protocols/dnp3/main.zeek)
+    url: https://raw.githubusercontent.com/zeek/zeek/master/scripts/base/protocols/dnp3/main.zeek
+    accessed: "2026-11-08"
+    kind: researcher
+    quote: "const ports = { 20000/tcp, 20000/udp } &redef;"
+    read: direct
+  - title: IEC 62351 - Cybersecurity for IEC 61850 (IEC 61850 website)
+    url: https://iec61850.dvl.iec.ch/what-is-61850/technical-principles/61850-cybersecurity/
+    accessed: "2026-11-08"
+    kind: standard
+    quote: >-
+      IEC 62351-5: Data and Communication Security – Security for IEC 60870-5
+      and Derivatives (i.e. DNP 3.0).
+    read: direct

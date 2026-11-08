@@ -1,0 +1,85 @@
+# ICS protocol identity record
+# ICS-PROTO-0001 - Modbus TCP
+# Research notes: docs/research/2026-11-08/datasources.md
+# Identity only: operations (function codes and their effects) are deliberately omitted.
+
+id: ICS-PROTO-0001
+name: Modbus TCP
+slug: modbus-tcp
+aliases:
+  - Modbus/TCP
+  - Modbus TCP/IP
+  - MBAP (Modbus Application Protocol header over TCP)
+spec_owner: Modbus Organization (modbus.org); the TCP/IP messaging implementation guide was provided by Schneider Automation
+transport:
+  - layer: tcp
+    port: 502
+    notes: Standard server port, as handled by Zeek's built-in Modbus analyzer. ICSNPP-Modbus does not support Modbus over UDP.
+  - layer: tls
+    port: 802
+    notes: Modbus Security (Modbus/TCP over TLS) uses its own port.
+authentication:
+  native: none
+  detail: >-
+    The Modbus Organization describes authentication only for the Modbus
+    Security variant, in which TLS encapsulates Modbus packets and X.509v3
+    certificates authenticate client and server. No authentication mechanism
+    for classic Modbus TCP was found in the sources read; "none" is this
+    project's reading of that absence, not a quoted statement.
+  secure_variant: Modbus Security (Modbus/TCP Security protocol, TLS on TCP 802)
+encryption: >-
+  None in classic Modbus TCP. Modbus Security adds TLS, which provides
+  authentication and message-integrity protection.
+parsers:
+  - tool: Zeek (built-in Modbus analyzer)
+    url: https://github.com/zeek/zeek/blob/master/scripts/base/protocols/modbus/main.zeek
+    logs: [modbus.log]
+    license: BSD-style (Zeek COPYING)
+  - tool: CISA ICSNPP-Modbus (Zeek package)
+    url: https://github.com/cisagov/icsnpp-modbus
+    logs:
+      - modbus_detailed.log
+      - modbus_mask_write_register.log
+      - modbus_read_write_multiple_registers.log
+      - modbus_read_device_identification.log
+    license: BSD-3-Clause
+  - tool: Suricata (Modbus app-layer parser and modbus keyword; disabled by default in suricata.yaml)
+    url: https://docs.suricata.io/en/latest/rules/modbus-keyword.html
+    logs: [eve.json event_type modbus]
+    license: GPL-2.0
+platforms: [ICS-0005]
+notes: >-
+  Schneider Electric's UMAS (ICS-PROTO-0012) rides inside Modbus TCP on port
+  502 under a reserved function code; ICSNPP-Modbus states that vendor- and
+  product-specific Modbus functions are not decoded. CISA AA26-097A lists port
+  502 among the ports targeted on internet-facing PLCs.
+confidence: medium
+sources:
+  - title: Modbus Specifications and Implementation Guides (modbus.org)
+    url: https://www.modbus.org/modbus-specifications
+    accessed: "2026-11-08"
+    kind: standard
+    quote: >-
+      The Modbus Security protocol provides protection through the blending of
+      Transport Layer Security (TLS) with the traditional Modbus protocol. TLS
+      encapsulates Modbus packets to provide authentication and message-integrity
+      protection. The new protocol also leverages X.509v3 digital certificates for
+      authentication of the Server and Client. The new Modbus Security protocol
+      uses port 802.
+    read: direct
+  - title: ICSNPP-Modbus README (cisagov/icsnpp-modbus)
+    url: https://raw.githubusercontent.com/cisagov/icsnpp-modbus/main/README.md
+    accessed: "2026-11-08"
+    kind: government
+    quote: >-
+      Zeek's built-in Modbus parser handles the standard Modbus server port,
+      TCP/502. This package can additionally assign non-standard TCP ports
+      directly to that analyzer. Modbus/UDP is not supported, and this package
+      does not use a payload signature for protocol detection.
+    read: direct
+  - title: Zeek base Modbus analysis script (scripts/base/protocols/modbus/main.zeek)
+    url: https://raw.githubusercontent.com/zeek/zeek/master/scripts/base/protocols/modbus/main.zeek
+    accessed: "2026-11-08"
+    kind: researcher
+    quote: "const ports = { 502/tcp } &redef;"
+    read: direct

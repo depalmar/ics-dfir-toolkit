@@ -1,0 +1,150 @@
+# ICS visibility data source
+# ICS-DS-0005 - OT remote access logs (VPN, jump host, vendor remote-access platforms)
+# Research notes: docs/research/2026-11-08/datasources.md
+
+id: ICS-DS-0005
+name: OT remote access logs (VPN, jump host, vendor remote-access platforms)
+category: remote-access
+purdue_levels: ["3", "3.5", "4"]
+platforms: [ALL]
+location: >-
+  VPN concentrators and secure remote-access gateways (normally in the OT
+  DMZ), hardened jump hosts used for vendor support, and any vendor or
+  third-party remote-access platform. Logs live on those systems and, where
+  forwarded, in the SIEM. Jump hosts running Windows also produce the host
+  logs described in ICS-DS-0006.
+enable: >-
+  Centralise remote access through one brokered path in the DMZ so that every
+  session is mediated, monitored and logged (joint NCSC/CISA connectivity
+  principles), require MFA at that VPN or gateway (CISA notes a gateway can
+  enforce MFA even where the PLC cannot), and forward authentication and
+  session logs off the device. Make any break-glass account raise the highest
+  alarm in the SOC. Product-specific settings were not read in this round.
+retention: >-
+  Product- and configuration-dependent; forward and keep centrally. The joint
+  ASD/CISA guidance places internet-facing services including remote access
+  near the top of its logging priorities and warns default retention is often
+  insufficient.
+collection:
+  - method: Export authentication and session logs already forwarded from the VPN, gateway, jump host or vendor platform
+    impact: passive
+    description: Copies existing records.
+    confidence: high
+  - method: Export local logs, session lists and (where kept) session recordings from the remote-access system through its administrative interface
+    impact: read-only
+    description: >-
+      Recovers records not forwarded. A third-party-hosted platform may hold
+      the records on the vendor's side; request them in writing.
+    safety_note: >-
+      Do not disable or reconfigure the remote-access path during collection
+      without operations: a vendor or on-call engineer may depend on it for
+      the plant's safe running.
+    confidence: medium
+events:
+  - event: VPN or gateway authentication success and failure, with account, source address and time
+    value: >-
+      Who came in, from where and when; repeated failures from internet
+      addresses indicate password spraying, which AA26-097A asks owners to
+      block at the VPN or gateway.
+    attack: [T0883]
+    basis: government
+  - event: Logon to OT devices from the internet that does not match the device control list
+    value: AA26-097A recommends a device control list of workstations allowed to connect to OT components and monitoring for unexpected logon activity from the internet.
+    basis: government
+  - event: Vendor or third-party session start and end, user, target asset
+    value: >-
+      The joint ASD/CISA guidance lists abnormal use of vendor or third-party
+      accesses, maintenance methods or remote monitoring as an OT anomaly to
+      look for.
+    basis: government
+  - event: Break-glass account use
+    value: The joint NCSC/CISA principles say any attempt to use a break-glass account should trigger the highest-criticality alarm in the SOC.
+    basis: government
+  - event: VNC (RFB) or RDP sessions to HMIs, as recorded by Zeek's RFB and RDP analyzers where a sensor covers the path (log file names not verified here)
+    value: >-
+      AA25-343A reports hacktivists using internet-exposed VNC to reach HMIs;
+      a sensor on the remote-access path records which hosts opened remote
+      desktop sessions to HMIs.
+    attack: [T0886, T1021.005]
+    basis: government
+tooling:
+  - name: Zeek (RDP and RFB/VNC analyzers, as listed by CISA Malcolm)
+    url: https://github.com/cisagov/Malcolm/blob/main/docs/protocols.md
+    license: BSD-style (Zeek COPYING)
+attack_data_components: [DC0002, DC0067, DC0088, DC0082]
+gaps:
+  - Paths that bypass the broker - cellular modems, VNC exposed directly to the internet, contractor-installed remote tools - leave no record here; AA25-343A stresses connections set up by third parties.
+  - Remote-access logs show the session, not what the remote user then did to a controller; correlate with ICS-DS-0001, ICS-DS-0006 and controller logs.
+  - Vendor-hosted remote-access platforms may keep logs and recordings only on the vendor side.
+  - No product documentation (VPN, jump host or vendor remote-access platform) was read in this round, so log names and fields are not recorded here.
+  - A legitimate account used with stolen credentials looks like normal access; the joint guidance notes not all successful authentication events are benign.
+confidence: high
+sources:
+  - title: Secure connectivity principles for Operational Technology (NCSC-UK with CISA, FBI, ASD's ACSC, Cyber Centre, BSI, NCSC-NL, NCSC-NZ)
+    url: https://www.ncsc.gov.uk/sites/default/files/documents/ncsc-secure-connectivity-for-operational-technology.pdf
+    accessed: "2026-11-08"
+    kind: government
+    quote: >-
+      A brokered connection is a method where the external party connects to an
+      intermediary system (the broker), which then securely relays the
+      connection to the OT asset. This ensures that the OT system is never
+      directly exposed to the internet or external networks, and that all access
+      is mediated, monitored, and controlled.
+    read: direct
+  - title: Secure connectivity principles for OT, centralised remote access
+    url: https://www.ncsc.gov.uk/sites/default/files/documents/ncsc-secure-connectivity-for-operational-technology.pdf
+    accessed: "2026-11-08"
+    kind: government
+    quote: >-
+      For example, rather than deploying separate virtual private network (VPN)
+      endpoints within the OT network for each third party, centralise remote
+      access through a secure solution hosted in the DMZ. This allows for
+      consistent enforcement of access controls, session monitoring, and reuse of
+      a single hardened access path across multiple vendors.
+    read: direct
+  - title: Secure connectivity principles for OT, Principle 7 break-glass
+    url: https://www.ncsc.gov.uk/sites/default/files/documents/ncsc-secure-connectivity-for-operational-technology.pdf
+    accessed: "2026-11-08"
+    kind: government
+    quote: >-
+      It is critical that any attempt to use a break-glass account triggers the
+      highest criticality alarm within your Security Operations Centre (SOC).
+    read: direct
+  - title: CISA AA26-097A - Iranian-Affiliated Cyber Actors Exploit Programmable Logic Controllers Across US Critical Infrastructure
+    url: https://www.cisa.gov/news-events/cybersecurity-advisories/aa26-097a
+    accessed: "2026-11-08"
+    kind: government
+    quote: >-
+      A VPN or gateway device can enable MFA for remote access even if the PLC
+      does not support MFA. Implement security rules on these higher-level
+      network security mechanisms to prevent the type of repeated and sustained
+      login attempts seen during a brute force attack. When possible, implement a
+      device control list for workstations sending messages or connecting to OT
+      components.
+    read: direct
+  - title: CISA AA26-097A, device control list monitoring
+    url: https://www.cisa.gov/news-events/cybersecurity-advisories/aa26-097a
+    accessed: "2026-11-08"
+    kind: government
+    quote: >-
+      Use the device control list to monitor for logon activity for unexpected or
+      unusual access to devices from the internet.
+    read: direct
+  - title: Best practices for event logging and threat detection (ASD's ACSC with CISA, FBI, NSA and partners, August 2024)
+    url: https://www.cyber.gov.au/sites/default/files/2024-08/best-practices-for-event-logging-and-threat-detection.pdf
+    accessed: "2026-11-08"
+    kind: government
+    quote: >-
+      abnormal use of vendor or third-party accesses, maintenance methods, or
+      remote monitoring
+    read: direct
+  - title: CISA AA25-343A - Pro-Russia Hacktivists Conduct Opportunistic Attacks Against US and Global Critical Infrastructure
+    url: https://www.cisa.gov/news-events/cybersecurity-advisories/aa25-343a
+    accessed: "2026-11-08"
+    kind: government
+    quote: >-
+      Asset owners should use attack surface management services and web-based
+      search platforms to scan the internet. This mitigation can help identify if
+      there are VNC systems exposed within the IP ranges they own, especially for
+      connections set up by third parties.
+    read: direct

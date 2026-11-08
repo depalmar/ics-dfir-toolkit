@@ -1,0 +1,56 @@
+# ICS protocol identity record
+# ICS-PROTO-0005 - PCCC (over CIP or DF1)
+# Research notes: docs/research/2026-11-08/datasources.md
+# Identity only: operations (commands and their effects) are deliberately omitted.
+
+id: ICS-PROTO-0005
+name: PCCC (over CIP or DF1)
+slug: pccc
+aliases:
+  - Programmable Controller Communication Commands
+  - CSP (Client/Server Protocol) / PCCC over Ethernet
+  - DF1 (serial carrier for PCCC)
+spec_owner: Rockwell Automation (Allen-Bradley)
+transport:
+  - layer: tcp
+    port: 44818
+    notes: >-
+      Encapsulated inside CIP over EtherNet/IP (ICS-PROTO-0004). Rockwell's
+      developer guide (search snippet, not read directly) says the Logix family
+      supports PCCC encapsulated messages.
+  - layer: serial
+    notes: DF1 serial protocol, per Rockwell's DF1 Protocol and Command Set Reference Manual (title only; not read).
+authentication:
+  native: none
+  detail: >-
+    Not verified. No source read in this round describes an authentication
+    mechanism for PCCC; "none" is a placeholder pending a direct read of
+    Rockwell's DF1/PCCC reference. Treat as unauthenticated.
+encryption: None documented in the sources read.
+parsers:
+  - tool: CISA ICSNPP-ENIP (Zeek plugin) - logs the enclosing CIP layer only; no PCCC decoding was verified
+    url: https://github.com/cisagov/icsnpp-enip
+    logs: [cip.log]
+    license: BSD-3-Clause
+platforms: [ICS-0001]
+notes: >-
+  No open-source parser that decodes PCCC payloads was verified in this round.
+  MicroLogix (ICS-0002) is not listed because no source read here ties it to
+  PCCC; add it once a Rockwell MicroLogix manual is read.
+confidence: low
+unverified: true
+sources:
+  - title: Integration with ControlLogix Programmable Automation Controllers using EtherNet/IP (Rockwell Automation developer guide)
+    url: https://www.rockwellautomation.com/content/dam/rockwell-automation/sites/downloads/pdf/developerguide.pdf
+    accessed: "2026-11-08"
+    kind: vendor
+    quote: The Logix family also supports the PCCC encapsulated messages to access controller
+    read: summariser
+  - title: Technology Licensing Developer How-to Guides (Rockwell Automation)
+    url: https://www.rockwellautomation.com/en-us/company/news/articles/technology-licensing-developer-how-to-guides.html
+    accessed: "2026-11-08"
+    kind: vendor
+    quote: >-
+      This document covers the DF1 protocol (an RS-232 implementation) and the
+      PCCC commands that are used in it.
+    read: summariser

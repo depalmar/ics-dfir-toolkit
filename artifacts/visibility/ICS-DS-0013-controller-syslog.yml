@@ -1,0 +1,169 @@
+# ICS visibility data source
+# ICS-DS-0013 - Controller syslog and event logs (e.g. Modicon M580, S7-1500 syslog)
+# Research notes: docs/research/2026-11-08/datasources.md
+
+id: ICS-DS-0013
+name: Controller syslog and event logs (e.g. Modicon M580, S7-1500 syslog)
+category: controller-onboard
+purdue_levels: ["1"]
+platforms: [ICS-0005, ICS-0003, ICS-0001]
+protocols: [ICS-PROTO-0001, ICS-PROTO-0004, ICS-PROTO-0006, ICS-PROTO-0007, ICS-PROTO-0010, ICS-PROTO-0012, ICS-PROTO-0019]
+location: >-
+  Generated on the controller (or its communication module) and sent as
+  RFC 5424 syslog to a syslog server or SIEM. Schneider Modicon M580 sends
+  cybersecurity events over TCP; Siemens S7-1500 (firmware V3.1 and later)
+  keeps syslog messages in a local cache readable through the web server's
+  Web API (method Syslog.Browse) and can forward them; ControlLogix 5590 can
+  send its controller log to a third-party syslog collector (ICS-DS-0008);
+  HART-IP devices conforming to HART 7.7 must support syslog.
+enable: >-
+  Schneider (Control Expert 16.4 and later): Tools > Project Settings >
+  General > PLC diagnostics, select Event Logging (cleared by default), enter
+  the syslog server address and port, then Build; an M580 at firmware 4.60 or
+  later in secure mode takes its syslog configuration from Cybersecurity Admin
+  Expert. A single NTP reference must be configured to time-stamp events.
+  Siemens: recording of security-relevant events cannot be deactivated on
+  S7-1500 firmware V3.1 and later; forwarding to a syslog server needs STEP 7
+  V19 or later with firmware V3.1 or later. Configure a receiving server that
+  understands RFC 5424.
+retention: >-
+  Set by the syslog server. On the devices: Schneider states events are not
+  lost during a transient network breakdown but are lost on device reset,
+  except on Modicon M580 controller firmware 4.0 and later. The S7-1500 local
+  cache size was not stated in sources read.
+collection:
+  - method: Export controller syslog already received by the syslog server or SIEM
+    impact: passive
+    description: Copies existing records; touches no controller.
+    confidence: high
+  - method: Read the S7-1500 local syslog cache through the CPU web server Web API (Syslog.Browse)
+    impact: read-only
+    description: >-
+      Vendor-documented read path for firmware V3.1 and later, where the web
+      server is already enabled and credentials exist. Procedure is in the
+      S7-1500 Web server function manual (not read in this round).
+    safety_note: Do not enable the web server or change its users during an incident; that is a configuration download.
+    confidence: medium
+events:
+  - event: Modicon M580 "Successful connection" / "Connection problem" (PROCID MODBUS, EIP, HTTPS, OPC-UA, MOD-BUS-UMAS; peer address and user in structured data)
+    value: >-
+      Every successful and failed connection to the controller by protocol,
+      including Modbus TCP and EtherNet/IP socket connections (no user) and
+      Control Expert application-password logins - a per-controller record of
+      who connected from where.
+    basis: vendor
+  - event: Modicon M580 "Operating mode change" (Run, Stop, Init, Halt), MSGID OPERATING_MODE_CHANGE
+    value: Controller mode changes, from whatever source.
+    basis: vendor
+  - event: Modicon M580 "Backup operation." (Download application from the controller) and "Restore operation." (Upload controller application/configuration inside the controller; Restore controller application inside the controller)
+    value: >-
+      Application transfers in both directions, in Schneider's wording. AA26-097A
+      reports project-file extraction and malicious downloads; these are the
+      entries that would show them on an M580 with logging enabled.
+    basis: vendor
+  - event: Modicon M580 "Firmware update" and "Invalid firmware update"
+    value: Firmware installed, or rejected for incompatible version or invalid signature.
+    basis: vendor
+  - event: Modicon M580 "Modification of the time of the device" (MSGID TIME_CHANGE) and "Time signal out of tolerance"
+    value: Clock changes that would distort every other timeline, and time-sync anomalies.
+    basis: vendor
+  - event: Modicon M580 "Hardware change" (port link up/down, topology change, SD card insertion/extraction) and "Reboot"
+    value: Physical and network changes at the controller, and resets.
+    basis: vendor
+  - event: S7-1500 syslog - security events, firmware updates, changes to the user program, changes to the configuration, changes to the operating state
+    value: The S7-1500 equivalent - program and configuration changes and mode changes, with message content based on IEC 62443-3-3.
+    basis: vendor
+  - event: HART-IP device syslog and audit logs (client identification, connection start/stop times, whether configuration was changed in the session)
+    value: Field-device-level record of who connected to a HART-IP instrument and whether they changed it.
+    basis: standard
+attack_data_components: [DC0038, DC0108, DC0004, DC0002]
+gaps:
+  - Exists only on newer platforms and firmware (M580 event logging per the guide's firmware tables; S7-1500 firmware V3.1 and STEP 7 V19 for forwarding) and only where it was configured beforehand - Schneider's Event Logging box is cleared by default.
+  - Older controllers in the registry (S7-300/400, MicroLogix, many CODESYS, Unitronics, OMRON and Triconex systems) were not shown in the sources read to offer syslog.
+  - Syslog travels unencrypted unless the transport is protected. For the BMENOC communication module, Schneider lists "Syslog client (UDP)" among services not supported when IPsec is enabled unless the recipient is a PC with IPsec configured - check the syslog path on sites that use IPsec.
+  - Records connections and changes, not the content of the logic; comparison with a known-good project is still required.
+  - Message text from the Schneider guide was read from a PDF table where some identifiers are split by hyphenation; confirm exact MSGID strings against live messages before writing parsers.
+confidence: high
+sources:
+  - title: Modicon Platform Cybersecurity User Guide (EIO0000001999 v15, Schneider Electric) - Event Log Service Description
+    url: https://download.se.com/files?p_Doc_Ref=EIO0000001999&p_enDocType=User+guide
+    accessed: "2026-11-08"
+    kind: vendor
+    quote: >-
+      The events are exchanged between the client and the server using Syslog
+      protocol (RFC 5424 specification). The Syslog messages respect the format
+      described in RFC 5424 specification. Syslog exchanges are done with TCP
+      protocol. On devices, events are not lost in case of transient network
+      breakdown. Events are lost in case of device reset (except for Modicon M580
+      controller firmware ≥ 4.0).
+    read: direct
+  - title: Modicon Platform Cybersecurity User Guide (EIO0000001999 v15) - Set Up Cybersecurity Audit (Event Logging)
+    url: https://download.se.com/files?p_Doc_Ref=EIO0000001999&p_enDocType=User+guide
+    accessed: "2026-11-08"
+    kind: vendor
+    quote: >-
+      When the M580 controller (4.60 or later) is in standard mode, the
+      controller retrieves its configuration from the syslog configuration panel
+      in Control Expert 16.4 or later.
+    read: direct
+  - title: Modicon Platform Cybersecurity User Guide (EIO0000001999 v15) - M580 event log message descriptions
+    url: https://download.se.com/files?p_Doc_Ref=EIO0000001999&p_enDocType=User+guide
+    accessed: "2026-11-08"
+    kind: vendor
+    quote: >-
+      Operating mode change | Program operating mode change (Run, Stop, Init,
+      Halt) Mode maintenance / SafeRun / Stop SAFE task
+    read: direct
+  - title: Modicon Platform Cybersecurity User Guide (EIO0000001999 v15) - Setting Up Syslog Clients
+    url: https://download.se.com/files?p_Doc_Ref=EIO0000001999&p_enDocType=User+guide
+    accessed: "2026-11-08"
+    kind: vendor
+    quote: >-
+      Select Event Logging check box (cleared by default).
+    read: direct
+  - title: TIA Portal V21 help - Syslog (S7-1500), Introduction
+    url: https://docs.tia.siemens.cloud/r/en-us/v21/functional-description-of-s7-1500-cpus-s7-1500/setting-the-operating-behavior-s7-1500/protection-security-s7-1500/syslog-s7-1500/introduction-s7-1500
+    accessed: "2026-11-08"
+    kind: vendor
+    quote: >-
+      A CPU records the following events: - Security events - Firmware updates -
+      Changes to the user program - Changes to the configuration - Changes to the
+      operating state
+    read: direct
+  - title: TIA Portal V21 help - Syslog (S7-1500), local cache and forwarding
+    url: https://docs.tia.siemens.cloud/r/en-us/v21/functional-description-of-s7-1500-cpus-s7-1500/setting-the-operating-behavior-s7-1500/protection-security-s7-1500/syslog-s7-1500/introduction-s7-1500
+    accessed: "2026-11-08"
+    kind: vendor
+    quote: >-
+      Each CPU as of FW version V3.1 saves syslog messages in a local cache. By
+      querying this cache, you can view the syslog messages and identify
+      potential security risks. To access the local cache with the syslog
+      messages, use the Web API of the web server (API method `Syslog.Browse`).
+    read: direct
+  - title: TIA Portal V21 help - Syslog (S7-1500), forwarding
+    url: https://docs.tia.siemens.cloud/r/en-us/v21/functional-description-of-s7-1500-cpus-s7-1500/setting-the-operating-behavior-s7-1500/protection-security-s7-1500/syslog-s7-1500/introduction-s7-1500
+    accessed: "2026-11-08"
+    kind: vendor
+    quote: >-
+      The recording of safety-related events cannot be deactivated. You have the
+      option of transferring the events recorded by the CPU to a syslog server in
+      the network.
+    read: direct
+  - title: Controller Logging - ControlLogix 5590 Controller User Manual (1756-UM900)
+    url: https://www.rockwellautomation.com/en-pl/docs/technical/logix5000/_online/1756-um900/controllogix-5590-controller-user-manual-ditamap/develop-secure-applications/controller-logging.html
+    accessed: "2026-11-08"
+    kind: vendor
+    quote: >-
+      The controller log stores various security-related events that can be
+      written to a memory card or accessed via FactoryTalk® AssetCentre or a
+      third-party syslog collector.
+    read: direct
+  - title: HART-IP Explained (FieldComm Group), FAQ
+    url: https://www.fieldcommgroup.org/technologies/HART-IP/explained
+    accessed: "2026-11-08"
+    kind: standard
+    quote: >-
+      Devices are required to capture "Audit Logs" that summarize communications
+      activities. Records include: client identification, connection start/stop
+      times, whether the device configuration was changed in that session, etc.
+    read: direct

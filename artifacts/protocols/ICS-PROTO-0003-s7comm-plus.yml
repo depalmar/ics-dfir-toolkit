@@ -1,0 +1,89 @@
+# ICS protocol identity record
+# ICS-PROTO-0003 - S7comm-plus (S7-1200/1500)
+# Research notes: docs/research/2026-11-08/datasources.md
+# Identity only: operations (function codes and their effects) are deliberately omitted.
+
+id: ICS-PROTO-0003
+name: S7comm-plus (S7-1200/1500)
+slug: s7comm-plus
+aliases:
+  - S7CommPlus
+  - S7+
+  - PG/HMI communication (Siemens term for engineering and HMI sessions)
+spec_owner: Siemens AG (proprietary; no public specification)
+transport:
+  - layer: tcp
+    port: 102
+    notes: Shares TCP/102 with classic S7comm over TPKT/COTP.
+  - layer: tls
+    notes: >-
+      From TIA Portal V17 with S7-1200 firmware V4.5 / S7-1500 firmware V2.9 or
+      later, PG/HMI communication is secured with TLS. The TLS session is
+      carried on the same S7 connection; no separate port is given in the
+      sources read.
+authentication:
+  native: optional
+  detail: >-
+    Siemens states that from TIA Portal V17 the TIA Portal and S7-1200/S7-1500
+    CPUs (firmware V4.5/V2.9 and later) automatically communicate securely
+    using TLS. Older ("legacy") PG/HMI communication is still accepted unless
+    the CPU option "Only allow secure PG/PC and HMI communication" is enabled.
+    A Siemens support page (search snippet, not read directly) describes the
+    legacy access-level password entered as the CPU password in an HMI
+    connection.
+  secure_variant: TLS-based secure PG/HMI communication (TIA Portal V17 and later)
+encryption: >-
+  TLS when both the engineering/HMI station and the CPU are at the V17
+  generation or later; legacy sessions with older stations use the previous
+  procedure.
+parsers:
+  - tool: CISA ICSNPP-S7comm (Zeek plugin)
+    url: https://github.com/cisagov/icsnpp-s7comm
+    logs: [s7comm_plus.log]
+    license: BSD-3-Clause
+platforms: [ICS-0003]
+notes: >-
+  ICSNPP logs S7comm-plus header fields only (version, opcode, function code
+  and names) and states there is no detailed logging of S7comm-plus functions.
+  Once a session is TLS-protected, a passive sensor should not expect to see
+  even those fields (this project's inference). Siemens states the CPU
+  diagnostics buffer reports status changes of secure PG/HMI communication.
+confidence: medium
+sources:
+  - title: TIA Portal V20 help - PG/HMI communication based on standardized security mechanisms (S7-1200, S7-1500, S7-1500T)
+    url: https://docs.tia.siemens.cloud/r/en-us/v20/editing-devices-and-networks/configure-networks/secure-communication-s7-1200-s7-1500-s7-1500t/secure-pg/hmi-communication-s7-1200-s7-1500-s7-1500t/pg/hmi-communication-based-on-standardized-security-mechanisms-s7-1200-s7-1500-s7-1500t
+    accessed: "2026-11-08"
+    kind: vendor
+    quote: >-
+      As explained in the previous sections, the secure PG/HMI connection as of
+      V17 between the PG/HMI device and CPU (current version) is characterized by
+      the employed standardized communication procedure, TLS (Transport Layer
+      Security).
+    read: direct
+  - title: TIA Portal V20 help - Using Legacy PG/PC communication for TIA Portal
+    url: https://docs.tia.siemens.cloud/r/en-us/v20/editing-devices-and-networks/configure-networks/secure-communication-s7-1200-s7-1500-s7-1500t/secure-pg/hmi-communication-s7-1200-s7-1500-s7-1500t/pg/hmi-communication-based-on-standardized-security-mechanisms-s7-1200-s7-1500-s7-1500t
+    accessed: "2026-11-08"
+    kind: vendor
+    quote: >-
+      As of TIA Portal version V17, the TIA Portal and the S7-1200/S7-1500 CPU as
+      of firmware version V4.5/V2.9 automatically communicate "securely" - the
+      connection partners set their connection mechanisms automatically to the
+      highest possible security method.
+    read: direct
+  - title: Siemens Industry Online Support - Configuration of an HMI connection to S7-1500/S7-1200 CPUs (109955142)
+    url: https://www.industry-mobile-support.siemens-info.com/en/article/detail/109955142
+    accessed: "2026-11-08"
+    kind: vendor
+    quote: >-
+      In the example shown, a password is assigned to the “Full access” access
+      level. This password is then entered as the CPU password in the configured
+      HMI connection.
+    read: summariser
+  - title: ICSNPP-S7COMM README (cisagov/icsnpp-s7comm)
+    url: https://raw.githubusercontent.com/cisagov/icsnpp-s7comm/main/README.md
+    accessed: "2026-11-08"
+    kind: government
+    quote: >-
+      There is currently no (0%) detailed logging for S7Comm Plus functions
+      outside of the S7Comm Plus general/header log file (s7comm_plus.log).
+    read: direct

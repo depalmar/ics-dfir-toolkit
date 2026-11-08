@@ -1,0 +1,154 @@
+# ICS visibility data source
+# ICS-DS-0002 - Suricata IDS alerts on OT network capture
+# Research notes: docs/research/2026-11-08/datasources.md
+
+id: ICS-DS-0002
+name: Suricata IDS alerts on OT network capture
+category: network-passive
+purdue_levels: ["2", "3", "3.5"]
+platforms: [ALL]
+protocols: [ICS-PROTO-0001, ICS-PROTO-0004, ICS-PROTO-0006]
+location: >-
+  Produced by a Suricata sensor reading a TAP or SPAN feed (IDS mode) and
+  written as EVE JSON (eve.json) on the sensor, usually forwarded to a SIEM or
+  to CISA Malcolm, which ingests Suricata alerts alongside Zeek logs.
+enable: >-
+  Suricata's Modbus, DNP3 and EtherNet/IP/CIP application-layer parsers are
+  disabled by default in the shipped suricata.yaml ("enabled: no"); each must
+  be set to "enabled: yes" (with its detection ports) before any ICS keyword
+  or ICS EVE record can work. Suricata's Modbus documentation also advises
+  unlimited stream reassembly depth (stream.reassembly.depth: 0) because
+  Modbus TCP connections are kept open. Rules that use the modbus, dnp3_*,
+  enip_command or cip_service keywords must be loaded; the project's own
+  Suricata rules live in the numbered rule directories.
+retention: >-
+  Not set by Suricata; eve.json is rotated and kept according to the sensor's
+  or SIEM's configuration. Default retention is often insufficient (joint
+  ASD/CISA logging guidance).
+collection:
+  - method: Export eve.json and alert history already held on the sensor, in Malcolm or in the SIEM
+    impact: passive
+    description: Copies existing alert and protocol records; nothing is sent to the control network.
+    confidence: high
+  - method: Replay stored PCAP through Suricata with ICS parsers enabled and current rules (offline)
+    impact: passive
+    description: >-
+      Lets new detections run over traffic captured before the indicators were
+      known. EVE adds pcap_cnt and pcap_filename so each alert points back to
+      the packet.
+    confidence: high
+  - method: Suricata in inline IPS mode on a control network
+    impact: process-risk
+    description: >-
+      Not a collection method; listed so nobody mistakes it for one. Inline
+      blocking can drop legitimate control traffic.
+    safety_note: >-
+      The joint ASD/CISA guidance does not recommend an IPS unless it is
+      tailored to the OT environment or is outside critical process control,
+      because IPS risk interrupting critical OT devices.
+    confidence: high
+events:
+  - event: eve.json event_type "alert" - alert.signature_id (rule sid), alert.signature (rule msg), app_proto, flow_id
+    value: Which rule fired, on which flow and application protocol; flow_id ties the alert to the protocol and flow records for the same session.
+    basis: vendor
+  - event: eve.json event_type "modbus" - transaction_id, unit_id, function_raw, function_code, access_type, category, error_flags
+    value: Per-transaction Modbus record, including whether the function is a read or a write and its category (public, user-defined, reserved).
+    basis: vendor
+  - event: Modbus rules using "modbus - function", "access write" and "unit" options
+    value: Alerts on writes to coils or holding registers, on reserved or user-defined function codes, or on a specific unit identifier behind a gateway.
+    basis: vendor
+  - event: app-layer-event:modbus.flooded
+    value: Fires when unanswered Modbus requests exceed the configured request-flood threshold (default 500 in the shipped config comments).
+    basis: vendor
+  - event: DNP3 rules using dnp3_func and related dnp3_* keywords
+    value: Alerts on DNP3 application function codes in requests and responses; Suricata states the keywords aim to be compatible with Snort's.
+    basis: vendor
+  - event: ENIP/CIP rules using enip_command and cip_service keywords
+    value: Alerts on EtherNet/IP encapsulation commands (for example list_identity) and CIP service/class/attribute combinations.
+    basis: vendor
+  - event: eve.json event_type "flow" - pkts_toserver, pkts_toclient, bytes_toserver, bytes_toclient
+    value: A flow summary for every session Suricata saw, usable as a flow record where NetFlow is not collected (see ICS-DS-0003).
+    basis: vendor
+tooling:
+  - name: Suricata
+    url: https://suricata.io/
+    license: GPL-2.0
+  - name: CISA Malcolm
+    url: https://github.com/cisagov/Malcolm
+    license: Apache-2.0
+    notes: Ingests Suricata alerts alongside Zeek logs and PCAP.
+attack_data_components: [DC0085, DC0078]
+gaps:
+  - Silent on ICS traffic unless the Modbus, DNP3 and ENIP parsers were switched on beforehand - they ship disabled.
+  - Only protocols with a Suricata parser get protocol-aware rules; this round verified Modbus, DNP3 and EtherNet/IP/CIP only. S7comm, S7comm-plus, OPC UA, IEC 104 and the proprietary protocols were not confirmed and should be assumed signature-only (byte matching) at best.
+  - Detects only what a loaded rule describes; a novel technique or an approved-looking command from a compromised engineering workstation raises nothing.
+  - The joint ASD/CISA guidance notes IDS rules are often designed around IT protocols and may be more useful in the OT DMZ than in supervisory and process areas.
+  - Encrypted sessions (TLS, CIP Security, Modbus Security) cannot be inspected.
+  - Inherits the TAP/SPAN placement limits of ICS-DS-0001.
+confidence: high
+sources:
+  - title: Suricata default configuration (OISF/suricata suricata.yaml.in)
+    url: https://github.com/OISF/suricata/blob/main/suricata.yaml.in
+    accessed: "2026-11-08"
+    kind: vendor
+    quote: |-
+      # SCADA EtherNet/IP and CIP protocol support
+      enip:
+        enabled: no
+    read: direct
+  - title: Suricata default configuration (OISF/suricata suricata.yaml.in), DNP3
+    url: https://github.com/OISF/suricata/blob/main/suricata.yaml.in
+    accessed: "2026-11-08"
+    kind: vendor
+    quote: |-
+      dnp3:
+        enabled: no
+        detection-ports:
+          dp: 20000
+    read: direct
+  - title: Suricata User Guide - 8.23 Modbus Keyword
+    url: https://docs.suricata.io/en/latest/rules/modbus-keyword.html
+    accessed: "2026-11-08"
+    kind: vendor
+    quote: >-
+      According to MODBUS Messaging on TCP/IP Implementation Guide V1.0b, it is
+      recommended to keep the TCP connection opened with a remote device and not
+      to open and close it for each MODBUS/TCP transaction. In that case, it is
+      important to set the depth of the stream reassembling as unlimited
+      (stream.reassembly.depth: 0)
+    read: direct
+  - title: Suricata User Guide - 15.1.2 EVE JSON Format, Event type Modbus
+    url: https://docs.suricata.io/en/latest/output/eve/eve-json-format.html
+    accessed: "2026-11-08"
+    kind: vendor
+    quote: '"access_type": Type of access requested by the function'
+    read: direct
+  - title: Suricata User Guide - 15.1.2 EVE JSON Format, Event type Alert
+    url: https://docs.suricata.io/en/latest/output/eve/eve-json-format.html
+    accessed: "2026-11-08"
+    kind: vendor
+    quote: >-
+      This field contains data about a signature that matched, such as
+      `signature_id` (`sid` in the rule) and the `signature` (`msg` in the rule).
+    read: direct
+  - title: Suricata DNP3 Keywords (doc/userguide/rules/dnp3-keywords.rst)
+    url: https://github.com/OISF/suricata/blob/main/doc/userguide/rules/dnp3-keywords.rst
+    accessed: "2026-11-08"
+    kind: vendor
+    quote: >-
+      The DNP3 keywords can be used to match on fields in decoded DNP3 messages.
+      The keywords are based on Snort's DNP3 keywords and aim to be 100%
+      compatible.
+    read: direct
+  - title: Best practices for event logging and threat detection (ASD's ACSC with CISA, FBI, NSA and partners, August 2024)
+    url: https://www.cyber.gov.au/sites/default/files/2024-08/best-practices-for-event-logging-and-threat-detection.pdf
+    accessed: "2026-11-08"
+    kind: government
+    quote: >-
+      Intrusion detection and intrusion prevention systems (IDS/IPS) are often
+      designed with rules based on IT protocols; therefore, they may be more
+      useful in OT operation systems or the OT demilitarised zone (DMZ) than in
+      supervisory and process areas. Note, it is not recommended to deploy an IPS
+      unless it is tailored to the OT environment, or is outside of critical
+      process control. IPS risk interrupting critical OT devices.
+    read: direct

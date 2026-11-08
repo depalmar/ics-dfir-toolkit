@@ -1,0 +1,51 @@
+# ICS protocol identity record
+# ICS-PROTO-0020 - MELSEC SLMP / MC protocol
+# Research notes: docs/research/2026-11-08/datasources.md
+# Identity only: operations (commands and their effects) are deliberately omitted.
+
+id: ICS-PROTO-0020
+name: MELSEC SLMP / MC protocol
+slug: slmp
+aliases:
+  - SLMP (Seamless Message Protocol)
+  - MC protocol (MELSEC Communication protocol)
+spec_owner: Mitsubishi Electric (MC protocol); SLMP is published by the CC-Link Partner Association (CLPA) - CLPA ownership not verified in this round
+transport:
+  - layer: tcp
+    notes: >-
+      TCP and UDP are listed as unverified placeholders: no source read stated
+      the transport or a default port, so no port is given.
+  - layer: udp
+authentication:
+  native: none
+  detail: >-
+    Not verified. The only statement found is a third-party guide (search
+    snippet) saying plain SLMP carries no strong authentication; Mitsubishi's
+    SLMP Reference Manual was located but not read. Treat as unauthenticated.
+encryption: None documented in the sources read.
+parsers: []
+platforms: []
+notes: >-
+  No registry platform is a Mitsubishi controller. No open-source Zeek or
+  Suricata parser for SLMP was verified in this round.
+confidence: low
+unverified: true
+sources:
+  - title: SLMP Reference Manual (Mitsubishi Electric, SH-080956ENG)
+    url: https://dl.mitsubishielectric.com/dl/fa/document/manual/plc/sh080956eng/sh080956engl.pdf
+    accessed: "2026-11-08"
+    kind: vendor
+    quote: >-
+      MC protocol. An abbreviation for the MELSEC communication protocol. This
+      protocol is used to access an MC protocol-compatible device or a
+      programmable
+    read: summariser
+  - title: Mitsubishi MELSEC and Omron PLC Security Guide (nhimg.org)
+    url: https://nhimg.org/mitsubishi-and-omron-plc-security-guide
+    accessed: "2026-11-08"
+    kind: researcher
+    quote: >-
+      Legacy protocols such as FINS and plain SLMP carry no strong
+      authentication, so anyone who can reach the port can often read or change
+      data.
+    read: summariser

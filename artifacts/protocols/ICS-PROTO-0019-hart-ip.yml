@@ -1,0 +1,74 @@
+# ICS protocol identity record
+# ICS-PROTO-0019 - HART-IP
+# Research notes: docs/research/2026-11-08/datasources.md
+# Identity only: operations (HART commands and their effects) are deliberately omitted.
+
+id: ICS-PROTO-0019
+name: HART-IP
+slug: hart-ip
+aliases:
+  - HART over IP
+  - Highway Addressable Remote Transducer over IP
+spec_owner: FieldComm Group
+transport:
+  - layer: tcp
+    port: 5094
+  - layer: udp
+    port: 5094
+  - layer: tls
+    notes: HART 7.7 requires new devices to support TLS (TCP) and DTLS (UDP).
+authentication:
+  native: optional
+  detail: >-
+    FieldComm says HART-IP has always required security and that, with
+    revision 7.7 of the HART specifications (2020 release), support for TLS,
+    DTLS, syslog and audit logs is required for conformance. Support is
+    required of new devices; whether a given installation uses it, and how
+    older devices behave, is site-specific, hence "optional".
+  secure_variant: HART-IP with TLS/DTLS (HART specification revision 7.7)
+encryption: TLS/DTLS where implemented and enabled.
+parsers:
+  - tool: CISA ICSNPP-HART-IP (Zeek Spicy plugin; minimal release)
+    url: https://github.com/cisagov/icsnpp-hart-ip
+    logs:
+      - hart_ip_general.log
+      - hart_ip_direct_pdu_command.log
+    license: BSD-3-Clause
+platforms: []
+notes: >-
+  HART 7.7 devices must also keep audit logs (client identification,
+  connection start/stop, whether configuration changed) and support syslog,
+  which makes them a device-side data source (see ICS-DS-0013). FieldComm
+  lists HART-IP multiplexors from several vendors, including Schneider
+  Electric's Triconex group. Log names above come from the ICSNPP package's
+  $path values.
+confidence: high
+sources:
+  - title: HART-IP Explained (FieldComm Group)
+    url: https://www.fieldcommgroup.org/technologies/HART-IP/explained
+    accessed: "2026-11-08"
+    kind: standard
+    quote: >-
+      HART-IP has always required security, but with the 2020 release of the HART
+      specification, the specific types of security features that must be
+      implemented are now specified. Support for TLS, DTLS, syslog and audit logs
+      are now all required for conformance in HART-IP devices.
+    read: direct
+  - title: HART-IP Explained (FieldComm Group), FAQ Is HART-IP Secure?
+    url: https://www.fieldcommgroup.org/technologies/HART-IP/explained
+    accessed: "2026-11-08"
+    kind: standard
+    quote: >-
+      Communication security requires that new devices support the industry
+      standard Internet Protocol (IP) Transport Layer Security (TLS) and Datagram
+      Transport Layer Security (DTLS) suites.
+    read: direct
+  - title: ICSNPP HART-IP README (cisagov/icsnpp-hart-ip)
+    url: https://raw.githubusercontent.com/cisagov/icsnpp-hart-ip/main/README.md
+    accessed: "2026-11-08"
+    kind: government
+    quote: >-
+      The parser uses both port-based analyzer registration and payload
+      signatures for TCP and UDP. The default server ports are `5094/tcp` and
+      `5094/udp`.
+    read: direct

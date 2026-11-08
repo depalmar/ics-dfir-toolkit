@@ -1,0 +1,77 @@
+# ICS protocol identity record
+# ICS-PROTO-0007 - IEC 60870-5-104
+# Research notes: docs/research/2026-11-08/datasources.md
+# Identity only: operations (ASDU types and their effects) are deliberately omitted.
+
+id: ICS-PROTO-0007
+name: IEC 60870-5-104
+slug: iec-104
+aliases:
+  - IEC 104
+  - IEC 60870-5-104 (telecontrol over TCP/IP)
+spec_owner: IEC Technical Committee 57
+transport:
+  - layer: tcp
+    port: 2404
+    notes: Default port registered by the cert-lv spicy-iec104 Zeek analyzer.
+authentication:
+  native: none
+  detail: >-
+    No authentication in base IEC 104 was described in the sources read
+    ("none" is this project's reading). IEC 62351-5 (with IEC 60870-5-7)
+    defines security for IEC 60870-5-101/104, and IEC 62351-3 covers TLS
+    profiles for IEC 60870-5-104 over TCP/IP.
+  secure_variant: IEC 62351-3 (TLS profiles) and IEC 62351-5 / IEC 60870-5-7 (application-layer security)
+encryption: None in base IEC 104; TLS under IEC 62351-3.
+parsers:
+  - tool: cert-lv spicy-iec104 (Zeek Spicy analyzer; bundled in CISA Malcolm)
+    url: https://github.com/cert-lv/spicy-iec104
+    logs:
+      - iec104_telemetry.log
+      - iec104_file.log
+      - iec104_write.log
+      - iec104_query.log
+      - iec104_ctrl.log
+      - iec104_param.log
+      - iec104_read.log
+    license: BSD-3-Clause
+platforms: [ICS-0014]
+notes: >-
+  The spicy-iec104 package summary states it covers all ASDU types except
+  C_TS_NA_1, C_CD_NA_1 and file-related ones. Log names above are the $path
+  values in the package's scripts; they were read from source, not from a
+  README.
+confidence: medium
+sources:
+  - title: spicy-iec104 scripts/iec104.zeek (cert-lv)
+    url: https://raw.githubusercontent.com/cert-lv/spicy-iec104/main/scripts/iec104.zeek
+    accessed: "2026-11-08"
+    kind: researcher
+    quote: |-
+      const ports = {
+          2404/tcp
+      };
+    read: direct
+  - title: spicy-iec104 zkg.meta (cert-lv)
+    url: https://raw.githubusercontent.com/cert-lv/spicy-iec104/main/zkg.meta
+    accessed: "2026-11-08"
+    kind: researcher
+    quote: summary = IEC 60870-5-104 protocol analyzer
+    read: direct
+  - title: IEC 62351 - Cybersecurity for IEC 61850 (IEC 61850 website)
+    url: https://iec61850.dvl.iec.ch/what-is-61850/technical-principles/61850-cybersecurity/
+    accessed: "2026-11-08"
+    kind: standard
+    quote: >-
+      IEC 62351-5: Data and Communication Security – Security for IEC 60870-5
+      and Derivatives (i.e. DNP 3.0).
+    read: direct
+  - title: Malcolm Supported Protocols (cisagov/Malcolm docs/protocols.md)
+    url: https://github.com/cisagov/Malcolm/blob/main/docs/protocols.md
+    accessed: "2026-11-08"
+    kind: government
+    quote: >-
+      Malcolm uses Zeek and Arkime to analyze network traffic. These tools
+      provide varying degrees of visibility into traffic transmitted over the
+      following network protocols:
+    read: direct

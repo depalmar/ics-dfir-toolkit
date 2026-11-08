@@ -1,0 +1,57 @@
+# ICS protocol identity record
+# ICS-PROTO-0013 - Unitronics PCOM
+# Research notes: docs/research/2026-11-08/datasources.md
+# Identity only: operations (commands and their effects) are deliberately omitted.
+
+id: ICS-PROTO-0013
+name: Unitronics PCOM
+slug: pcom
+aliases:
+  - PCOM/TCP
+  - Unitronics PCOM protocol
+spec_owner: Unitronics (proprietary)
+transport:
+  - layer: tcp
+    port: 20256
+    notes: >-
+      CISA calls TCP 20256 the default port and advises using a different port
+      where possible, because actors probe for it.
+authentication:
+  native: optional
+  detail: >-
+    Not verified against Unitronics documentation. CISA's guidance concerns a
+    PLC password (default "1111") rather than a protocol-level mechanism, and
+    reports actors used PCOM/TCP-specific scripts to query and validate
+    exposed systems. Whether every PCOM operation is gated by that password
+    was not established; treat PCOM as unauthenticated.
+encryption: None documented in the sources read.
+parsers: []
+platforms: [ICS-0006]
+notes: >-
+  No open-source Zeek or Suricata parser for PCOM was verified in this round;
+  CISA refers only to "PCOM/TCP filters" without naming a tool. On a passive
+  capture, PCOM is visible as TCP sessions to 20256 (or the site's chosen
+  port) unless a parser is added.
+confidence: low
+unverified: true
+sources:
+  - title: CISA Alert - Exploitation of Unitronics PLCs used in Water and Wastewater Systems (28 Nov 2023, updated 19 Dec 2023)
+    url: https://www.cisa.gov/news-events/alerts/2023/11/28/exploitation-unitronics-plcs-used-water-and-wastewater-systems
+    accessed: "2026-11-08"
+    kind: government
+    quote: >-
+      If possible, utilize a TCP port that is different than the default port
+      TCP 20256. Cyber actors are actively targeting TCP 20256 after identifying
+      it through network probing as a port associated to Unitronics PLC. Once
+      identified, they leverage scripts specific to PCOM/TCP to query and
+      validate the system, allowing for further probing and connection. If
+      available, use PCOM/TCP filters to parse out the packets.
+    read: direct
+  - title: CISA Alert - Exploitation of Unitronics PLCs used in Water and Wastewater Systems
+    url: https://www.cisa.gov/news-events/alerts/2023/11/28/exploitation-unitronics-plcs-used-water-and-wastewater-systems
+    accessed: "2026-11-08"
+    kind: government
+    quote: >-
+      Change all default passwords on PLCs and HMIs and use a strong password.
+      Ensure the Unitronics PLC default password “1111” is not in use.
+    read: direct

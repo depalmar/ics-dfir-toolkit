@@ -1,0 +1,63 @@
+# ICS protocol identity record
+# ICS-PROTO-0002 - S7comm (classic, S7-300/400)
+# Research notes: docs/research/2026-11-08/datasources.md
+# Identity only: operations (function codes and their effects) are deliberately omitted.
+
+id: ICS-PROTO-0002
+name: S7comm (classic, S7-300/400)
+slug: s7comm
+aliases:
+  - S7 protocol
+  - S7 communication (ISO-on-TCP / TPKT / COTP)
+spec_owner: Siemens AG (proprietary; no public specification)
+transport:
+  - layer: tcp
+    port: 102
+    notes: >-
+      Carried over TPKT and COTP (ISO transport) on TCP. ICSNPP-S7comm analyzes
+      S7comm, S7comm-plus, COTP and TPKT over TCP only; UDP is not supported.
+authentication:
+  native: optional
+  detail: >-
+    Not verified in this round. S7-300/400 CPU access-protection (password)
+    settings are documented in Siemens manuals that were not read here, so
+    whether and how the protocol authenticates a client is unconfirmed.
+    Treat any S7comm session as unauthenticated until the site's CPU
+    protection level is confirmed from its own project.
+encryption: None documented in the sources read.
+parsers:
+  - tool: CISA ICSNPP-S7comm (Zeek plugin)
+    url: https://github.com/cisagov/icsnpp-s7comm
+    logs:
+      - cotp.log
+      - s7comm.log
+      - s7comm_read_szl.log
+      - s7comm_upload_download.log
+    license: BSD-3-Clause
+  - tool: CISA Malcolm (bundles ICSNPP-S7comm; Arkime also parses S7comm)
+    url: https://github.com/cisagov/Malcolm
+    license: Apache-2.0
+platforms: [ICS-0004]
+notes: >-
+  ICSNPP states S7comm is proprietary, so its coverage figures are based on
+  traffic observed in test networks and public captures. CISA AA26-097A lists
+  port 102 among the ports targeted on internet-facing PLCs.
+confidence: low
+unverified: true
+sources:
+  - title: ICSNPP-S7COMM README (cisagov/icsnpp-s7comm)
+    url: https://raw.githubusercontent.com/cisagov/icsnpp-s7comm/main/README.md
+    accessed: "2026-11-08"
+    kind: government
+    quote: >-
+      S7comm, S7comm-plus, COTP, and TPKT are analyzed over TCP by this plugin.
+      UDP is not supported. The default server port is TCP/102.
+    read: direct
+  - title: ICSNPP-S7COMM README (cisagov/icsnpp-s7comm), coverage
+    url: https://raw.githubusercontent.com/cisagov/icsnpp-s7comm/main/README.md
+    accessed: "2026-11-08"
+    kind: government
+    quote: >-
+      S7Comm is a proprietary protocol which makes coverage information and
+      statistics difficult to compose.
+    read: direct

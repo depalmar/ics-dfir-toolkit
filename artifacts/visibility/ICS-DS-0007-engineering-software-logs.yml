@@ -1,0 +1,153 @@
+# ICS visibility data source
+# ICS-DS-0007 - Engineering software logs and project files (TIA Portal, Studio 5000, EcoStruxure)
+# Research notes: docs/research/2026-11-08/datasources.md
+
+id: ICS-DS-0007
+name: Engineering software logs and project files (TIA Portal, Studio 5000, EcoStruxure)
+category: application-audit
+purdue_levels: ["2", "3"]
+platforms: [ICS-0010, ICS-0001, ICS-0003, ICS-0005, ICS-0009]
+protocols: [ICS-PROTO-0003, ICS-PROTO-0004, ICS-PROTO-0012, ICS-PROTO-0015]
+location: >-
+  On engineering workstations and in change-management systems: the project
+  files themselves (for example Rockwell .ACD files), backups and archives;
+  syslog messages that Schneider EcoStruxure Control Expert sends to the
+  site's syslog server when event logging is enabled; and audit data
+  collected by FactoryTalk AssetCentre for Logix controllers.
+enable: >-
+  Schneider Control Expert: Tools > Project Settings > General > PLC
+  diagnostics, select the Event Logging check box (cleared by default), enter
+  the syslog server address and port, then Build; on M580 firmware 4.60 or
+  later in secure mode the syslog configuration comes from Cybersecurity Admin
+  Expert instead. Rockwell: audit-log entries (component property changes,
+  routine edits, tag value changes) appear in the controller log from Logix
+  Designer v30 and are used by FactoryTalk AssetCentre, which must be
+  deployed and configured. Keep trusted, offline, known-good copies of every
+  controller project - CISA asks owners to compare running logic against
+  known-good logic and to store backups offline. Siemens TIA Portal and
+  Studio 5000 workstation-side logging were not documented in sources read.
+retention: >-
+  Project files and backups persist as long as the owner keeps them;
+  syslog retention is set by the syslog server. Control Expert syslog events
+  are only as durable as the server that receives them.
+collection:
+  - method: Copy project files, archives and backups from the engineering workstation, file server or change-management system
+    impact: passive
+    description: >-
+      Hash every file on collection. A project on the EWS may itself have
+      been modified; it is evidence, not the known-good reference.
+    confidence: high
+  - method: Export Control Expert event-logging syslog messages and FactoryTalk AssetCentre audit data already collected
+    impact: passive
+    description: Copies records already held centrally.
+    confidence: high
+  - method: Upload the running project from the controller into a new, empty project with the vendor engineering tool for offline comparison
+    impact: online-vendor-tool
+    description: >-
+      The running logic is the primary artifact; CISA asks owners to compare
+      the running program with known-good logic using vendor integrity tools.
+    safety_note: >-
+      Upload into a new file so the investigator's copy cannot be downloaded
+      by mistake; the same online session can download, force or change mode.
+      Operations must approve, and the session itself will be logged by the
+      controller and by Control Expert event logging where enabled.
+    confidence: high
+events:
+  - event: Control Expert syslog "Transfer project to PAC" / "Transfer project from PAC"
+    value: Download of an application to, or upload from, a Modicon controller by a Control Expert instance that has event logging on.
+    basis: vendor
+  - event: Control Expert syslog "Start stop or initialize the PAC"
+    value: Controller start, stop or initialisation commanded from Control Expert.
+    basis: vendor
+  - event: Control Expert syslog "Build online run" / "Build online stop"
+    value: Online changes built into a controller while it was in RUN or STOP.
+    basis: vendor
+  - event: Control Expert syslog Password Action events (for example "CyberSecurity - Verifying Password > Incorrect Password", "CyberSecurity - Firmware Password Modified")
+    value: Failed application-password checks and changes to firmware-download or data-storage passwords.
+    basis: vendor
+  - event: Logix audit-log entries in the controller log (Logix Designer v30 and later) as collected by FactoryTalk AssetCentre
+    value: Changes to component properties, edits in a routine and changes to tag values, attributable to the workstation and user (see ICS-DS-0008).
+    basis: vendor
+  - event: Project file differences against the known-good copy (modified or deleted Add-On Instructions, added override logic, disabled shutdown or alarm logic)
+    value: >-
+      CISA AA26-097A reports modification and deletion of project logic
+      including AOIs, and added logic that overrode instructions keeping the
+      process within safe limits.
+    basis: government
+tooling:
+  - name: FactoryTalk AssetCentre (Rockwell Automation)
+    url: https://www.rockwellautomation.com/
+    notes: Vendor product named in 1756-PM015 as the consumer of Logix audit-log entries; licence commercial; product documentation not read in this round.
+  - name: EcoStruxure Control Expert event logging (Schneider Electric)
+    url: https://download.se.com/files?p_Doc_Ref=EIO0000001999&p_enDocType=User+guide
+    notes: Built into Control Expert; sends RFC 5424 syslog over TCP to the configured server.
+attack_data_components: [DC0038, DC0111, DC0061]
+gaps:
+  - CISA AA26-097A reports actors running Studio 5000, EcoStruxure Control Expert and TIA Portal on their own leased infrastructure; such activity leaves nothing in the owner's engineering-software logs and shows only in controller-side and network evidence.
+  - Control Expert event logging is cleared by default; where it was never enabled there is no record.
+  - Siemens TIA Portal and Rockwell Studio 5000 workstation-side logs (if any) were not documented in the sources read and are not listed.
+  - A project file on the EWS is only as trustworthy as the EWS; without an offline known-good copy, neither it nor an upload can show the controller is unmodified.
+  - Restoring from a backup taken after compromise reinstalls the attacker's logic; CISA asks owners to verify a backup contains no malicious logic before deployment.
+confidence: high
+sources:
+  - title: Modicon Platform Cybersecurity User Guide (EIO0000001999 v15, Schneider Electric) - Setting Up Syslog Clients in the System Architecture
+    url: https://download.se.com/files?p_Doc_Ref=EIO0000001999&p_enDocType=User+guide
+    accessed: "2026-11-08"
+    kind: vendor
+    quote: >-
+      Select Event Logging check box (cleared by default). NOTE: A project with
+      this setting selected can only be opened as of Unity Pro 10.0.
+    read: direct
+  - title: Modicon Platform Cybersecurity User Guide (EIO0000001999 v15) - Event Log Message Descriptions for Control Expert
+    url: https://download.se.com/files?p_Doc_Ref=EIO0000001999&p_enDocType=User+guide
+    accessed: "2026-11-08"
+    kind: vendor
+    quote: "| Transfer project to PAC | 10 | 6 | Download the application to the controller. |"
+    read: direct
+  - title: Logix 5000 Controllers Information and Status Programming Manual (1756-PM015, Rockwell Automation)
+    url: https://literature.rockwellautomation.com/idc/groups/literature/documents/pm/1756-pm015_-en-p.pdf
+    accessed: "2026-11-08"
+    kind: vendor
+    quote: >-
+      In Logix Designer versions 30 and later, audit log entries also appear in
+      the controller log. Audit log entries describe events such as changes to
+      component properties, edits in a routine, and changes to tag values. The
+      audit log is used for auditing by the FactoryTalk® AssetCentre.
+    read: direct
+  - title: CISA AA26-097A - Iranian-Affiliated Cyber Actors Exploit Programmable Logic Controllers Across US Critical Infrastructure
+    url: https://www.cisa.gov/news-events/cybersecurity-advisories/aa26-097a
+    accessed: "2026-11-08"
+    kind: government
+    quote: >-
+      The authoring agencies observed Iranian-affiliated APT actors using
+      configuration software—such as Rockwell Automation’s Studio 5000 Logix
+      Designer, Schneider Electric’s EcoStruxure Control Expert, and Siemens’
+      Totally Integrated Automation (TIA) Portal—on leased, third-party hosted
+      infrastructure to exfiltrate device project files from PLC devices to
+      threat-actor-controlled infrastructure
+    read: direct
+  - title: CISA AA26-097A, observed logic changes
+    url: https://www.cisa.gov/news-events/cybersecurity-advisories/aa26-097a
+    accessed: "2026-11-08"
+    kind: government
+    quote: >-
+      Analysis indicated the project file retained ladder logic for downstream
+      function but added logic that overrode specific instruction sets
+      responsible for maintaining safe operating parameters in the victim’s
+      environment.
+    read: direct
+  - title: CISA AA26-097A, review project files
+    url: https://www.cisa.gov/news-events/cybersecurity-advisories/aa26-097a
+    accessed: "2026-11-08"
+    kind: government
+    quote: >-
+      Use vendor-provided integrity checking tools and visually compare the
+      running program to known good logic. Ensure reusable logic and input/output
+      configurations are valid.
+    read: direct
+  - title: CISA AA26-097A, backups
+    url: https://www.cisa.gov/news-events/cybersecurity-advisories/aa26-097a
+    accessed: "2026-11-08"
+    kind: government
+    quote: If restoring from backups, verify the backup does not contain malicious logic before deployment.
+    read: direct

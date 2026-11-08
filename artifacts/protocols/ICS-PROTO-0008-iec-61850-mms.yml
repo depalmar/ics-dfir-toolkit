@@ -1,0 +1,51 @@
+# ICS protocol identity record
+# ICS-PROTO-0008 - IEC 61850 MMS
+# Research notes: docs/research/2026-11-08/datasources.md
+# Identity only: operations (services and their effects) are deliberately omitted.
+
+id: ICS-PROTO-0008
+name: IEC 61850 MMS
+slug: iec-61850-mms
+aliases:
+  - Manufacturing Message Specification (ISO 9506) as mapped by IEC 61850-8-1
+  - IEC 61850 client/server (MMS)
+spec_owner: IEC Technical Committee 57 (IEC 61850-8-1 mapping); MMS itself is ISO 9506
+transport:
+  - layer: tcp
+    notes: >-
+      IEC 61850-8-1 runs MMS over TCP/IP. The TCP port was not stated in any
+      source read and is omitted rather than assumed.
+authentication:
+  native: optional
+  detail: >-
+    Not verified. The sources read describe only the IEC 62351 security
+    profiles for MMS (IEC 62351-4) and for IEC 61850 over TCP/IP (IEC 62351-3);
+    whether a given device authenticates MMS associations natively was not
+    established.
+  secure_variant: IEC 62351-4 (profiles including MMS) and IEC 62351-3 (TLS)
+encryption: None documented for base MMS in the sources read; TLS under IEC 62351-3.
+parsers: []
+platforms: [ICS-0014]
+notes: >-
+  No open-source Zeek parser for IEC 61850 MMS was found in CISA's ICSNPP list
+  or Malcolm's supported-protocol table in this round, so passive capture
+  (ICS-DS-0001) offers connection metadata only unless another parser is
+  added.
+confidence: low
+unverified: true
+sources:
+  - title: IEC 62351 - Cybersecurity for IEC 61850 (IEC 61850 website)
+    url: https://iec61850.dvl.iec.ch/what-is-61850/technical-principles/61850-cybersecurity/
+    accessed: "2026-11-08"
+    kind: standard
+    quote: >-
+      IEC 62351-4: Data and Communication Security – Profiles Including MMS and
+      Similar Payloads.
+    read: direct
+  - title: IEC 62351 - Cybersecurity for IEC 61850 (IEC 61850 website), part 3
+    url: https://iec61850.dvl.iec.ch/what-is-61850/technical-principles/61850-cybersecurity/
+    accessed: "2026-11-08"
+    kind: standard
+    quote: >-
+      IEC 62351-3: Data and Communication Security – Profiles Including TCP/IP.
+    read: direct

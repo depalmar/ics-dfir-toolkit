@@ -1,0 +1,79 @@
+# ICS protocol identity record
+# ICS-PROTO-0015 - CODESYS V3 protocol
+# Research notes: docs/research/2026-11-08/datasources.md
+# Identity only: operations (services and their effects) are deliberately omitted.
+
+id: ICS-PROTO-0015
+name: CODESYS V3 protocol
+slug: codesys-v3
+aliases:
+  - CODESYS Protocol
+  - CODESYS Gateway Protocol
+spec_owner: CODESYS Group (proprietary)
+transport:
+  - layer: udp
+    port: 1740
+    notes: CODESYS lists UDP 1740-1743 for the programming and client interface of the CODESYS Control runtime (not reconfigurable).
+  - layer: tcp
+    port: 11740
+    notes: Programming and client interface of the runtime (reconfigurable).
+  - layer: tcp
+    port: 1217
+    notes: CODESYS Gateway Protocol between Gateway Client and Gateway; most clients, including the Development System, talk via the Gateway.
+authentication:
+  native: optional
+  detail: >-
+    CODESYS states the runtime's online user management is enforced by default
+    and must be activated before clients can log in; once a user exists, every
+    online connection must authenticate and passwords are transferred
+    encrypted. Whether older runtimes behave the same was not established, so
+    the value here is "optional" rather than "mandatory".
+  secure_variant: >-
+    TLS 1.2 encryption between the CODESYS IDE and controller, with runtime
+    security levels No encryption / Optional encryption / Enforced encryption
+encryption: >-
+  Configurable on the runtime: no encryption, optional encryption, or enforced
+  encryption (TLS 1.2).
+parsers: []
+platforms: [ICS-0009]
+notes: >-
+  No open-source Zeek or Suricata parser for the CODESYS V3 protocol was
+  verified in this round. The runtime can also expose an OPC UA server on
+  4840/tcp and a WebVisu web server on 8080/443, per the same whitepaper.
+confidence: high
+sources:
+  - title: CODESYS Security Whitepaper v10.0 - 6 Network ports used by CODESYS
+    url: https://customers.codesys.com/fileadmin/data/customers/security/CODESYS-Security-Whitepaper.pdf
+    accessed: "2026-11-08"
+    kind: vendor
+    quote: >-
+      | 1740-1743 | UDP/CODESYS Protocol | Programming and client interface of the
+      CODESYS Control runtime system | No |
+    read: direct
+  - title: CODESYS Security Whitepaper v10.0 - 6 Network ports used by CODESYS (TCP)
+    url: https://customers.codesys.com/fileadmin/data/customers/security/CODESYS-Security-Whitepaper.pdf
+    accessed: "2026-11-08"
+    kind: vendor
+    quote: >-
+      | 1217 | TCP/CODESYS Gateway Protocol | Communication between the CODESYS
+      Gateway Client and the CODESYS Gateway. Most CODESYS clients (for example
+      the CODESYS Development System) talk via the Gateway to the runtime
+      systems. | Yes |
+    read: direct
+  - title: CODESYS Security Whitepaper v10.0 - 5.2.1 Access to the runtime system with authentication
+    url: https://customers.codesys.com/fileadmin/data/customers/security/CODESYS-Security-Whitepaper.pdf
+    accessed: "2026-11-08"
+    kind: vendor
+    quote: >-
+      The online user management of the CODESYS Control runtime system is
+      enforced by default and must be activated, before clients can successfully
+      log in to the CODESYS Control runtime.
+    read: direct
+  - title: CODESYS Security Whitepaper v10.0 - 5.2.6 Communication encryption between the IDE and the controller
+    url: https://customers.codesys.com/fileadmin/data/customers/security/CODESYS-Security-Whitepaper.pdf
+    accessed: "2026-11-08"
+    kind: vendor
+    quote: >-
+      A TLS 1.2 encryption of the communication between the CODESYS IDE and the
+      controller is available and can be activated in the CODESYS IDE.
+    read: direct

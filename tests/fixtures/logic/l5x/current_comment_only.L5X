@@ -1,0 +1,275 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<!-- Synthetic test fixture for ics-dfir-toolkit (tests/test_logic_compare.py).
+     Written from scratch from the element and attribute names in Rockwell
+     1756-RM014D. Not a vendor sample, not a real project: every name is a
+     placeholder and every address is from 192.0.2.0/24 (RFC 5737). -->
+<RSLogix5000Content SchemaRevision="1.0" SoftwareRevision="36.00" TargetName="EXAMPLE_CTRL" TargetType="Controller" ContainsContext="false" Owner="Example Engineer, Example Org" ExportDate="Sun Nov 08 10:00:00 2026" ExportOptions="DecoratedData ForceProtectedEncoding AllProjDocTrans">
+<Controller Use="Target" Name="EXAMPLE_CTRL" ProcessorType="1756-L85E" MajorRev="36" MinorRev="11" TimeSlice="20" ShareUnusedTimeSlice="1" ProjectCreationDate="Mon Jan 05 08:00:00 2026" LastModifiedDate="Fri Oct 30 16:00:00 2026" SFCExecutionControl="CurrentActive" SFCRestartPosition="MostRecent" SFCLastScan="DontScan" ProjectSN="16#0000_0000" MatchProjectToController="false" CanUseRPIFromProducer="false" InhibitAutomaticFirmwareUpdate="0" PassThroughConfiguration="EnabledWithAppend" DownloadProjectDocumentationAndExtendedProperties="true">
+<Description>
+<![CDATA[Synthetic example controller - placeholder project]]>
+</Description>
+<RedundancyInfo Enabled="false" KeepTestEditsOnSwitchOver="false" IOMemoryPadPercentage="90" DataTablePadPercentage="50"/>
+<Security Code="0" ChangesToDetect="16#ffff_ffff_ffff_ffff"/>
+<SafetyInfo/>
+<DataTypes>
+<DataType Name="UDT_ExamplePump" Family="NoFamily" Class="User">
+<Description>
+<![CDATA[Example pump data]]>
+</Description>
+<Members>
+<Member Name="SpeedSP" DataType="REAL" Dimension="0" Radix="Float" Hidden="false" ExternalAccess="Read/Write">
+<Description>
+<![CDATA[Speed setpoint, percent]]>
+</Description>
+</Member>
+<Member Name="FaultCode" DataType="DINT" Dimension="0" Radix="Decimal" Hidden="false" ExternalAccess="Read/Write"/>
+</Members>
+</DataType>
+</DataTypes>
+<Modules>
+<Module Name="Local" CatalogNumber="1756-L85E" Vendor="1" ProductType="14" ProductCode="999" Major="36" Minor="11" ParentModule="Local" ParentModPortId="1" Inhibited="false" MajorFault="true">
+<EKey State="ExactMatch"/>
+<Ports>
+<Port Id="1" Address="0" Type="ICP" Upstream="false">
+<Bus Size="10"/>
+</Port>
+<Port Id="2" Address="192.0.2.10" Type="Ethernet" Upstream="false">
+<Bus/>
+</Port>
+</Ports>
+</Module>
+<Module Name="EX_IO_Adapter" CatalogNumber="1756-EN2TR" Vendor="1" ProductType="12" ProductCode="998" Major="11" Minor="1" ParentModule="Local" ParentModPortId="2" Inhibited="false" MajorFault="false">
+<Description>
+<![CDATA[Example remote adapter]]>
+</Description>
+<EKey State="CompatibleModule"/>
+<Ports>
+<Port Id="1" Address="0" Type="ICP" Upstream="false">
+<Bus Size="4"/>
+</Port>
+<Port Id="2" Address="192.0.2.20" Type="Ethernet" Upstream="true"/>
+</Ports>
+<Communications>
+<Connections>
+<Connection Name="Example_Rack" RPI="20000" Type="Input">
+<InputTag ExternalAccess="Read/Write">
+<Data>00 00 00 00</Data>
+</InputTag>
+</Connection>
+</Connections>
+</Communications>
+</Module>
+</Modules>
+<AddOnInstructionDefinitions>
+<AddOnInstructionDefinition Name="AOI_ExampleValve" Revision="1.0" Vendor="Example Vendor" ExecutePrescan="false" ExecutePostscan="false" ExecuteEnableInFalse="false" CreatedDate="2026-01-05T08:00:00.000Z" CreatedBy="EXAMPLE\engineer1" EditedDate="2026-01-05T08:00:00.000Z" EditedBy="EXAMPLE\engineer1" SoftwareRevision="v36.00">
+<Description>
+<![CDATA[Example valve open command with permissive]]>
+</Description>
+<RevisionNote>
+<![CDATA[Initial release]]>
+</RevisionNote>
+<Parameters>
+<Parameter Name="EnableIn" TagType="Base" DataType="BOOL" Usage="Input" Radix="Decimal" Required="false" Visible="false" ExternalAccess="Read Only">
+<Description>
+<![CDATA[Enable Input - System Defined Parameter]]>
+</Description>
+</Parameter>
+<Parameter Name="EnableOut" TagType="Base" DataType="BOOL" Usage="Output" Radix="Decimal" Required="false" Visible="false" ExternalAccess="Read Only">
+<Description>
+<![CDATA[Enable Output - System Defined Parameter]]>
+</Description>
+</Parameter>
+<Parameter Name="OpenCmd" TagType="Base" DataType="BOOL" Usage="Input" Radix="Decimal" Required="true" Visible="true" ExternalAccess="Read/Write">
+<Description>
+<![CDATA[Request to open the valve]]>
+</Description>
+<DefaultData>00</DefaultData>
+<DefaultData Format="Decorated">
+<DataValue DataType="BOOL" Radix="Decimal" Value="0"/>
+</DefaultData>
+</Parameter>
+<Parameter Name="Permissive" TagType="Base" DataType="BOOL" Usage="Input" Radix="Decimal" Required="true" Visible="true" ExternalAccess="Read/Write">
+<DefaultData>00</DefaultData>
+<DefaultData Format="Decorated">
+<DataValue DataType="BOOL" Radix="Decimal" Value="0"/>
+</DefaultData>
+</Parameter>
+<Parameter Name="OpenOut" TagType="Base" DataType="BOOL" Usage="Output" Radix="Decimal" Required="false" Visible="true" ExternalAccess="Read Only">
+<DefaultData>00</DefaultData>
+<DefaultData Format="Decorated">
+<DataValue DataType="BOOL" Radix="Decimal" Value="0"/>
+</DefaultData>
+</Parameter>
+</Parameters>
+<LocalTags>
+<LocalTag Name="OpenLatched" DataType="BOOL" Radix="Decimal" ExternalAccess="None">
+<DefaultData>00</DefaultData>
+<DefaultData Format="Decorated">
+<DataValue DataType="BOOL" Radix="Decimal" Value="0"/>
+</DefaultData>
+</LocalTag>
+</LocalTags>
+<Routines>
+<Routine Name="Logic" Type="RLL">
+<RLLContent>
+<Rung Number="0" Type="N">
+<Comment>
+<![CDATA[Open only while the permissive is true]]>
+</Comment>
+<Text>
+<![CDATA[XIC(OpenCmd)XIC(Permissive)OTE(OpenLatched);]]>
+</Text>
+</Rung>
+<Rung Number="1" Type="N">
+<Text>
+<![CDATA[XIC(OpenLatched)OTE(OpenOut);]]>
+</Text>
+</Rung>
+</RLLContent>
+</Routine>
+</Routines>
+</AddOnInstructionDefinition>
+</AddOnInstructionDefinitions>
+<Tags>
+<Tag Name="Example_Run" TagType="Base" DataType="BOOL" Radix="Hex" Constant="false" ExternalAccess="Read/Write">
+<Description>
+<![CDATA[Example run command from the HMI]]>
+</Description>
+<Data>00</Data>
+<Data Format="Decorated">
+<DataValue DataType="BOOL" Radix="Decimal" Value="0"/>
+</Data>
+</Tag>
+<Tag Name="Example_HighLimit" TagType="Base" DataType="REAL" Radix="Float" Constant="true" ExternalAccess="Read Only">
+<Description>
+<![CDATA[Example high limit, percent]]>
+</Description>
+<Data>00 00 B4 42</Data>
+<Data Format="Decorated">
+<DataValue DataType="REAL" Radix="Float" Value="90.0"/>
+</Data>
+</Tag>
+<Tag Name="Example_Timer" TagType="Base" DataType="TIMER" Constant="false" ExternalAccess="Read/Write">
+<Data>00 00 00 00 88 13 00 00 00 00 00 00</Data>
+<Data Format="Decorated">
+<Structure DataType="TIMER">
+<DataValueMember Name="PRE" DataType="DINT" Radix="Decimal" Value="5000"/>
+<DataValueMember Name="ACC" DataType="DINT" Radix="Decimal" Value="0"/>
+<DataValueMember Name="EN" DataType="BOOL" Value="0"/>
+<DataValueMember Name="TT" DataType="BOOL" Value="0"/>
+<DataValueMember Name="DN" DataType="BOOL" Value="0"/>
+</Structure>
+</Data>
+</Tag>
+<Tag Name="Example_Pump1" TagType="Base" DataType="UDT_ExamplePump" Constant="false" ExternalAccess="Read/Write">
+<Data>00 00 48 42 00 00 00 00</Data>
+<Data Format="Decorated">
+<Structure DataType="UDT_ExamplePump">
+<DataValueMember Name="SpeedSP" DataType="REAL" Radix="Float" Value="50.0"/>
+<DataValueMember Name="FaultCode" DataType="DINT" Radix="Decimal" Value="0"/>
+</Structure>
+</Data>
+</Tag>
+<Tag Name="Example_Valve1" TagType="Base" DataType="AOI_ExampleValve" Constant="false" ExternalAccess="Read/Write">
+<Data>01 00 00 00</Data>
+<Data Format="Decorated">
+<Structure DataType="AOI_ExampleValve">
+<DataValueMember Name="EnableIn" DataType="BOOL" Value="1"/>
+<DataValueMember Name="EnableOut" DataType="BOOL" Value="0"/>
+<DataValueMember Name="OpenCmd" DataType="BOOL" Value="0"/>
+<DataValueMember Name="Permissive" DataType="BOOL" Value="0"/>
+<DataValueMember Name="OpenOut" DataType="BOOL" Value="0"/>
+</Structure>
+</Data>
+</Tag>
+</Tags>
+<Programs>
+<Program Name="MainProgram" TestEdits="false" MainRoutineName="MainRoutine" Disabled="false" UseAsFolder="false">
+<Description>
+<![CDATA[Example main program]]>
+</Description>
+<Tags>
+<Tag Name="StartDelayDone" TagType="Base" DataType="BOOL" Radix="Decimal" Constant="false" ExternalAccess="None">
+<Data>00</Data>
+<Data Format="Decorated">
+<DataValue DataType="BOOL" Radix="Decimal" Value="0"/>
+</Data>
+</Tag>
+</Tags>
+<Routines>
+<Routine Name="MainRoutine" Type="RLL">
+<Description>
+<![CDATA[Example pump start sequence]]>
+</Description>
+<RLLContent>
+<Rung Number="0" Type="N">
+<Comment>
+<![CDATA[Start delay before the pump runs (reviewed)]]>
+</Comment>
+<Text>
+<![CDATA[XIC(Example_Run)TON(Example_Timer,?,?);]]>
+</Text>
+</Rung>
+<Rung Number="1" Type="N">
+<Comment>
+<![CDATA[Run only below the high limit]]>
+</Comment>
+<Text>
+<![CDATA[XIC(Example_Timer.DN)LES(Example_Pump1.SpeedSP,Example_HighLimit)OTE(StartDelayDone);]]>
+</Text>
+</Rung>
+<Rung Number="2" Type="N">
+<Text>
+<![CDATA[AOI_ExampleValve(Example_Valve1,Example_Run,StartDelayDone,?);]]>
+</Text>
+</Rung>
+<Rung Number="3" Type="N">
+<Text>
+<![CDATA[JSR(CalcRoutine,0);]]>
+</Text>
+</Rung>
+</RLLContent>
+</Routine>
+<Routine Name="CalcRoutine" Type="ST">
+<STContent>
+<Line Number="0">
+<![CDATA[// Example speed clamp, reviewed]]>
+</Line>
+<Line Number="1">
+<![CDATA[IF Example_Pump1.SpeedSP > Example_HighLimit THEN]]>
+</Line>
+<Line Number="2">
+<![CDATA[    Example_Pump1.SpeedSP := Example_HighLimit; (* clamp to the high limit *)]]>
+</Line>
+<Line Number="3">
+<![CDATA[END_IF;]]>
+</Line>
+</STContent>
+</Routine>
+<Routine Name="FbdRoutine" Type="FBD">
+<FBDContent SheetSize="Letter (8.5x11in)" SheetOrientation="Landscape">
+<Sheet Number="1">
+<IRef ID="0" X="100" Y="100" Operand="Example_Run" HideDesc="false"/>
+<ORef ID="1" X="300" Y="100" Operand="StartDelayDone" HideDesc="false"/>
+<Wire FromID="0" ToID="1"/>
+<TextBox ID="2" X="100" Y="40" Width="0">
+<![CDATA[Example text box, reviewed]]>
+</TextBox>
+</Sheet>
+</FBDContent>
+</Routine>
+</Routines>
+</Program>
+</Programs>
+<Tasks>
+<Task Name="MainTask" Type="PERIODIC" Rate="10" Priority="10" Watchdog="500" DisableUpdateOutputs="false" InhibitTask="false">
+<Description>
+<![CDATA[Example periodic task]]>
+</Description>
+<ScheduledPrograms>
+<ScheduledProgram Name="MainProgram"/>
+</ScheduledPrograms>
+</Task>
+</Tasks>
+</Controller>
+</RSLogix5000Content>

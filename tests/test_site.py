@@ -11,6 +11,7 @@ from __future__ import annotations
 import copy
 import html
 import importlib.util
+from html.parser import HTMLParser
 import json
 import re
 import subprocess
@@ -136,12 +137,50 @@ def _text(fragment: str) -> str:
     return re.sub(r"<[^>]+>", "", fragment)
 
 
+class _VisibleText(HTMLParser):
+    """The page's text outside <script> and <style>, from the HTML parser rather
+    than a tag-matching regex (which a scanner rightly distrusts). Entity and
+    character references are kept as written, so the text compares like the
+    escaped source."""
+
+    def __init__(self) -> None:
+        super().__init__(convert_charrefs=False)
+        self.parts: list[str] = []
+        self._skip = 0
+
+    def handle_starttag(self, tag, attrs):
+        if tag in ("script", "style"):
+            self._skip += 1
+
+    def handle_endtag(self, tag):
+        if tag in ("script", "style") and self._skip:
+            self._skip -= 1
+
+    def handle_data(self, data):
+        if not self._skip:
+            self.parts.append(data)
+
+    def handle_entityref(self, name):
+        if not self._skip:
+            self.parts.append(f"&{name};")
+
+    def handle_charref(self, name):
+        if not self._skip:
+            self.parts.append(f"&#{name};")
+
+
+def _visible_text(doc: str) -> str:
+    p = _VisibleText()
+    p.feed(doc)
+    p.close()
+    return "".join(p.parts)
+
+
 def test_credit_is_read_from_notice_and_appears_once_in_the_footer(built):
     _, doc, _ = built
     credit = html.escape(bs.credit())
     assert credit and "·" in credit
-    static = re.sub(r"<script\b[^>]*>.*?</script>|<style>.*?</style>", "", doc, flags=re.S)
-    assert _text(static).count(credit) == 1
+    assert _visible_text(doc).count(credit) == 1  # the data block and scripts never count
     assert credit in _text(doc.split("<footer>", 1)[1])
 
 

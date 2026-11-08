@@ -26,6 +26,8 @@ platforms:
   - ICS-0004
 protocols:
   - ICS-PROTO-0002
+hunts: [ICS-HUNT-0016]
+packs: [ICS-PACK-0006]
 summary: >-
   NSA, CISA, FBI, DOE and EPA warn of unnamed threat actors who find internet-exposed or poorly segmented Siemens
   S7-200, S7-300, S7-400, S7-1200 and S7-1500 PLCs (S7-1500 including F-series safety controllers) through internet

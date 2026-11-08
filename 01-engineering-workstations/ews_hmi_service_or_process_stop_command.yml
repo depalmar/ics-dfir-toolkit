@@ -1,0 +1,57 @@
+title: Service Stopped or Process Killed With a Built-in Command on an EWS or HMI
+id: d8550f6e-d77e-4f68-b5cd-08d4348d9419
+status: experimental
+description: |
+  net stop, sc stop, sc config with start= disabled, taskkill, or the
+  PowerShell Stop-Service / Stop-Process cmdlets run on an engineering
+  workstation, HMI, SCADA server or historian. The ICS-aware families in this
+  knowledge base stop processes from their own code - EKANS kills a
+  hard-coded list of historian, licensing and HMI processes (Dragos),
+  Industroyer2 terminates a legitimate operations process and renames it so
+  it does not restart (ESET), GigaWiper has service-manager and
+  process-manager commands (Microsoft) - and that route is caught by
+  ews_hmi_service_terminated_unexpectedly.yml, not here. This rule covers an
+  intruder doing the same by hand with Windows' own tools, which on an HMI
+  stops the operators' view of the process. Needs process creation with
+  command lines (Sysmon Event ID 1, or Security 4688 with command-line
+  auditing on).
+references:
+  - https://www.dragos.com/blog/responding-to-solarwinds-compromise-in-industrial-environments/
+  - https://www.welivesecurity.com/2022/04/12/industroyer2-industroyer-reloaded/
+  - https://www.microsoft.com/en-us/security/blog/2026/07/09/gigawiper-anatomy-of-a-destructive-backdoor-assembled-from-multiple-malware/
+author: Raymond DePalma (ics-dfir-toolkit)
+date: 2026-11-08
+tags:
+  - attack.inhibit-response-function
+  - attack.impact
+  - attack.t0881
+  - attack.t1489
+  - ics-dfir.ews-hmi
+logsource:
+  category: process_creation
+  product: windows
+detection:
+  selection_net:
+    Image|endswith:
+      - '\net.exe'
+      - '\net1.exe'
+    CommandLine|contains: ' stop '
+  selection_sc_stop:
+    Image|endswith: '\sc.exe'
+    CommandLine|contains: ' stop '
+  selection_sc_disable:
+    Image|endswith: '\sc.exe'
+    CommandLine|contains|all:
+      - ' config '
+      - 'disabled'
+  selection_taskkill:
+    Image|endswith: '\taskkill.exe'
+  selection_powershell:
+    CommandLine|contains:
+      - 'Stop-Service'
+      - 'Stop-Process'
+  condition: 1 of selection_*
+falsepositives:
+  - Vendor installers and patch scripts that stop services during an approved update
+  - Engineers restarting a hung HMI or historian service; baseline by account and host, and escalate outside change windows or when several OT hosts show it together
+level: medium

@@ -1,0 +1,153 @@
+# ICS hunt ICS-HUNT-0016
+# Schema: ../schema/hunt.schema.json
+# Research notes: docs/research/2026-11-08/detections-round3.md
+
+id: ICS-HUNT-0016
+title: Logins with vendor-default, built-in or unconfigured accounts on HMIs, controllers, relays, RTUs and gateways
+platforms: [ICS-0011, ICS-0014, ICS-0013, ICS-0009, ICS-0005, ICS-0015, ICS-0003, ICS-0012]
+protocols: [ICS-PROTO-0015, ICS-PROTO-0010, ICS-PROTO-0002]
+actors: [ICS-TA-0010, ICS-TA-0007]
+malware: [ICS-MAL-0007, ICS-MAL-0010]
+incidents: [ICS-INC-0007, ICS-INC-0008, ICS-INC-0013]
+hypothesis: >-
+  An intruder logged in to an OT device or host with a vendor-default or
+  built-in account, a default password set at commissioning, or no
+  authentication at all, and the login sits unexamined in a log the owner
+  already keeps.
+data: [windows-events, alarm-events, controller-audit, syslog, remote-access, ics-network-capture]
+datasources: [ICS-DS-0006, ICS-DS-0010, ICS-DS-0013, ICS-DS-0009, ICS-DS-0012, ICS-DS-0005, ICS-DS-0001, ICS-DS-0011]
+data_detail: >-
+  Authentication records already collected: Windows 4624 on HMIs and EWS
+  (including the local administrator account and remote-desktop logons);
+  HMI/SCADA audit trails (Ignition User Source authentication); relay and RTU
+  security logs (RTU500 event log, Relion 670 security events 1110 and the
+  1120/1130/1170 failures, SIPROTEC 5 security log); controller logs that name
+  the user (M580 connection events, CODESYS AuditLog logins and lockouts, S7
+  diagnostic-buffer security events for online and web-server logons); OPC UA
+  session audit events; PI message log logins; gateway SSH and web-UI logs;
+  passive capture for FTP, telnet and web logins to devices. The list of
+  default and built-in accounts comes from the owner's asset inventory and the
+  vendors' manuals - this hunt names only the one a source quoted.
+method:
+  - >-
+    Build the account list per asset type: every vendor-default, built-in,
+    factory or service account the manuals document, and every account given
+    a default or shared password at commissioning (the Poland HMIs' local
+    administrator, per CERT Polska). Keep it with the asset inventory; do not
+    test the accounts against live devices.
+  - >-
+    Search each log for successful logins by those accounts, starting with
+    the ones CERT Polska saw used - the RTU500 web account named "Default",
+    the Relion built-in FTP account, the HMI local administrator over remote
+    desktop - and logins with no user where the protocol supports one.
+  - >-
+    Look for bursts of failures against the same accounts (CODESYS lockouts,
+    Relion 1120/1130/1170, S7 incorrect-password security events, PI
+    unsuccessful logins, gateway SSH failures): AA22-103A describes
+    brute-forcing PLC passwords "against defaults or a dictionary word list",
+    and CERT Polska found that HMIs without the default password survived
+    after failed password-guessing attempts.
+  - >-
+    For every success, establish who and why: named engineer, approved work,
+    expected source address. A default-account login nobody owns means the
+    device must be treated as compromised (AA25-343A) - plan its review with
+    operations, starting with a logic or configuration comparison against the
+    known-good copy.
+  - >-
+    Record the devices where no authentication log exists (many PLCs) as not
+    evaluated, and list them for credential change and monitoring, which
+    AA22-103A ties together.
+normal: >-
+  Device and HMI logins by named accounts, from engineering hosts, during
+  planned work; default and built-in accounts disabled or never used.
+suspicious: >-
+  Any successful login by a factory or built-in account; a role change right
+  after it; HMI local-administrator logons over remote desktop; FTP or telnet
+  logins to relays and controllers; failure bursts followed by a success;
+  logins to many devices in address order.
+attack: [T0812, T1694]
+rules:
+  - 02-ot-network/relay_and_rtu_service_sessions.rules
+inferred: >-
+  Building the default-account list from manuals and searching every
+  authentication log for it is this toolkit's method; the sources report the
+  use of default credentials and recommend changing them and monitoring, not
+  this procedure.
+confidence: high
+sources:
+  - title: CERT Polska - Energy Sector Incident Report, 29 December 2025 (PDF), Hitachi RTUs
+    url: https://cert.pl/uploads/docs/CERT_Polska_Energy_Sector_Incident_Report_2025.pdf
+    accessed: "2026-11-08"
+    kind: government
+    quote: The attack was carried out by logging into the web interface using the “Default” account.
+    read: direct
+  - title: CERT Polska - Energy Sector Incident Report (PDF), Mikronika HMI computers
+    url: https://cert.pl/uploads/docs/CERT_Polska_Energy_Sector_Incident_Report_2025.pdf
+    accessed: "2026-11-08"
+    kind: government
+    quote: >-
+      The machines were configured with a default password set during
+      deployment for an account with local administrator privileges.
+    read: direct
+  - title: CERT Polska - Energy Sector Incident Report (PDF), Hitachi Relion IEDs
+    url: https://cert.pl/uploads/docs/CERT_Polska_Energy_Sector_Incident_Report_2025.pdf
+    accessed: "2026-11-08"
+    kind: government
+    quote: >-
+      These devices have the FTP service enabled by default, which provides
+      access to the device’s system files.
+    read: direct
+  - title: CISA AA26-231A - Defending Against an Active Threat to Siemens S7 Series PLCs, Appendix A (T1694)
+    url: https://www.cisa.gov/news-events/cybersecurity-advisories/aa26-231a
+    accessed: "2026-11-08"
+    kind: government
+    quote: >-
+      Accessing exposed devices that have unconfigured (default) or minimally
+      configured authentication
+    read: direct
+  - title: CISA AA22-103A - APT Cyber Tools Targeting ICS/SCADA Devices, mitigations
+    url: https://www.cisa.gov/news-events/cybersecurity-advisories/aa22-103a
+    accessed: "2026-11-08"
+    kind: government
+    quote: >-
+      Change all passwords to ICS/SCADA devices and systems on a consistent
+      schedule, especially all default passwords, to device-unique strong
+      passwords to mitigate password brute force attacks and to give defender
+      monitoring systems opportunities to detect common attacks.
+    read: direct
+  - title: CISA AA22-103A, APT tool for Schneider Electric devices
+    url: https://www.cisa.gov/news-events/cybersecurity-advisories/aa22-103a
+    accessed: "2026-11-08"
+    kind: government
+    quote: >-
+      Brute-force Schneider Electric PLC passwords using CODESYS and other
+      available device protocols via UDP port 1740 against defaults or a
+      dictionary word list
+    read: direct
+  - title: CISA, NSA, FBI et al. - AA24-038A PRC State-Sponsored Actors Compromise and Maintain Persistent Access to U.S. Critical Infrastructure
+    url: https://www.cisa.gov/news-events/cybersecurity-advisories/aa24-038a
+    accessed: "2026-11-08"
+    kind: government
+    quote: >-
+      Volt Typhoon actors have been observed testing access to domain-joint OT
+      assets using default OT vendor credentials
+    read: direct
+  - title: CISA AA25-343A, tooling
+    url: https://www.cisa.gov/news-events/cybersecurity-advisories/aa25-343a
+    accessed: "2026-11-08"
+    kind: government
+    quote: >-
+      These pro-Russia hacktivist groups abuse popular internet-scraping
+      tools, such as `Nmap` or `OPENVAS`, to search for visible VNC services
+      and use brute force password spraying tools to access devices via known
+      default or otherwise weak credentials.
+    read: direct
+  - title: CISA AA25-343A, incident response
+    url: https://www.cisa.gov/news-events/cybersecurity-advisories/aa25-343a
+    accessed: "2026-11-08"
+    kind: government
+    quote: >-
+      If organizations find exposed systems with weak or default passwords,
+      they should assume threat actors compromised the system and begin the
+      following incident response protocols:
+    read: direct

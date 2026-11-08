@@ -16,6 +16,7 @@ sectors:
 countries:
   - United States
 victim: Colonial Pipeline Company (named in its own media statement; CISA says "a pipeline company").
+hunts: [ICS-HUNT-0015]
 summary: >-
   DarkSide ransomware affiliates encrypted the IT network of a US pipeline company. CISA and FBI saw no
   indication that the operational technology network was directly affected or that the actors moved

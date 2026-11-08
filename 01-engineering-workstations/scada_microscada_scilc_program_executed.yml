@@ -1,0 +1,43 @@
+title: MicroSCADA scilc.exe Runs an External SCIL Program
+id: 178ec77f-9f95-4890-af1e-8bfd44b0cf18
+status: experimental
+description: |
+  The native MicroSCADA utility scilc.exe started with the -do flag, which
+  Mandiant describes as specifying "a SCIL program file to execute". In late
+  2022 Sandworm used it on a MicroSCADA host to run "C:\sc\prog\exec\scilc.exe
+  -do pack\scil\s1.txt" from an attacker ISO; Mandiant believes the SCIL
+  commands "were probably commands to open circuit breakers", relayed to
+  substation RTUs over IEC 60870-5-104 or -101, and maps the procedure to
+  Command-Line Interface (T0807), Execution Through API (T0871) and
+  Unauthorized Command Message (T0855). Mandiant recommends monitoring for
+  "Command-line execution of MicroSCADA 'Scilc.exe' binary and other native
+  MicroSCADA binaries". The utility sits in the \sc\prog\exec folder of the
+  MicroSCADA installation; operators and scheduled SCIL programs normally run
+  inside MicroSCADA, so an interactive or scripted scilc.exe -do needs an
+  owner. Mandiant published its own Sigma and YARA-L rules for this (licence
+  not stated); this rule is written independently from the blog's
+  description. The rule shows that a SCIL program ran, not what it did: check
+  the MicroSCADA event list and the RTU and breaker records for the same
+  minutes (ICS-HUNT-0014). Needs process creation with command lines.
+references:
+  - https://cloud.google.com/blog/topics/threat-intelligence/sandworm-disrupts-power-ukraine-operational-technology/
+author: Raymond DePalma (ics-dfir-toolkit)
+date: 2026-11-08
+tags:
+  - attack.execution
+  - attack.impair-process-control
+  - attack.t0807
+  - attack.t0871
+  - attack.t0855
+  - ics-dfir.ews-hmi
+logsource:
+  category: process_creation
+  product: windows
+detection:
+  selection:
+    Image|endswith: '\scilc.exe'
+    CommandLine|contains: ' -do'
+  condition: selection
+falsepositives:
+  - Engineering or vendor work that runs SCIL programs from the command line during commissioning; confirm against the change record
+level: high

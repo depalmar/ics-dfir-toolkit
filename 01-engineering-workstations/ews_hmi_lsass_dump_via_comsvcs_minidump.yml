@@ -1,0 +1,39 @@
+title: LSASS Memory Dumped With comsvcs.dll MiniDump on an EWS, HMI or OT-Adjacent Host
+id: f9ec5934-a97f-4089-87c6-aac111074942
+status: experimental
+description: |
+  A process whose command line names comsvcs.dll (or comsvcs) together with
+  its MiniDump export. CISA, NSA, FBI and partners (AA24-038A) report Volt
+  Typhoon downloading "an outdated version of comsvcs.dll on the DC in a
+  non-standard folder" and using it "with MiniDump and the process ID of the
+  Local Security Authority Subsystem Service (LSASS) to dump the LSASS process
+  memory". The same advisory reports the actors testing access to OT assets
+  "using default OT vendor credentials" and with OT credentials obtained from
+  ntds.dit, so credential dumping on hosts that administer OT is a precursor
+  to OT access. Because the actors brought their own copy of the DLL, the rule
+  does not require a System32 path. Deploy to engineering workstations, HMIs,
+  OT jump hosts and the domain controllers of any OT domain. Needs process
+  creation with command lines (Sysmon Event ID 1, or Security 4688 with
+  command-line auditing on). SigmaHQ has general rules for the same
+  behaviour on all hosts.
+references:
+  - https://www.cisa.gov/news-events/cybersecurity-advisories/aa24-038a
+  - https://www.microsoft.com/en-us/security/blog/2023/05/24/volt-typhoon-targets-us-critical-infrastructure-with-living-off-the-land-techniques/
+author: Raymond DePalma (ics-dfir-toolkit)
+date: 2026-11-08
+tags:
+  - attack.credential-access
+  - attack.t1003.001
+  - ics-dfir.ews-hmi
+logsource:
+  category: process_creation
+  product: windows
+detection:
+  selection:
+    CommandLine|contains|all:
+      - 'comsvcs'
+      - 'MiniDump'
+  condition: selection
+falsepositives:
+  - Very rare; a support engineer capturing a process dump under a vendor case should use a documented tool, not comsvcs MiniDump
+level: high

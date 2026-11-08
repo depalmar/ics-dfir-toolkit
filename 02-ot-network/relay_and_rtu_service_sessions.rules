@@ -1,0 +1,36 @@
+# 02-ot-network/relay_and_rtu_service_sessions.rules
+# Port-level sessions to two services that recorded attacks used to put
+# protection relays out of service, without any protection-protocol traffic.
+#
+# UDP 50000 (sids 9000015-9000016): CISA ICSA-15-202-01 - on SIPROTEC 4 and
+# SIPROTEC Compact devices with an EN100 module V4.24 or earlier, "Specially
+# crafted packets sent to Port 50000/UDP could cause a denial of service of
+# the affected device. A manual reboot is required to return the device to
+# service." (CVE-2015-5374). CISA recommends to "Monitor traffic to affected
+# devices on Port 50000/UDP with an intrusion detection system (IDS)."
+# Industroyer carried a denial-of-service tool for this vulnerability (ESET,
+# ICS-MAL-0004). The advisory does not say which legitimate tools use the
+# port, so expect engineering traffic and suppress approved hosts by address.
+#
+# FTP (sids 9000017-9000018): CERT Polska - Hitachi Relion 650 v1.1 IEDs
+# "have the FTP service enabled by default, which provides access to the
+# device's system files", and the attacker used a built-in account with
+# default credentials "to delete files essential for device operation. This
+# resulted in an error that caused the device to shut down and prevented it
+# from being restarted." FTP to an IED is normal only from the engineering
+# host during disturbance-record readout or configuration work (ICS-0014).
+#
+# Header, flow and threshold keywords only; no ftp or ICS application-layer
+# keyword, no command content. A hit says a session reached the port, not
+# what was sent: read the relay's own security log (Relion 670 events 1680,
+# 1687, 1710; SIPROTEC 5 security log) and the Zeek ftp.log for the flow.
+# FTP_PORTS is Suricata's default port variable (21). The inside-to-inside
+# rules (9000016, 9000018) fire on every pair at most once an hour until the
+# approved engineering hosts are suppressed.
+#
+# Linked from ICS-HUNT-0013, ICS-HUNT-0016 and ICS-PACK-0005.
+
+alert udp $EXTERNAL_NET any -> $HOME_NET 50000 (msg:"ICS-DFIR UDP 50000 (SIPROTEC EN100 port, CVE-2015-5374 DoS) from outside HOME_NET"; flow:to_server; threshold:type limit, track by_both, count 1, seconds 3600; reference:url,www.cisa.gov/news-events/ics-advisories/icsa-15-202-01; reference:cve,2015-5374; classtype:attempted-dos; sid:9000015; rev:1;)
+alert udp $HOME_NET any -> $HOME_NET 50000 (msg:"ICS-DFIR UDP 50000 (SIPROTEC EN100 port) between OT hosts - confirm sender is an approved engineering host"; flow:to_server; threshold:type limit, track by_both, count 1, seconds 3600; reference:url,www.cisa.gov/news-events/ics-advisories/icsa-15-202-01; reference:cve,2015-5374; classtype:policy-violation; sid:9000016; rev:1;)
+alert tcp $EXTERNAL_NET any -> $HOME_NET $FTP_PORTS (msg:"ICS-DFIR FTP session to an OT device from outside HOME_NET"; flow:established,to_server; threshold:type limit, track by_both, count 1, seconds 3600; reference:url,cert.pl/en/posts/2026/01/incident-report-energy-sector-2025/; classtype:policy-violation; sid:9000017; rev:1;)
+alert tcp $HOME_NET any -> $HOME_NET $FTP_PORTS (msg:"ICS-DFIR FTP session between OT hosts (relay or RTU file access) - confirm engineering host and approved work"; flow:established,to_server; threshold:type limit, track by_both, count 1, seconds 3600; reference:url,cert.pl/en/posts/2026/01/incident-report-energy-sector-2025/; classtype:policy-violation; sid:9000018; rev:1;)

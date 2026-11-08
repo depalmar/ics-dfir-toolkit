@@ -21,8 +21,9 @@ Layers (built in this order):
   and response playbooks, the KEV watch, their schemas and the validator.
 - Numbered `NN-*` directories - Sigma, YARA and Suricata rules, one directory
   per platform family or cross-platform domain. Glob them as `[0-9][0-9]-*`.
-- `collectors/profiles/` and a triage engine - not started; see
-  `docs/ROADMAP.md`.
+- `icstriage/` - the triage engine, started with its first component: offline
+  logic comparison (`icstriage/logic/`, see `docs/logic-compare.md`).
+  `collectors/profiles/` - not started; see `docs/ROADMAP.md`.
 
 Reserved and allocated ids are in `docs/ID_REGISTRY.md`. Research notes that
 records were built from are in `docs/research/<date>/`.
@@ -32,6 +33,8 @@ records were built from are in `docs/research/<date>/`.
 ```bash
 python artifacts/scripts/validate.py              # the gate; never commit while it fails
 python artifacts/scripts/mappings.py [--check]     # MAPPINGS.md is generated; CI checks it is current
+python artifacts/scripts/build_site.py [--check]   # docs/site/index.html (Pages builds it; never commit it); --check writes nothing
+python -m icstriage logic-diff --baseline good.L5X --current suspect.L5X [--format md|json] [--out r.md]   # offline; exit 0/10/1
 python -m pytest -q tests/                         # offline tests for the scripts
 python artifacts/scripts/check_quotes.py [--only f.yml] [--out r.md]   # every quote vs its live page; reports, never edits
 python artifacts/scripts/advisory_watch.py [--kev f.json] [--upstream] [--draft]   # KEV vs packs and ledger; reports, never edits
@@ -165,6 +168,17 @@ read - never use it for a decision you made.
 **Exploitation dates are quoted, never inferred.** `artifacts/intel/exploitation.yml`
 follows edge-dfir-toolkit's rules: primary sources only, `earliest` only as
 precise as the source, and `earliest_words` must sit inside the quote.
+
+## Logic comparison rules
+
+`icstriage logic-diff` reads files an engineer exported; it never talks to a
+controller. Element and attribute names come only from the format's public
+documentation (Rockwell 1756-RM014, PLCopen TC6 XML); anything undocumented or
+encrypted is compared by hash and reported as such, never parsed by guess.
+Input files are hostile: DOCTYPE and ENTITY declarations are refused before
+parsing, and size and element counts are capped. Documentation-only changes
+never change the verdict. Fixtures are synthetic; never commit a real project
+file.
 
 ## Where the sharp edges are
 

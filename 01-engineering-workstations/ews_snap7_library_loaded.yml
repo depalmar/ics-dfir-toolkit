@@ -1,0 +1,40 @@
+title: Snap7 S7 Communication Library Loaded on a Windows Host
+id: 7b3cb2da-50f7-48eb-ada2-d78a5557c264
+status: experimental
+description: |
+  Sysmon Event ID 7 (Image loaded) for snap7.dll. NSA, CISA, FBI, DOE and EPA
+  (AA26-231A) report actors "leveraging open source industrial automation
+  libraries - specifically snap7.dll/python-snap7 - combined with AI-assisted
+  scripting to create custom tools that mimic legitimate OT monitoring
+  solutions", giving "read/write access to Siemens S7 Series PLC memory,
+  configuration data, and ladder logic programs via the S7comm protocol". The
+  advisory maps the scripts to Native API (T0834) and the disguise to
+  Masquerading (T0849), lists "Snap7.dll library usage outside approved
+  engineering workstations" among its tool artifacts, and asks owners to
+  "Monitor for Python processes with snap7.dll library imports on engineering
+  workstations". Image-load logging is off by default in Sysmon
+  and must be configured (narrowly, for this DLL); a tool running on the
+  actors' own infrastructure, as AA26-231A describes for internet-exposed
+  PLCs, leaves nothing on the owner's hosts - read the controller side
+  (ICS-PACK-0006) and port 102 sessions instead.
+references:
+  - https://www.cisa.gov/news-events/cybersecurity-advisories/aa26-231a
+  - https://learn.microsoft.com/en-us/sysinternals/downloads/sysmon
+author: Raymond DePalma (ics-dfir-toolkit)
+date: 2026-11-08
+tags:
+  - attack.execution
+  - attack.evasion
+  - attack.t0834
+  - attack.t0849
+  - ics-dfir.ews-hmi
+logsource:
+  category: image_load
+  product: windows
+detection:
+  selection:
+    ImageLoaded|endswith: '\snap7.dll'
+  condition: selection
+falsepositives:
+  - Approved monitoring or test tools built on Snap7; record them in the baseline with their host and path
+level: high

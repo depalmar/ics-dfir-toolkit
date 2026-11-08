@@ -19,7 +19,7 @@ victim: >-
   "several U.S.-based WWS victims" (CISA/FBI). NJCCIC names a water facility in Muleshoe, Texas.
 actors:
   - ICS-TA-0010
-hunts: [ICS-HUNT-0004, ICS-HUNT-0005, ICS-HUNT-0012]
+hunts: [ICS-HUNT-0004, ICS-HUNT-0005, ICS-HUNT-0012, ICS-HUNT-0016]
 packs: [ICS-PACK-0002]
 summary: >-
   In early 2024 pro-Russia hacktivists reached internet-exposed HMIs at small US water and wastewater

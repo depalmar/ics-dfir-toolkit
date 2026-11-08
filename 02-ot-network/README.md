@@ -2,9 +2,10 @@
 
 Platforms: ALL. Data sources: `ICS-DS-0002` (Suricata alerts), read
 alongside `ICS-DS-0001` (Zeek/ICSNPP) for what each flagged session did.
-Detection packs: `ICS-PACK-0001`, `ICS-PACK-0002`, `ICS-PACK-0003`. Hunts:
-`ICS-HUNT-0001`, `ICS-HUNT-0002`, `ICS-HUNT-0004`, `ICS-HUNT-0007`,
-`ICS-HUNT-0009`, `ICS-HUNT-0010`.
+Detection packs: `ICS-PACK-0001`, `ICS-PACK-0002`, `ICS-PACK-0003`,
+`ICS-PACK-0005`. Hunts: `ICS-HUNT-0001`, `ICS-HUNT-0002`, `ICS-HUNT-0004`,
+`ICS-HUNT-0007`, `ICS-HUNT-0009`, `ICS-HUNT-0010`, `ICS-HUNT-0013`,
+`ICS-HUNT-0016`.
 
 ## Rules
 
@@ -14,6 +15,7 @@ Detection packs: `ICS-PACK-0001`, `ICS-PACK-0002`, `ICS-PACK-0003`. Hunts:
 | `remote_access_inbound_to_ot.rules` | 9000010-9000011 | VNC (5900-5910) and SSH into the OT range from outside | AA25-343A; AA26-097A |
 | `unitronics_port_inbound.rules` | 9000012-9000013 | Sessions to 20256 from outside, and to 20257 from anywhere | AA23-335A |
 | `ot_protocol_outbound_to_external.rules` | 9000014 | An OT host opening an industrial-protocol-port session to outside HOME_NET | NCSC-led connectivity principles; AA25-343A |
+| `relay_and_rtu_service_sessions.rules` | 9000015-9000018 | UDP 50000 to SIPROTEC EN100 devices, and FTP (FTP_PORTS) to relays and RTUs, each from outside HOME_NET and between OT hosts | CISA ICSA-15-202-01 (CVE-2015-5374, "Monitor traffic ... on Port 50000/UDP"); CERT Polska (Relion FTP file deletion) |
 
 ## Deploying
 

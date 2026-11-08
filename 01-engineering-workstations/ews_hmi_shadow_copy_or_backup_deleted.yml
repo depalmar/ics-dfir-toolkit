@@ -1,0 +1,58 @@
+title: Shadow Copies, Backup Catalog or Files Destroyed With Built-in or Sysinternals Tools on an EWS or HMI
+id: 8998eaf9-9d87-417f-860a-21cfa52addc2
+status: experimental
+description: |
+  vssadmin deleting shadow copies, wbadmin deleting the backup catalog or
+  system-state backups, or Sysinternals SDelete running on an engineering
+  workstation, HMI or SCADA server. MITRE ATT&CK for ICS Data Destruction
+  (T0809): "An adversary may also destroy data backups that are vital to
+  recovery after an incident", and names SDelete as an example tool. Mandiant
+  reports Sandworm's TANKTRAP group-policy utility used "with other disruptive
+  tools including NEARMISS, SDELETE, PARTYTICKET, and CADDYWIPER". CERT Polska
+  recovered "vssadmin delete shadows" from a compromised workstation in the
+  December 2025 Poland operation, after a shadow copy was used to steal
+  ntds.dit. Microsoft: "Deleting a shadow copy is permanent." Not seen by this
+  rule: EKANS removes shadow copies through WMI calls from its own code
+  (Dragos), and wipers that overwrite files or disks directly start no tool at
+  all; pair with ews_hmi_file_shredding_blocked.yml and the restart rule.
+  Needs process creation with command lines (Sysmon Event ID 1, or Security
+  4688 with command-line auditing on). Renamed copies of SDelete are missed.
+references:
+  - https://attack.mitre.org/techniques/T0809/
+  - https://learn.microsoft.com/windows-server/administration/windows-commands/vssadmin-delete-shadows
+  - https://learn.microsoft.com/windows-server/administration/windows-commands/wbadmin-delete-catalog
+  - https://learn.microsoft.com/windows-server/administration/windows-commands/wbadmin-delete-systemstatebackup
+  - https://cloud.google.com/blog/topics/threat-intelligence/sandworm-disrupts-power-ukraine-operational-technology/
+  - https://cert.pl/uploads/docs/CERT_Polska_Energy_Sector_Incident_Report_2025.pdf
+author: Raymond DePalma (ics-dfir-toolkit)
+date: 2026-11-08
+tags:
+  - attack.inhibit-response-function
+  - attack.impact
+  - attack.t0809
+  - attack.t1490
+  - attack.t1485
+  - ics-dfir.ews-hmi
+logsource:
+  category: process_creation
+  product: windows
+detection:
+  selection_vssadmin:
+    Image|endswith: '\vssadmin.exe'
+    CommandLine|contains|all:
+      - 'delete'
+      - 'shadows'
+  selection_wbadmin:
+    Image|endswith: '\wbadmin.exe'
+    CommandLine|contains:
+      - 'delete catalog'
+      - 'delete systemstatebackup'
+  selection_sdelete:
+    Image|endswith:
+      - '\sdelete.exe'
+      - '\sdelete64.exe'
+  condition: 1 of selection_*
+falsepositives:
+  - Backup administration under a change record (shadow storage housekeeping, catalog rebuild after corruption, which Microsoft documents as the use of wbadmin delete catalog)
+  - Secure disposal of a decommissioned engineering workstation with SDelete
+level: high

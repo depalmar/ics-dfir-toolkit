@@ -28,6 +28,8 @@ platforms:
   - ICS-0010
 protocols:
   - ICS-PROTO-0016
+hunts: [ICS-HUNT-0015]
+packs: [ICS-PACK-0006]
 summary: >-
   An attacker with a foothold on the plant's DCS reached an SIS engineering workstation and used the TRITON
   framework to append attacker code to the program memory of Schneider Electric Triconex safety

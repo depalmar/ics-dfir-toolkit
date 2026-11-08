@@ -61,9 +61,23 @@ Ordered by value. The knowledge base comes first because every later layer
    landed in round 3. Still to do: turn the remaining `deferred` ledger entry
    (CVE-2018-4063) into a decision, and extend the watch to CISA ICS advisories
    (ICSA), not only KEV.
-4. ~~**`MAPPINGS.md`**~~ - generated in round 3 with an ATT&CK gap list; the 40
-   techniques recorded in use with no hunt or detection are the next detection
-   backlog.
+4. ~~**`MAPPINGS.md`**~~ - generated in round 3 with an ATT&CK gap list.
+   Round 4 closed 24 of its 40 gaps (5 hunts, 2 packs, 11 Sigma rules, one
+   Suricata file); the 16 left open are explained in
+   `docs/research/2026-11-08/detections-round3.md` - mostly techniques visible
+   only in protocol reads (deferred), Stuxnet (no primary source read yet), and
+   adversary-side reconnaissance an owner's data never shows.
+
+## Round 4 (2026-11-08)
+
+- ~~Static site~~ - `build_site.py` and the Pages workflow. Next: technique
+  names in the coverage view, cross-library search, "last changed" dates.
+- ~~Logic comparison~~ - `icstriage logic-diff`, the first triage-engine
+  component (L5X, PLCopen TC6 XML). Next: Siemens TIA Portal exports
+  (TIA Openness / SimaticML, from public documentation only), L5K, and a
+  `logic_compare` runner the analyzer can call per pack detection.
+- Windows data source: add System 7045 (service installation) once read from
+  Microsoft documentation.
 4. **Indicator sets.** Parse CISA's STIX bundles (AA26-097A, AA23-335A,
    AA25-343A) and vendor GitHub IOC files into `artifacts/intel/iocs/` in code,
    keeping each publisher's role per value.

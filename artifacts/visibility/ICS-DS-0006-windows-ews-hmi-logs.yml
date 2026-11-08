@@ -80,6 +80,46 @@ events:
   - event: Unexpected clearing of logs
     value: Listed by the joint ASD/CISA guidance as anomalous behaviour; on an OT host it should be treated as an incident until explained.
     basis: government
+  - event: Security 4698 - A scheduled task was created (SubjectUserName, TaskName, TaskContent; needs the "Audit Other Object Access Events" subcategory)
+    value: >-
+      Every new scheduled task with its account and full XML, including the command it runs. Microsoft recommends monitoring all task creation on critical computers; Industroyer2, CaddyWiper (via group policy), the December 2025 Poland GPO and GigaWiper were all launched or persisted this way (ICS-PACK-0005).
+    attack: [T1053.005]
+    basis: vendor
+  - event: System 7034 (Service Control Manager) - The <service> service terminated unexpectedly; 7036 - The <service> service entered the stopped state
+    value: >-
+      Which services stopped, and whether they stopped in order (7036) or died (7034). Several HMI, SCADA, historian or licensing services terminating within minutes is the pattern of ICS-aware process killing such as EKANS (ICS-HUNT-0013).
+    attack: [T0881]
+    basis: vendor
+  - event: System 1074 (User32) - The process <Process Name> has initiated the restart of computer <Computer Name> on behalf of user <Domain User> (reason, reason code, shutdown type)
+    value: >-
+      Which process and account asked for a restart or power-off. A restart requested by an unexpected process on an HMI or EWS, outside patching, needs an owner; GigaWiper and DynoWiper version A restart the host after wiping.
+    attack: [T0816]
+    basis: vendor
+  - event: System 41 (Kernel-Power), 6008 (EventLog) and 1001 (WER-SystemErrorReporting) - rebooted without cleanly shutting down; previous shutdown was unexpected; rebooted from a bugcheck
+    value: >-
+      Unexpected restarts and crashes, which Microsoft separates from normal reboots (1074 followed by 13 and 6009). Without a power or hardware cause, a crash of an OT host is a lead; GigaWiper has a command that forces a BSOD.
+    attack: [T0816]
+    basis: vendor
+  - event: Sysmon Event ID 6 - Driver loaded (hashes and signature information)
+    value: >-
+      Every driver load with its hash and signer. AA22-103A asks owners to watch for unusual drivers, especially the ASRock AsrDrv103.sys driver INCONTROLLER's tool exploits.
+    attack: [T0866]
+    basis: vendor
+  - event: Sysmon Event ID 7 - Image loaded (disabled by default; must be configured)
+    value: >-
+      Which process loaded which DLL. Configured narrowly, it shows snap7.dll loaded by scripts that AA26-231A reports masquerading as OT monitoring tools.
+    attack: [T0834, T0849]
+    basis: vendor
+  - event: Sysmon Event ID 23 (FileDelete, file archived) and 26 (FileDeleteDetected)
+    value: >-
+      File deletions per process; with Event ID 11, the raw material for spotting a process that overwrites and deletes files across many directories, as the recorded wipers do (ICS-PACK-0005).
+    attack: [T0809]
+    basis: vendor
+  - event: Sysmon Event ID 28 - FileBlockShredding (only where the configuration includes the filter)
+    value: >-
+      Sysmon detected and blocked file shredding, as by SDelete, which MITRE names as a Data Destruction tool. Whether a given wiper trips it was not tested.
+    attack: [T0809]
+    basis: vendor
 tooling:
   - name: Sysmon (Microsoft Sysinternals)
     url: https://learn.microsoft.com/en-us/sysinternals/downloads/sysmon
@@ -95,7 +135,7 @@ gaps:
   - An actor using their own copy of engineering software on their own infrastructure (as CISA AA26-097A reports) never touches the plant's EWS, so nothing appears here.
   - Older or vendor-locked HMIs may not support Sysmon or current audit policy; agents may be restricted by the vendor's support terms.
   - A local administrator can clear or stop logging; only forwarded copies are trustworthy after compromise.
-  - Event 1102 (audit log cleared) and service-installation events were not read from Microsoft documentation in this round and are not listed.
+  - Service installation (System 7045) is not yet listed. Audit-log clearing (Security 1102) is covered by 01-engineering-workstations/ews_hmi_security_log_cleared.yml and the log-clearing entry above rather than its own entry here. Scheduled tasks (4698), unexpected service termination (7034), restarts (1074, 41, 6008, 1001) and Sysmon 6, 7, 23, 26 and 28 were added in round 4.
 confidence: high
 sources:
   - title: 4688(S) A new process has been created (Microsoft Learn)
@@ -173,4 +213,54 @@ sources:
     quote: >-
       enumerate logs to search for successful logons using wevtutil.exe and the
       command Get-EventLog Security [T1654].
+    read: direct
+  - title: 4698(S) A scheduled task was created (Microsoft Learn)
+    url: https://learn.microsoft.com/en-us/previous-versions/windows/it-pro/windows-10/security/threat-protection/auditing/event-4698
+    accessed: "2026-11-08"
+    kind: vendor
+    quote: >-
+      We recommend monitoring all scheduled task creation events, especially on
+      critical computers or devices.
+    read: direct
+  - title: Troubleshoot unexpected reboots using system event logs (Microsoft Learn)
+    url: https://learn.microsoft.com/troubleshoot/windows-server/performance/troubleshoot-unexpected-reboots-system-event-logs
+    accessed: "2026-11-08"
+    kind: vendor
+    quote: >-
+      The typical event IDs that indicate a normal reboot are Event ID 1074
+      followed by Event ID 13 and Event ID 6009. An unexpected reboot is
+      denoted by Event ID 41 and Event ID 6008.
+    read: direct
+  - title: Troubleshoot failover of Always On Availability Groups (Microsoft Learn), Service Control Manager events
+    url: https://learn.microsoft.com/troubleshoot/sql/database-engine/availability-groups/troubleshooting-availability-group-failover
+    accessed: "2026-11-08"
+    kind: vendor
+    quote: >-
+      The Windows system event log shows the following error entry if SQL
+      Server shuts down unexpectedly:
+    read: direct
+  - title: Sysmon v15.22 (Microsoft Sysinternals), Event ID 6
+    url: https://learn.microsoft.com/en-us/sysinternals/downloads/sysmon
+    accessed: "2026-11-08"
+    kind: vendor
+    quote: >-
+      The driver loaded events provides information about a driver being
+      loaded on the system. The configured hashes are provided as well as
+      signature information.
+    read: direct
+  - title: Sysmon v15.22 (Microsoft Sysinternals), Event ID 7
+    url: https://learn.microsoft.com/en-us/sysinternals/downloads/sysmon
+    accessed: "2026-11-08"
+    kind: vendor
+    quote: >-
+      The image loaded event logs when a module is loaded in a specific
+      process.
+    read: direct
+  - title: Sysmon v15.22 (Microsoft Sysinternals), Event ID 28
+    url: https://learn.microsoft.com/en-us/sysinternals/downloads/sysmon
+    accessed: "2026-11-08"
+    kind: vendor
+    quote: >-
+      This event is generated when Sysmon detects and blocks file shredding
+      from tools such as SDelete.
     read: direct

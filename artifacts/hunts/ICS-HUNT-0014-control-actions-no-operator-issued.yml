@@ -1,0 +1,135 @@
+# ICS hunt ICS-HUNT-0014
+# Schema: ../schema/hunt.schema.json
+# Research notes: docs/research/2026-11-08/detections-round3.md
+
+id: ICS-HUNT-0014
+title: Breaker, valve and setpoint changes in the process record that no operator, master or logic issued
+platforms: [ICS-0011, ICS-0012, ICS-0014, ICS-0015, ICS-0001]
+protocols: [ICS-PROTO-0007, ICS-PROTO-0008, ICS-PROTO-0001, ICS-PROTO-0010]
+actors: [ICS-TA-0001]
+malware: [ICS-MAL-0004, ICS-MAL-0006, ICS-MAL-0007, ICS-MAL-0008, ICS-MAL-0009]
+incidents: [ICS-INC-0002, ICS-INC-0004, ICS-INC-0006]
+hypothesis: >-
+  A control command - open or close a breaker, start or stop a pump, move a
+  valve, change a setpoint - reached a device from something other than the
+  operators' HMI, the SCADA master's own logic or the controller's program:
+  attack tooling on a SCADA or engineering host, or a client the site does not
+  run.
+data: [historian, alarm-events, controller-audit, windows-events, ics-network-capture, netflow]
+datasources: [ICS-DS-0011, ICS-DS-0010, ICS-DS-0008, ICS-DS-0006, ICS-DS-0001, ICS-DS-0003]
+data_detail: >-
+  The SCADA event list or historian record of commanded states (breaker and
+  switch positions, pump and valve commands, setpoints, modes) - not just
+  process variables; the HMI or SCADA operator-action audit (Ignition
+  AUDIT_EVENTS tag writes where auditing was enabled, the MicroSCADA event
+  list, equivalents in other products); OPC UA audit events
+  (AuditWriteUpdate, AuditUpdateMethod) where the server implements them;
+  Logix audit-log entries for tag-value changes (Logix Designer v30 and
+  later); relay fault and disturbance records already archived (SIPROTEC 5,
+  Relion, RTU500 archives); switching orders and operator logs; process
+  creation on SCADA and engineering hosts; Zeek conn.log and flow records for
+  which host held a session to the device at that minute.
+method:
+  - >-
+    Extract every change of a commanded state for the period from the SCADA
+    event list or historian, with its time and target device.
+  - >-
+    Give each change an origin: an operator action in the HMI or SCADA audit
+    (account, console, time), an OPC UA write audit event, a controller
+    audit-log entry, a sequence or interlock in the program, or - for
+    breakers - a protection trip with a matching fault record. Approved
+    switching orders and work orders count as origins.
+  - >-
+    List the changes with no origin. For a breaker, the relay's disturbance or
+    fault record separates a protection trip (electrical fault recorded) from
+    a remote command (no fault); a breaker that opened with no fault, no
+    switching order and no operator action was commanded from somewhere else.
+    Repeated open-close-open-close on the same breaker is the pattern CISA's
+    TA17-163A attributes to Industroyer.
+  - >-
+    For each unexplained change, find which hosts held a session to the
+    device or its RTU at that minute (conn.log, flow; ICS-HUNT-0002 for hosts
+    new to the protocol), and on SCADA and engineering hosts look for native
+    utilities or scripts run outside the operator interface - MicroSCADA
+    scilc.exe running an external SCIL program, Windows Script Host, Python -
+    in process-creation logs (rules below).
+  - >-
+    Where an HMI or OPC UA audit shows a write by a valid account, check that
+    the account was at a console at the time (logons, remote sessions in
+    ICS-HUNT-0004); an intruder on the HMI appears as the logged-in operator.
+normal: >-
+  Every commanded change traces to an operator action, a switching or work
+  order, the program's own logic, or a protection trip with a fault record.
+suspicious: >-
+  Breaker operations with no fault record, switching order or operator
+  action; commands while no operator was logged on; bursts of commands across
+  many devices in address order; scilc.exe or scripts running on the SCADA
+  host just before the changes; OPC UA writes from a client the site does not
+  run.
+attack: [T0855, T0831]
+rules:
+  - 01-engineering-workstations/scada_microscada_scilc_program_executed.yml
+  - 01-engineering-workstations/ews_hmi_windows_script_host_execution.yml
+inferred: >-
+  Reconciling commanded-state changes against operator, OPC UA, controller and
+  protection records is this toolkit's method; the sources describe the
+  attacks (commands issued by tooling, not by operators) and the records that
+  exist, not this reconciliation. Its reach is limited by what the site
+  historises and audits: without commanded states in the historian or an
+  operator-action audit, this hunt is not evaluated.
+confidence: medium
+sources:
+  - title: Mandiant - Sandworm Disrupts Power in Ukraine Using a Novel Attack Against Operational Technology, ATT&CK mapping
+    url: https://cloud.google.com/blog/topics/threat-intelligence/sandworm-disrupts-power-ukraine-operational-technology/
+    accessed: "2026-11-08"
+    kind: researcher
+    quote: >-
+      Sandworm utilized “scilc.exe” to execute unauthorized SCIL commands that
+      would have caused the MicroSCADA server to relay the commands to the
+      substation RTUs
+    read: direct
+  - title: Mandiant - Sandworm Disrupts Power in Ukraine, monitoring recommendations
+    url: https://cloud.google.com/blog/topics/threat-intelligence/sandworm-disrupts-power-ukraine-operational-technology/
+    accessed: "2026-11-08"
+    kind: researcher
+    quote: >-
+      Command-line execution of MicroSCADA “Scilc.exe” binary and other native
+      MicroSCADA binaries that may be leveraged to execute unauthorized SCIL
+      program/commands.
+    read: direct
+  - title: CISA TA17-163A - CrashOverride Malware
+    url: https://www.cisa.gov/news-events/alerts/2017/06/12/crashoverride-malware
+    accessed: "2026-11-08"
+    kind: government
+    quote: >-
+      Issues valid commands directly to remote terminal units (RTUs) over ICS
+      protocols. As reported by Dragos, one such command sequence toggles
+      circuit breakers in a rapid open-close-open-close pattern.
+    read: direct
+  - title: Audit Log and Profiles (Ignition 8.1 User Manual)
+    url: https://www.docs.inductiveautomation.com/docs/8.1/platform/audit-log-and-profiles.md
+    accessed: "2026-11-08"
+    kind: vendor
+    quote: >-
+      Ignition's built-in auditing system automatically records certain
+      actions that occur in the system, such as a Tag writes or User Source
+      authentication, into a SQL database table. Utilizing the system involves
+      creating an Audit Profile, followed by enabling auditing in a project.
+    read: direct
+  - title: OPC 10000-3 Address Space Model - 9.5 AuditEventType
+    url: https://reference.opcfoundation.org/specs/OPC-10000-3/9.5
+    accessed: "2026-11-08"
+    kind: standard
+    quote: >-
+      AuditEvents are Events of AuditEventType that are generated as a result
+      of an action taken on the Server by a Client of the Server
+    read: direct
+  - title: Mandiant - INCONTROLLER, detection guidance
+    url: https://cloud.google.com/blog/topics/threat-intelligence/incontroller-state-sponsored-ics-tool/
+    accessed: "2026-11-08"
+    kind: researcher
+    quote: >-
+      Review OPC UA audit records for evidence of credential bruteforcing,
+      nefarious certificate usage, irregular connection attempts,
+      configuration changes, and changes to OPC tags.
+    read: direct

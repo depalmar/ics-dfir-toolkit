@@ -19,6 +19,7 @@ malware:
   - ICS-MAL-0009
 protocols:
   - ICS-PROTO-0001
+hunts: [ICS-HUNT-0014]
 summary: >-
   Ukraine's CSSC told Dragos of an attack on a Lviv district energy company in which adversaries sent
   Modbus commands to ENCO heating controllers, "causing inaccurate measurements and system malfunctions"

@@ -94,6 +94,13 @@ def test_upstream_reports_changed_and_unreachable_files():
     assert out["ICS-IOC-0002"]["now"].startswith("unreachable")
 
 
+def test_unreachable_reason_carries_the_http_status():
+    import urllib.error
+    err = urllib.error.HTTPError("https://example.org/x", 403, "Forbidden", {}, None)
+    assert aw.why(err) == "HTTPError 403"
+    assert aw.why(OSError("blocked")) == "OSError"
+
+
 def test_repository_watch_file_loads_and_every_named_cve_is_well_formed():
     watch = aw.load_watch()
     assert watch["platforms"] and watch["since"]

@@ -1,0 +1,60 @@
+title: Removable Disk, Portable Device or CD/DVD Drive Recognized on an EWS or HMI
+id: a67b1e85-9bc1-4711-a945-99f1cc840cb0
+status: experimental
+description: |
+  Security Event ID 6416, "A new external device was recognized by the
+  System", for the device setup classes that carry files: DiskDrive
+  (Microsoft's own 6416 example is an external Seagate disk in this class),
+  CDROM and WPD (Windows Portable Devices). Microsoft: "This event generates every time a new external device
+  is recognized by a system", in the Audit PNP Activity subcategory, which
+  "will help identify when and which Plug and Play device was attached";
+  Microsoft's own example is "whether a USB flash drive or stick was attached
+  to a critical server, which is typically not allowed". Class names and
+  GUIDs are Microsoft's system-defined device setup classes (CDROM
+  4d36e965-..., DiskDrive 4d36e967-..., WPD eec5ad98-...). Removable media is
+  how Stuxnet crossed to non-networked engineering hosts (Symantec; MITRE
+  T0847), and Sandworm's 2022 MicroSCADA attack began with "an ISO image
+  named 'a.iso' as a virtual CD-ROM" on a host "configured to permit inserted
+  CD-ROMs to autorun" (Mandiant, mapped to T0847). Whether inserting an ISO
+  into an existing virtual CD-ROM drive raises 6416 is not documented: for
+  virtual machines also read the hypervisor's record of media attached to the
+  VM. Needs "Audit PNP Activity" success auditing (Windows 10 / Server 2016
+  and later). The event says a device arrived, not what was copied or run:
+  follow with Removable Storage auditing (4663) and process creation
+  (ICS-HUNT-0019).
+references:
+  - https://learn.microsoft.com/en-us/previous-versions/windows/it-pro/windows-10/security/threat-protection/auditing/event-6416
+  - https://learn.microsoft.com/en-us/previous-versions/windows/it-pro/windows-10/security/threat-protection/auditing/audit-pnp-activity
+  - https://learn.microsoft.com/en-us/windows-hardware/drivers/install/system-defined-device-setup-classes-available-to-vendors
+  - https://cloud.google.com/blog/topics/threat-intelligence/sandworm-disrupts-power-ukraine-operational-technology/
+  - https://docs.broadcom.com/doc/security-response-w32-stuxnet-dossier-11-en
+author: Raymond DePalma (ics-dfir-toolkit)
+date: 2026-11-08
+tags:
+  - attack.initial-access
+  - attack.lateral-movement
+  - attack.t0847
+  - attack.t1091
+  - ics-dfir.ews-hmi
+logsource:
+  product: windows
+  service: security
+detection:
+  selection_event:
+    EventID: 6416
+    Provider_Name: 'Microsoft-Windows-Security-Auditing'
+  selection_class_name:
+    ClassName:
+      - 'DiskDrive'
+      - 'CDROM'
+      - 'WPD'
+  selection_class_id:
+    ClassId|contains:
+      - '4d36e967-e325-11ce-bfc1-08002be10318'
+      - '4d36e965-e325-11ce-bfc1-08002be10318'
+      - 'eec5ad98-8080-425f-922a-dabf3de3f69a'
+  condition: selection_event and 1 of selection_class_*
+falsepositives:
+  - Approved transfer media used under the site's removable-media procedure; record the device instance path (DeviceId) of approved media and suppress it
+  - A new internal disk or a rebuilt host enumerating its own drives
+level: medium

@@ -1,0 +1,234 @@
+# Detection pack ICS-PACK-0007
+# Schema: ../schema/pack.schema.json
+# Research notes: docs/research/2026-11-08/detections-round5.md
+#
+# Detections of type "check", "path_exists" and "logic_compare" name
+# evaluation steps for the triage engine, which is not built yet
+# (docs/ROADMAP.md); until then they are manual steps, and the Sigma files
+# linked in "rules" are what can be deployed today. Many hosts that still run
+# Step 7 (classic) or older WinCC are too old for current Sysmon (Windows 11 /
+# Server 2019 and later); on those the Sigma rules see nothing and the file,
+# registry and memory checks carry the pack. A controller whose blocks were
+# not read from a clean engineering host and compared with the approved
+# project has not been shown to be unmodified.
+
+id: ICS-PACK-0007
+name: Stuxnet on Step 7 and WinCC hosts, their projects and media, and S7-300/400 controllers
+platforms: [ICS-0004, ICS-0010, ICS-0011]
+protocols: [ICS-PROTO-0002]
+malware: [ICS-MAL-0001]
+summary: >-
+  Stuxnet is old, but its route is the general one for engineering-host
+  attacks and every piece of it left an artefact Symantec documented: two
+  drivers signed with stolen Realtek and JMicron certificates that VeriSign
+  revoked in July 2010, registered as services (MrxCls as a boot start
+  service that injects Stuxnet into the SIMATIC Manager and the WinCC project
+  manager; MrxNet as the Windows rootkit); a replaced Step 7 communication
+  library, s7otbxdx.dll, with the original renamed s7otbxsx.dll, which holds
+  the PLC rootkit and returns cleaned blocks to the engineer; import-table
+  hooks in the SIMATIC Manager that catch project opens; files written into
+  Step 7 and WinCC project folders so that opening the project runs Stuxnet;
+  loader and shortcut files on removable drives; and, on 6ES7-315-2 and
+  S7-417 CPUs, an infected OB1 and OB35 and a set of extra code and data
+  blocks. Symantec: "One can recognize an infected PLC in a clean environment
+  by examining blocks OB1 and OB35." This pack states those artefacts as
+  detections with MITRE's technique mapping. The controller check needs a
+  clean engineering host: one that showed any host-side detection here reads
+  its PLCs through the rootkit.
+confidence: high
+references:
+  - title: Symantec - W32.Stuxnet Dossier v1.4 (Falliere, O Murchu, Chien, February 2011)
+    url: https://docs.broadcom.com/doc/security-response-w32-stuxnet-dossier-11-en
+    accessed: "2026-11-08"
+  - title: MITRE ATT&CK - Stuxnet (S0603)
+    url: https://attack.mitre.org/software/S0603/
+    accessed: "2026-11-08"
+  - title: Sysmon v15.22 (Microsoft Sysinternals)
+    url: https://learn.microsoft.com/en-us/sysinternals/downloads/sysmon
+    accessed: "2026-11-08"
+
+detect:
+  - id: stuxnet-rootkit-driver-loaded
+    title: mrxcls.sys or mrxnet.sys loaded as a driver
+    type: check
+    check: windows_event_query
+    args:
+      channel: Microsoft-Windows-Sysmon/Operational
+      event_id: 6
+      ImageLoaded: [mrxcls.sys, mrxnet.sys]
+    tier: likely
+    evidence_class: persistence
+    datasources: [ICS-DS-0006]
+    attack: [T1014, T1553.002, T1543.003]
+    rules: [01-engineering-workstations/ews_stuxnet_rootkit_driver_loaded.yml]
+    notes: >-
+      Rises to confirmed when the hash matches a published Stuxnet driver or
+      the signer is one of the revoked certificates below.
+
+  - id: stuxnet-driver-service-keys
+    title: MRxCls or MRxNet service registry keys present or written
+    type: check
+    check: windows_event_query
+    args:
+      channel: Microsoft-Windows-Sysmon/Operational
+      event_id: [12, 13]
+      TargetObject: ['\Services\MRxCls\ImagePath', '\Services\MRxCls\Data', '\Services\MRxNet\ImagePath']
+    tier: likely
+    evidence_class: persistence
+    datasources: [ICS-DS-0006]
+    attack: [T1543.003, T1112, T1014]
+    rules: [01-engineering-workstations/ews_stuxnet_driver_service_registered.yml]
+    notes: >-
+      On hosts without Sysmon, read the keys from an offline copy of the
+      SYSTEM hive; Symantec gives ImagePath "%System%\drivers\mrxcls.sys"
+      and "%System%\drivers\mrxnet.sys".
+
+  - id: driver-signed-with-revoked-certificate
+    title: A loaded or installed driver whose signing certificate is revoked
+    type: check
+    check: driver_signature_review
+    args:
+      sources: [Sysmon event 6 signature fields, offline signature verification with revocation checking]
+    tier: possible
+    evidence_class: integrity
+    datasources: [ICS-DS-0006]
+    attack: [T1553.002, T1014]
+    notes: >-
+      Symantec: MrxCls was signed with a Realtek certificate "revoked on July
+      16, 2010 by Verisign", and a variant with a JMicron certificate that
+      VeriSign revoked on 22 July 2010. Sysmon checks revocation unless
+      CheckRevocation is turned off. The exact text Sysmon writes for a
+      revoked signature was not read, so this is a review step, not a
+      pattern. Likely when the driver is not one the host's hardware needs.
+
+  - id: stuxnet-host-files
+    title: Stuxnet driver and payload files present on a Windows host
+    type: path_exists
+    paths:
+      - '%System%\drivers\mrxcls.sys'
+      - '%System%\drivers\mrxnet.sys'
+      - '%Windir%\inf\oem7A.PNF'
+      - '%SystemDrive%\inf\mdmeric3.PNF'
+      - '%SystemDrive%\inf\mdmcpq3.PNF'
+      - '%SystemDrive%\inf\oem6C.PNF'
+      - '%Windir%\help\winmic.fts'
+    tier: likely
+    evidence_class: filesystem
+    datasources: [ICS-DS-0006]
+    attack: [T1014]
+    notes: >-
+      Paths exactly as Symantec writes them; Symantec gives %Windir%\inf for
+      oem7A.PNF and %SystemDrive%\inf for the other three PNF files, so check
+      %Windir%\inf for all four as well (this toolkit's addition). File times
+      are set to match neighbouring system files and prove nothing. Read from
+      an image or a trusted boot where possible.
+
+  - id: step7-library-renamed-or-replaced
+    title: s7otbxsx.dll present, or s7otbxdx.dll differs from the Step 7 installation media
+    type: check
+    check: file_name_and_hash_review
+    args:
+      names: [s7otbxsx.dll, s7otbxdx.dll]
+      reference: Step 7 installation media of the installed version
+    tier: likely
+    evidence_class: filesystem
+    datasources: [ICS-DS-0006, ICS-DS-0007]
+    attack: [T0849, T0851]
+    rules:
+      - 01-engineering-workstations/ews_step7_s7otbxsx_library_loaded.yml
+      - 01-engineering-workstations/ews_step7_s7otbx_library_written.yml
+    notes: >-
+      Symantec: the original library is renamed s7otbxsx.dll and replaced;
+      "The Stuxnet PLC rootkit code is contained entirely in the fake
+      s7otbxdx.dll." Confirmed when s7otbxsx.dll exists beside an
+      s7otbxdx.dll whose hash is not the vendor's. Without the installation
+      media's hash only the s7otbxsx.dll half is evaluated.
+
+  - id: simatic-manager-import-table-hooks
+    title: CreateFileA or StgOpenStorage redirected in the SIMATIC Manager or WinCC project manager
+    type: check
+    check: memory_hook_scan
+    args:
+      processes: [s7tgtopx.exe, CCProjectMgr.exe]
+      modules: [s7apromx.dll, mfc42.dll, msvcrt.dll, ccprojectmgr.exe]
+      functions: [CreateFileA, StgOpenStorage]
+    tier: likely
+    evidence_class: memory
+    attack: [T0874]
+    notes: >-
+      Symantec: "In s7apromx.dll, mfc42.dll, and msvcrt.dll, CreateFileA is
+      replaced to point to “CreateFileA_hook”", and StgOpenStorage in
+      ccprojectmgr.exe. Needs a memory image of the running process, taken
+      with operations' agreement on an engineering host; not evaluated
+      without one.
+
+  - id: stuxnet-project-infection-files
+    title: Stuxnet files inside Step 7 or WinCC project folders or project archives
+    type: check
+    check: project_tree_search
+    args:
+      names:
+        - 'xutils\listen\xr000000.mdx'
+        - 'xutils\links\s7p00001.dbf'
+        - 'xutils\listen\s7000001.mdx'
+        - 'GracS\cc_alg.sav'
+        - 'GracS\db_log.sav'
+        - 'GracS\cc_tlg7.sav'
+        - 'GracS\cc_tag.sav'
+      include_archives: true
+    tier: likely
+    evidence_class: project-files
+    datasources: [ICS-DS-0007, ICS-DS-0006]
+    attack: [T0873, T0873.001]
+    rules: [01-engineering-workstations/ews_stuxnet_step7_wincc_project_infection_files.yml]
+    notes: >-
+      Search project folders on every engineering host, file server, backup
+      and transfer drive, including .zip copies (Symantec: a project path may
+      be "a path to zip file containing the project"). An infected project
+      infects whoever opens it next, so every host that opened it is in
+      scope.
+
+  - id: stuxnet-removable-drive-files
+    title: Stuxnet loader and shortcut files on a removable drive
+    type: check
+    check: windows_event_query
+    args:
+      channel: Microsoft-Windows-Sysmon/Operational
+      event_id: 11
+      names: ['~WTR4132.tmp', '~WTR4141.tmp', 'Copy of Shortcut to.lnk']
+    tier: likely
+    evidence_class: filesystem
+    datasources: [ICS-DS-0006]
+    attack: [T0847, T1091]
+    rules: [01-engineering-workstations/ews_stuxnet_removable_drive_lnk_and_loader_files.yml]
+    notes: >-
+      The MrxNet rootkit hides these names on an infected host; read the
+      media from a clean host as well. ICS-HUNT-0019 covers media arrivals in
+      general.
+
+  - id: s7-blocks-differ-from-approved-read-from-clean-host
+    title: OB1, OB35 or the block list of an S7-300/400 differs from the approved project when read from a clean engineering host
+    type: logic_compare
+    tier: likely
+    evidence_class: control-logic
+    datasources: [ICS-DS-0007]
+    attack: [T0821, T0889, T0851, T0801, T0835, T0877]
+    notes: >-
+      Symantec: an infected OB1 begins by calling FC1865 and testing
+      DW#16#DEADF007, an infected OB35 begins by calling FC1874, the original
+      DP_RECV is kept as FC1869, and sequences A and B add code blocks
+      numbered 1865-1880 and data blocks 888-891 (DB890 is the block the
+      Windows side polls); on S7-417 the sequence creates DB8064-DB8070,
+      where "The input area of an I/O image is copied into each sub-block
+      with a one second interval between copies, forming a 21 second
+      recording of the input area", and expects DB8061. MITRE maps the OB1
+      and OB35 infection to T0821, the injected sequences to T0889, the
+      recording to T0877, the output interception to T0835 and the DP_RECV
+      monitor to T0801. The comparison finds the blocks that carry those
+      techniques, not the acts. Read the blocks from an engineering host that
+      passed every host-side check above - the rootkit returns cleaned OB1
+      and OB35 and hides its own blocks - with operations' approval, since
+      going online is online-vendor-tool. Symantec found the S7-417 sequence
+      incomplete (DB8061 is never created), so the absence of DB8064-DB8070
+      does not clear a 417. Confirmed when OB1 or OB35 carries the documented
+      opening or the extra blocks are present.

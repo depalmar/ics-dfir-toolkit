@@ -1,0 +1,49 @@
+title: BlackEnergy Installer Names From the GE Cimplicity HMI Exploitation Run or Copied
+id: fb93f64d-d342-43ed-a27a-5c9937cebb6e
+status: experimental
+description: |
+  Process creation (Sysmon Event ID 1 / Security 4688) for the BlackEnergy
+  installer names CISA documents from the exploitation of internet-facing GE
+  Cimplicity HMIs through CVE-2014-0751 (ICS-ALERT-14-281-01E): "attackers
+  were able to have the HMI server execute a malicious .cim file [Cimplicity
+  screen file] hosted on an attacker-controlled server". The devlist.cim
+  screen's script saved a .wsf script with a random 41-character name in the
+  Cimplicity directory, ran it with cscript.exe, and that script saved and
+  ran "CimWrapPNPS.exe"; the config.bak screen ran cmd.exe to copy
+  default.txt from a remote \\...\public share to "%CIMPATH%\CimCMSafegs.exe"
+  and started it.
+  CISA: both are "a BlackEnergy installer that deletes itself after the
+  malware is installed", so the process record may be the only trace. The
+  rule matches the image names and any command line naming them. CISA did
+  not identify the infection vector for Advantech/Broadwin WebAccess and
+  lacked definitive information for WinCC, so nothing here covers those.
+  ICS-HUNT-0021 covers the vector itself (remote screen loads in the
+  Cimplicity log and SMB from the HMI to the internet); the existing
+  Windows Script Host rule catches the cscript step.
+references:
+  - https://www.cisa.gov/news-events/ics-alerts/ics-alert-14-281-01e
+author: Raymond DePalma (ics-dfir-toolkit)
+date: 2026-11-08
+tags:
+  - attack.initial-access
+  - attack.execution
+  - attack.t0819
+  - attack.t1190
+  - cve.2014-0751
+  - ics-dfir.ews-hmi
+logsource:
+  category: process_creation
+  product: windows
+detection:
+  selection_image:
+    Image|endswith:
+      - '\CimWrapPNPS.exe'
+      - '\CimCMSafegs.exe'
+  selection_cmdline:
+    CommandLine|contains:
+      - 'CimWrapPNPS.exe'
+      - 'CimCMSafegs.exe'
+  condition: 1 of selection_*
+falsepositives:
+  - None described by CISA, which identifies both names as BlackEnergy installers; confirm by hash before acting
+level: critical

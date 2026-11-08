@@ -1,0 +1,40 @@
+# 02-ot-network/smb_and_rpc_sessions_from_ot_hosts.rules
+# Two Windows-networking patterns from OT hosts that recorded ICS malware
+# produced, matched on ports only.
+#
+# SMB to outside (sid 9000021): CISA ICS-ALERT-14-281-01E - on internet-facing
+# GE Cimplicity HMIs, "attackers were able to have the HMI server execute a
+# malicious .cim file [Cimplicity screen file] hosted on an attacker-controlled
+# server"; the HMI's own log shows screens served from UNC paths on
+# attacker servers (CISA's examples are \\<address>\<share>\<file>, with the
+# addresses given in the alert and not retyped here), and the config.bak
+# script used "cmd.exe /c copy" from such a share to fetch the BlackEnergy
+# installer. A control-network host has no reason to open SMB (139/445,
+# Microsoft's ports for the NetBIOS Session Service and SMB) to an address
+# outside HOME_NET. Whether a UNC load that fails over SMB falls back to
+# another transport is not stated by CISA; this rule sees SMB only.
+#
+# RPC endpoint-mapper fan-out (sid 9000022): CISA ICS-ALERT-14-176-02A - the
+# Havex payload "enumerates all connected network resources such as computers
+# or shared resources, and uses the classic DCOM-based (Distributed Component
+# Object Model) version of the Open Platform Communications (OPC) standard to
+# gather information about connected control system resources". Microsoft:
+# "The Remote Procedure Call (RPC) client first connects to the RPC Endpoint
+# Mapper on TCP port 135. The endpoint mapper then directs the client to a
+# dynamically assigned TCP port". One host sending connection attempts to
+# 135/tcp on many OT hosts in a short window is therefore what DCOM-based
+# OPC enumeration looks like at port level. That last step is this toolkit's
+# inference, not CISA's; the count and window are starting values. Domain
+# controllers, management and backup servers, and SCADA servers that poll
+# many OPC Classic servers do the same: suppress them by address after
+# review.
+#
+# Header, flow and threshold keywords only; no DCE/RPC, SMB or OPC
+# application-layer keyword. A hit says sessions were attempted, not what
+# they did. Read the Zeek dce_rpc and smb logs and the target hosts' own logs
+# for the same minutes (ICS-HUNT-0020, ICS-HUNT-0021).
+#
+# Linked from ICS-HUNT-0020 and ICS-HUNT-0021.
+
+alert tcp $HOME_NET any -> $EXTERNAL_NET [139,445] (msg:"ICS-DFIR OT host opened an SMB session (139/445) to outside HOME_NET - remote file or screen load"; flow:established,to_server; threshold:type limit, track by_both, count 1, seconds 3600; reference:url,www.cisa.gov/news-events/ics-alerts/ics-alert-14-281-01e; classtype:policy-violation; sid:9000021; rev:1;)
+alert tcp $HOME_NET any -> $HOME_NET 135 (msg:"ICS-DFIR One OT host sent connection attempts to RPC endpoint mapper 135/tcp on many hosts - possible DCOM/OPC Classic enumeration"; flags:S,12; threshold:type both, track by_src, count 20, seconds 300; reference:url,www.cisa.gov/news-events/ics-alerts/ics-alert-14-176-02a; classtype:attempted-recon; sid:9000022; rev:1;)

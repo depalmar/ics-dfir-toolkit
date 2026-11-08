@@ -1,0 +1,42 @@
+title: Step 7 Communication Library Loaded Under the Stuxnet Rename s7otbxsx.dll
+id: 4d81ccc0-14e1-497d-b2dc-36484b93563e
+status: experimental
+description: |
+  Sysmon Event ID 7 (Image loaded) for s7otbxsx.dll. Symantec's W32.Stuxnet
+  Dossier: "once Stuxnet executes, it renames the original s7otbxdx.dll file
+  to s7otbxsx.dll. It then replaces the original .dll file with its own
+  version." The replacement forwards 93 of the original 109 exports "to the
+  real .dll file, now called s7otbxsx.dll" and intercepts the 16 that read,
+  write and enumerate PLC blocks, so every Step 7 process that talks to a PLC
+  through the fake library loads s7otbxsx.dll. Symantec: "The Stuxnet PLC
+  rootkit code is contained entirely in the fake s7otbxdx.dll"; it returns
+  cleaned copies of infected OB1 and OB35, hides Stuxnet's own blocks and
+  replays recorded values to WinCC through hooked read functions. MITRE maps
+  the rename and replacement to Masquerading (T0849) and the fake library to
+  Rootkit (T0851). A legitimate Step 7 installation has a single
+  s7otbxdx.dll and no s7otbxsx.dll (ICS-0010). Image-load logging is off by
+  default in Sysmon; configure it narrowly for this name. A Step 7 host
+  showing this load cannot be trusted to read its PLCs: compare the PLC
+  blocks from a clean engineering host (ICS-PACK-0007).
+references:
+  - https://docs.broadcom.com/doc/security-response-w32-stuxnet-dossier-11-en
+  - https://attack.mitre.org/software/S0603/
+  - https://learn.microsoft.com/en-us/sysinternals/downloads/sysmon
+author: Raymond DePalma (ics-dfir-toolkit)
+date: 2026-11-08
+tags:
+  - attack.evasion
+  - attack.inhibit-response-function
+  - attack.t0849
+  - attack.t0851
+  - ics-dfir.ews-hmi
+logsource:
+  category: image_load
+  product: windows
+detection:
+  selection:
+    ImageLoaded|endswith: '\s7otbxsx.dll'
+  condition: selection
+falsepositives:
+  - None described in the sources read; Symantec presents s7otbxsx.dll only as Stuxnet's rename of the original library. No Siemens documentation was read for this rule
+level: critical

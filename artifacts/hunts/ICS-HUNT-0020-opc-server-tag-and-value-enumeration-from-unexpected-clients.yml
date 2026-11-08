@@ -1,0 +1,183 @@
+# ICS hunt ICS-HUNT-0020
+# Schema: ../schema/hunt.schema.json
+# Research notes: docs/research/2026-11-08/detections-round5.md
+
+id: ICS-HUNT-0020
+title: Network, OPC server, tag and value enumeration from hosts outside the OPC client baseline (OPC Classic over DCOM and OPC UA)
+platforms: [ICS-0011, ICS-0015]
+protocols: [ICS-PROTO-0011, ICS-PROTO-0010]
+actors: [ICS-TA-0017, ICS-TA-0005]
+malware: [ICS-MAL-0002, ICS-MAL-0007]
+hypothesis: >-
+  A host that is not one of the site's OPC clients enumerated the control
+  network and then the OPC servers on it - server identities, the tag
+  inventory and tag values - as Havex's OPC payload did over DCOM and
+  INCONTROLLER's TAGRUN does over OPC UA. This is reconnaissance for a later
+  attack, and Havex's scanning alone crashed OPC servers.
+data: [netflow, ics-network-capture, firewall, windows-events, controller-audit]
+datasources: [ICS-DS-0003, ICS-DS-0001, ICS-DS-0002, ICS-DS-0004, ICS-DS-0006, ICS-DS-0010]
+data_detail: >-
+  Flow records and Zeek conn.log inside the control network (dce_rpc and smb
+  logs where Zeek decodes them); the Suricata rule below; internal and DMZ
+  firewall logs where OPC traffic crosses a zone; Security logon events and
+  application crash records on the OPC Classic server hosts; OPC UA audit
+  events received by a subscribed audit client or persisted by the server
+  (ICS-0015; persistence is optional); and, where OPC UA runs without
+  encryption, the ICSNPP OPC UA Binary logs opcua_binary_create_session.log,
+  opcua_binary_browse.log and opcua_binary_read.log.
+method:
+  - >-
+    Write down the OPC client baseline with operations: for each OPC Classic
+    server and OPC UA server, the HMIs, historian collectors, MES and
+    engineering hosts that connect to it, and the OPC UA client application
+    certificates and user accounts they use. CISA's own Havex mitigation is
+    strict access control lists for OPC clients and servers; the list is the
+    hunt's reference.
+  - >-
+    Network enumeration (T0840, T0846): in flow data, find any host that
+    opened sessions to many control-network hosts in a short window - ICMP
+    echo fan-out (Mandiant asks for pingsweeps), Windows file-and-print
+    sharing ports 137-139 and 445, and the RPC endpoint mapper on 135/tcp -
+    followed by sessions to high ports on the hosts that answered (Microsoft:
+    the endpoint mapper directs the client to a dynamically assigned port).
+    The Suricata rule below raises the 135/tcp fan-out.
+  - >-
+    OPC Classic (T0888, T0861): for each such host and each OPC Classic
+    server it reached, list network logons (Security 4624) on the server
+    host from that source at those minutes, and crashes or restarts of the
+    OPC server process in the same window (CISA: the payload "caused
+    multiple common OPC platforms to intermittently crash"; see
+    ICS-HUNT-0013 for restarts).
+  - >-
+    OPC UA (T0861, T0801): from the server's audit events, list session
+    creation and activation (AuditCreateSession, AuditActivateSession) by
+    client application, certificate and user, and mark those outside the
+    baseline, including failed activations (credential brute force). From
+    passive capture, count records per client address in
+    opcua_binary_create_session.log, opcua_binary_browse.log and
+    opcua_binary_read.log. A client new to the server that creates a session,
+    produces a long run of browse records (Mandiant: TAGRUN reads "the
+    structure of OPC UA servers") and then reads values is the pattern
+    Mandiant maps to Point & Tag Identification and Monitor Process State.
+    This step counts log records per client; it does not decode or match
+    service content.
+  - >-
+    Modbus register polling by a new client - FrostyGoop's read side - is
+    ICS-HUNT-0002's case (new client to a controller on 502) and is not
+    repeated here.
+normal: >-
+  OPC sessions only from the listed clients with their known certificates
+  and accounts; browse activity at client start-up or after an engineering
+  change; no host fanning out across the control network.
+suspicious: >-
+  A host outside the baseline sweeping the control network and then opening
+  DCOM sessions to OPC Classic servers; network logons on an OPC server from
+  that host; OPC servers crashing during the sweep; OPC UA sessions from an
+  unknown client certificate or user, especially one that browses the whole
+  address space and then reads many values; failed session activations in
+  bursts.
+attack: [T0840, T0846, T0888, T0861, T0801]
+rules:
+  - 02-ot-network/smb_and_rpc_sessions_from_ot_hosts.rules
+inferred: >-
+  The baseline comparison and the reading of DCOM and OPC UA enumeration
+  from flow, logon and log-volume data are this toolkit's method. CISA
+  describes Havex enumerating network resources and querying OPC servers
+  over DCOM; Microsoft describes the endpoint-mapper-then-dynamic-port
+  pattern; that Windows networking discovery appears on ports 137-139 and
+  445 is inferred from Microsoft's port list, not stated by CISA. CISA maps
+  Havex's WNet discovery to Remote System Discovery (T0846); this
+  repository's Havex record maps its enumeration of "connected network
+  resources" to Network Connection Enumeration (T0840); the hunt carries
+  both. OPC UA browse and read are not audit events, so without passive
+  capture of an unencrypted channel the OPC UA part rests on session audit
+  alone; with SignAndEncrypt the capture shows only metadata.
+confidence: medium
+sources:
+  - title: CISA ICS-ALERT-14-176-02A - ICS Focused Malware (Update A), Havex payload
+    url: https://www.cisa.gov/news-events/ics-alerts/ics-alert-14-176-02a
+    accessed: "2026-11-08"
+    kind: government
+    quote: >-
+      F-Secure and ICS-CERT identified and analyzed one payload that
+      enumerates all connected network resources such as computers or shared
+      resources, and uses the classic DCOM-based (Distributed Component Object
+      Model) version of the Open Platform Communications (OPC) standard to
+      gather information about connected control system resources within the
+      network.
+    read: direct
+  - title: CISA ICS-ALERT-14-176-02A, tag enumeration
+    url: https://www.cisa.gov/news-events/ics-alerts/ics-alert-14-176-02a
+    accessed: "2026-11-08"
+    kind: government
+    quote: >-
+      In addition to more generic OPC server information, the Havex payload
+      also has the capability of enumerating OPC tags. Specifically the server
+      is queried for tag name, type, access, and id.
+    read: direct
+  - title: CISA ICS-ALERT-14-176-02A, OPC-specific recommendations
+    url: https://www.cisa.gov/news-events/ics-alerts/ics-alert-14-176-02a
+    accessed: "2026-11-08"
+    kind: government
+    quote: >-
+      Enforce strict access control lists and authentication protocols for
+      network level access to OPC clients and servers.
+    read: direct
+  - title: CISA AA22-083A - Tactics, Techniques, and Procedures of Indicted State-Sponsored Russian Cyber Actors Targeting the Energy Sector, Table 2 (Havex, ATT&CK for ICS)
+    url: https://www.cisa.gov/news-events/cybersecurity-advisories/aa22-083a
+    accessed: "2026-11-08"
+    kind: government
+    quote: >-
+      Havex uses Windows networking (WNet) to discover all the servers,
+      including OPC servers that are reachable by the compromised machine over
+      the network.
+    read: direct
+  - title: Mandiant - INCONTROLLER, TAGRUN capabilities
+    url: https://cloud.google.com/blog/topics/threat-intelligence/incontroller-state-sponsored-ics-tool/
+    accessed: "2026-11-08"
+    kind: researcher
+    quote: Reading the structure of OPC UA servers
+    read: direct
+  - title: Mandiant - INCONTROLLER, TAGRUN ATT&CK for ICS mapping (Table 2)
+    url: https://cloud.google.com/blog/topics/threat-intelligence/incontroller-state-sponsored-ics-tool/
+    accessed: "2026-11-08"
+    kind: researcher
+    quote: >-
+      TAGRUN Collection T0801: Monitor Process State TAGRUN Collection T0861:
+      Point & Tag Identification
+    read: direct
+  - title: Mandiant - INCONTROLLER, discovery methods for TAGRUN
+    url: https://cloud.google.com/blog/topics/threat-intelligence/incontroller-state-sponsored-ics-tool/
+    accessed: "2026-11-08"
+    kind: researcher
+    quote: >-
+      Search for and investigate irregular connections to OPC UA endpoints and
+      enable robust audit logging for OPC UA applications.
+    read: direct
+  - title: Mandiant - INCONTROLLER, discovery methods for TAGRUN (pingsweep)
+    url: https://cloud.google.com/blog/topics/threat-intelligence/incontroller-state-sponsored-ics-tool/
+    accessed: "2026-11-08"
+    kind: researcher
+    quote: Review OT network traffic for evidence of pingsweep activity.
+    read: direct
+  - title: Microsoft Learn - Troubleshoot network security group misconfigurations, Windows management tools that require RPC and DCOM
+    url: https://learn.microsoft.com/en-us/troubleshoot/azure/virtual-network/virtual-network-troubleshoot-nsg-blocking-traffic
+    accessed: "2026-11-08"
+    kind: vendor
+    quote: >-
+      The Remote Procedure Call (RPC) client first connects to the RPC
+      Endpoint Mapper on TCP port 135. The endpoint mapper then directs the
+      client to a dynamically assigned TCP port on the remote VM.
+    read: direct
+  - title: Microsoft Learn - Ports that are used by Remote Desktop Services, Remote Desktop Licensing Server (NetBIOS)
+    url: https://learn.microsoft.com/en-us/troubleshoot/windows-server/remote/ports-used-by-rds
+    accessed: "2026-11-08"
+    kind: vendor
+    quote: "UDP 137: Used for NetBIOS name resolution."
+    read: direct
+  - title: ICSNPP OPC UA Binary README (cisagov/icsnpp-opcua-binary), Browse Service logs
+    url: https://github.com/cisagov/icsnpp-opcua-binary
+    accessed: "2026-11-08"
+    kind: government
+    quote: This log captures the details associated with calls to the Browse Service.
+    read: direct

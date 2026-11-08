@@ -5,7 +5,7 @@ alongside `ICS-DS-0001` (Zeek/ICSNPP) for what each flagged session did.
 Detection packs: `ICS-PACK-0001`, `ICS-PACK-0002`, `ICS-PACK-0003`,
 `ICS-PACK-0005`. Hunts: `ICS-HUNT-0001`, `ICS-HUNT-0002`, `ICS-HUNT-0004`,
 `ICS-HUNT-0007`, `ICS-HUNT-0009`, `ICS-HUNT-0010`, `ICS-HUNT-0013`,
-`ICS-HUNT-0016`.
+`ICS-HUNT-0016`, `ICS-HUNT-0020`, `ICS-HUNT-0021`, `ICS-HUNT-0022`.
 
 ## Rules
 
@@ -16,6 +16,8 @@ Detection packs: `ICS-PACK-0001`, `ICS-PACK-0002`, `ICS-PACK-0003`,
 | `unitronics_port_inbound.rules` | 9000012-9000013 | Sessions to 20256 from outside, and to 20257 from anywhere | AA23-335A |
 | `ot_protocol_outbound_to_external.rules` | 9000014 | An OT host opening an industrial-protocol-port session to outside HOME_NET | NCSC-led connectivity principles; AA25-343A |
 | `relay_and_rtu_service_sessions.rules` | 9000015-9000018 | UDP 50000 to SIPROTEC EN100 devices, and FTP (FTP_PORTS) to relays and RTUs, each from outside HOME_NET and between OT hosts | CISA ICSA-15-202-01 (CVE-2015-5374, "Monitor traffic ... on Port 50000/UDP"); CERT Polska (Relion FTP file deletion) |
+| `inbound_scans_of_ot_ranges.rules` | 9000019-9000020 | One outside source sending SYNs to 5900-5910, or to 102/502/2222/44818, across HOME_NET (threshold by source) | AA25-343A (Nmap/OpenVAS search for VNC, T1595.002); AA26-097A (ports targeted on PLCs) |
+| `smb_and_rpc_sessions_from_ot_hosts.rules` | 9000021-9000022 | An OT host opening SMB (139/445) to outside HOME_NET; one OT host sending SYNs to 135/tcp on many hosts (DCOM/OPC Classic enumeration pattern) | CISA ICS-ALERT-14-281-01E (remote Cimplicity screen loads); CISA ICS-ALERT-14-176-02A (Havex OPC enumeration); Microsoft (RPC endpoint mapper on 135) |
 
 ## Deploying
 
@@ -41,7 +43,13 @@ Detection packs: `ICS-PACK-0001`, `ICS-PACK-0002`, `ICS-PACK-0003`,
   completed (the device answered), and `threshold: type limit, track by_both,
   count 1, seconds 3600` raises at most one alert per source-destination pair
   per hour. Scans of closed ports do not fire; read firewall denies for those
-  (ICS-HUNT-0001).
+  (ICS-HUNT-0001). The exceptions are the scan rules (sids 9000019, 9000020,
+  9000022), which match the opening SYN (`flags:S,12`) and use `threshold:
+  type both, track by_src` so that one source reaching the count in the
+  window raises one alert; their counts and windows are starting values to
+  tune, and the 135/tcp rule fires on domain controllers, management servers
+  and SCADA servers that legitimately poll many hosts until those are
+  suppressed by address.
 - A hit says a session reached a port. It does not say what the session did:
   pull the Zeek protocol logs for the same flow, and the controller's own log
   for the same minutes.

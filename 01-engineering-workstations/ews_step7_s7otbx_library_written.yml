@@ -1,0 +1,40 @@
+title: Step 7 PLC Communication Library s7otbxdx.dll or s7otbxsx.dll Written
+id: 7a93d9f8-f31e-4bfa-bc19-e583a494fe55
+status: experimental
+description: |
+  Sysmon Event ID 11 (FileCreate: a file created or overwritten) for
+  s7otbxdx.dll or s7otbxsx.dll. Symantec's W32.Stuxnet Dossier: the original
+  s7otbxdx.dll "is responsible for handling PLC block exchange between the
+  programming device ... and the PLC"; Stuxnet's export 17 drops resource 208,
+  "a malicious replacement for Simatic's s7otbxdx.dll file", after renaming
+  the original to s7otbxsx.dll. Writing the replacement is a create or
+  overwrite of s7otbxdx.dll by a process that is not a Siemens installer;
+  whether a rename alone produces Event ID 11 is not stated by Microsoft, so
+  the s7otbxsx.dll name is matched as well but its absence proves nothing.
+  MITRE maps the replacement to Masquerading (T0849) and the fake library to
+  Rootkit (T0851). Expect hits during Step 7 installation, upgrade or repair;
+  anything else on an engineering host needs an owner, and the library's
+  hash should be compared with the installation media.
+references:
+  - https://docs.broadcom.com/doc/security-response-w32-stuxnet-dossier-11-en
+  - https://attack.mitre.org/software/S0603/
+  - https://learn.microsoft.com/en-us/sysinternals/downloads/sysmon
+author: Raymond DePalma (ics-dfir-toolkit)
+date: 2026-11-08
+tags:
+  - attack.evasion
+  - attack.t0849
+  - attack.t0851
+  - ics-dfir.ews-hmi
+logsource:
+  category: file_event
+  product: windows
+detection:
+  selection:
+    TargetFilename|endswith:
+      - '\s7otbxdx.dll'
+      - '\s7otbxsx.dll'
+  condition: selection
+falsepositives:
+  - Step 7 installation, upgrade or repair writes s7otbxdx.dll; confirm the writing process and change record, and compare the file's hash with the installation media
+level: high

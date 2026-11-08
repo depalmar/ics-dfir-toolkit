@@ -1,0 +1,49 @@
+title: Stuxnet MrxCls or MrxNet Rootkit Driver Loaded on an EWS or HMI
+id: 0cd20185-9ac6-4151-a994-ed583db4c17b
+status: experimental
+description: |
+  Sysmon Event ID 6 (Driver loaded) for mrxcls.sys or mrxnet.sys. Symantec's
+  W32.Stuxnet Dossier documents both as Stuxnet's drivers, written to
+  %System%\drivers and registered as services: MrxCls "is a driver digitally
+  signed with a compromised Realtek certificate that was revoked on July 16,
+  2010 by Verisign", registered as a boot start service that injects Stuxnet
+  into services.exe, the SIMATIC Manager (s7tgtopx.exe) and the WinCC project
+  manager (CCProjectMgr.exe); MrxNet is the Windows rootkit that hides
+  Stuxnet's removable-drive files, also signed with the Realtek certificate,
+  and "A different version of the driver was also found signed by a different
+  compromised digital certificate from JMicron." MITRE maps the rootkit to
+  T1014 and the signed driver to T1553.002. Symantec also records that the
+  driver files are timestomped "to match the times of other files in the
+  system directory", so file times prove nothing. A renamed driver is missed
+  by this name match: also review Event ID 6 for drivers whose Signature
+  names Realtek Semiconductor or JMicron Technology on hosts without that
+  hardware, and for any signature that is not valid (Sysmon checks
+  revocation unless CheckRevocation is turned off). Current Sysmon runs only
+  on Windows 11 / Server 2019 and later, so many legacy EWS and HMI hosts
+  cannot produce this event at all; on those, check the files and the
+  services registry keys from an offline copy (ICS-PACK-0007).
+references:
+  - https://docs.broadcom.com/doc/security-response-w32-stuxnet-dossier-11-en
+  - https://attack.mitre.org/software/S0603/
+  - https://learn.microsoft.com/en-us/sysinternals/downloads/sysmon
+author: Raymond DePalma (ics-dfir-toolkit)
+date: 2026-11-08
+tags:
+  - attack.persistence
+  - attack.evasion
+  - attack.t1014
+  - attack.t1553.002
+  - attack.t1543.003
+  - ics-dfir.ews-hmi
+logsource:
+  category: driver_load
+  product: windows
+detection:
+  selection:
+    ImageLoaded|endswith:
+      - '\mrxcls.sys'
+      - '\mrxnet.sys'
+  condition: selection
+falsepositives:
+  - No legitimate driver with either name is described in the sources read; confirm the hash and signer before acting
+level: critical

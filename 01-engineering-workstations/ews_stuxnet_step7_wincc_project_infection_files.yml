@@ -1,0 +1,50 @@
+title: Stuxnet Files Written Into a Step 7 or WinCC Project Folder
+id: 6b90da3a-b4e4-4ac7-ba53-5fd1df677cf0
+status: experimental
+description: |
+  Sysmon Event ID 11 (FileCreate) for the files Symantec's W32.Stuxnet Dossier
+  says Stuxnet creates inside engineering projects so that it "automatically
+  executes when the Step 7 project is loaded" (MITRE T0873.001, Project File
+  Infection: Siemens Project File Format). For Step 7 projects (.s7p):
+  xutils\listen\xr000000.mdx ("an encrypted copy of the main Stuxnet DLL"),
+  xutils\links\s7p00001.dbf (a 90-byte data file) and
+  xutils\listen\s7000001.mdx (its configuration block); it also drops a DLL
+  into subfolders of hOmSave7 and modifies a data file in Apilog\types, whose
+  names Symantec withheld. For projects with WinCC content (.mcp): GracS\cc_alg.sav,
+  GracS\db_log.sav and GracS\cc_tlg7.sav (a cabinet holding a loader), and
+  Symantec names GracS\cc_tag.sav among the files an infected project is read
+  for. The infector runs inside the SIMATIC Manager (s7tgtopx.exe), so the
+  writing process is a legitimate Siemens executable; the file names are the
+  signal. Projects may also be infected inside .zip archives, which this rule
+  cannot see: search archived and backed-up projects offline as well
+  (ICS-PACK-0007). FileCreate covers every folder only if the Sysmon
+  configuration includes the project locations.
+references:
+  - https://docs.broadcom.com/doc/security-response-w32-stuxnet-dossier-11-en
+  - https://attack.mitre.org/software/S0603/
+  - https://learn.microsoft.com/en-us/sysinternals/downloads/sysmon
+author: Raymond DePalma (ics-dfir-toolkit)
+date: 2026-11-08
+tags:
+  - attack.persistence
+  - attack.lateral-movement
+  - attack.t0873
+  - attack.t0873.001
+  - ics-dfir.ews-hmi
+logsource:
+  category: file_event
+  product: windows
+detection:
+  selection:
+    TargetFilename|endswith:
+      - '\xutils\listen\xr000000.mdx'
+      - '\xutils\links\s7p00001.dbf'
+      - '\xutils\listen\s7000001.mdx'
+      - '\GracS\cc_alg.sav'
+      - '\GracS\db_log.sav'
+      - '\GracS\cc_tlg7.sav'
+      - '\GracS\cc_tag.sav'
+  condition: selection
+falsepositives:
+  - None described in the sources read; confirm against a project copy taken before the hit
+level: critical

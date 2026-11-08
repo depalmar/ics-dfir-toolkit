@@ -1,0 +1,191 @@
+# ICS hunt ICS-HUNT-0018
+# Schema: ../schema/hunt.schema.json
+# Research notes: docs/research/2026-11-08/detections-round5.md
+
+id: ICS-HUNT-0018
+title: Stuxnet artefacts on Step 7 and WinCC hosts, in their projects and media, and in S7-300/400 blocks read from a clean host
+platforms: [ICS-0010, ICS-0011, ICS-0004]
+protocols: [ICS-PROTO-0002]
+malware: [ICS-MAL-0001]
+hypothesis: >-
+  A Windows host that runs SIMATIC Step 7 or WinCC, or a project or
+  removable drive that passed through one, carries Stuxnet's documented
+  artefacts - signed rootkit drivers, a replaced PLC communication library,
+  infected project folders, loader files on removable media - and an
+  S7-300/400 programmed from that host carries the injected blocks that the
+  replaced library hides from it.
+data: [windows-events, edr, config-archive]
+datasources: [ICS-DS-0006, ICS-DS-0007]
+data_detail: >-
+  Sysmon Event IDs 6 (driver loaded, with signature), 7 (image loaded), 11
+  (file created) and 12/13 (registry) where a current Sysmon can run (Windows
+  11 / Server 2019 and later); offline images or file listings of older EWS
+  and WinCC hosts; project folders and archives on the EWS, file servers and
+  backups; removable drives held in the site's media cabinet; a memory image
+  of the SIMATIC Manager process where operations allow; and blocks uploaded
+  from each S7-300/400 by a clean engineering host, compared with the
+  approved offline project.
+method:
+  - >-
+    On each Step 7 / WinCC host, list %System%\drivers\mrxcls.sys and
+    mrxnet.sys, the services keys
+    HKLM\SYSTEM\CurrentControlSet\Services\MRxCls and ...\MRxNet (ImagePath,
+    and Data under MRxCls), and the files Symantec names in the inf folders:
+    oem7A.PNF (Symantec gives %Windir%\inf) and mdmeric3.PNF, mdmcpq3.PNF and
+    oem6C.PNF (Symantec gives %SystemDrive%\inf). Work from an image or a
+    trusted boot where possible; ignore file times, which Symantec says are
+    set to match neighbouring system files.
+  - >-
+    Check the signer of every non-Microsoft driver: Symantec documents both
+    drivers signed with a Realtek certificate VeriSign revoked on 16 July
+    2010, and a variant signed with a JMicron certificate revoked on 22 July
+    2010. Sysmon Event ID 6 carries signature information and Sysmon checks
+    revocation by default; a revoked or invalid signature on a loaded driver
+    is the finding, whatever the file is called.
+  - >-
+    Look for s7otbxsx.dll anywhere on the host and compare s7otbxdx.dll with
+    the Step 7 installation media by hash. Symantec: the original is renamed
+    to s7otbxsx.dll and replaced; the replacement forwards most calls to it,
+    so Sysmon Event ID 7 shows s7otbxsx.dll loading into every Step 7 process
+    that talks to a PLC (rule below).
+  - >-
+    Search every project folder and project archive, including .zip copies,
+    on the EWS, file servers, backups and transfer media for
+    xutils\listen\xr000000.mdx, xutils\links\s7p00001.dbf,
+    xutils\listen\s7000001.mdx and GracS\cc_alg.sav, db_log.sav, cc_tlg7.sav
+    and cc_tag.sav. An infected project infects the next host that opens it,
+    so a hit widens the scope to every host that opened that project.
+  - >-
+    With operations' agreement, capture memory of a running SIMATIC Manager
+    (s7tgtopx.exe) and WinCC project manager (CCProjectMgr.exe) and inspect
+    import address tables: Symantec documents CreateFileA redirected in
+    s7apromx.dll, mfc42.dll and msvcrt.dll, and StgOpenStorage in
+    ccprojectmgr.exe. Memory capture on an EWS is host triage; do not do it
+    on the operators' only HMI while it is in use.
+  - >-
+    Read removable drives from a clean host (the rootkit hides these names on
+    an infected one) for ~WTR4132.tmp, ~WTR4141.tmp and the four "Copy of
+    ... Shortcut to.lnk" files (rule below), and correlate media insertion
+    with ICS-HUNT-0019.
+  - >-
+    Treat any host-side hit as making that host's view of its PLCs
+    untrustworthy. From a clean engineering host, and with operations'
+    approval (going online is online-vendor-tool), upload OB1, OB35 and the
+    block list of each S7-300/400 and compare offline with the approved
+    project: an OB1 that begins by calling FC1865 and testing DW#16#DEADF007,
+    an OB35 that begins by calling FC1874, FC1869 (Symantec: the original
+    DP_RECV kept as FC1869), DB890 and the other sequence A/B blocks
+    Symantec's Figure 25 numbers 1865-1880 (code) and 888-891 (data), and on
+    S7-417 DB8061 and DB8064-DB8070. Never restore a PLC from a backup taken
+    by a suspect host.
+normal: >-
+  One signed s7otbxdx.dll matching the installed Step 7 version, no
+  s7otbxsx.dll, no MrxCls or MrxNet service, no xutils or GracS .sav files
+  Symantec names, and OB1, OB35 and the block list identical to the approved
+  project when read from a clean host.
+suspicious: >-
+  Any of the named drivers, services, inf files, library rename, project
+  files or removable-drive files; a loaded driver with a revoked signature;
+  hooked import tables in s7tgtopx.exe; OB1 or OB35 that differ from the
+  approved project, or extra code blocks numbered 1865-1880, data blocks
+  888-891, or DB8061/DB8064-DB8070.
+attack: [T1014, T1553.002, T1543.003, T1112, T0849, T0851, T0874, T0873, T0873.001, T0847, T0821, T0889, T0801, T0835, T0877]
+rules:
+  - 01-engineering-workstations/ews_stuxnet_rootkit_driver_loaded.yml
+  - 01-engineering-workstations/ews_stuxnet_driver_service_registered.yml
+  - 01-engineering-workstations/ews_step7_s7otbxsx_library_loaded.yml
+  - 01-engineering-workstations/ews_step7_s7otbx_library_written.yml
+  - 01-engineering-workstations/ews_stuxnet_step7_wincc_project_infection_files.yml
+  - 01-engineering-workstations/ews_stuxnet_removable_drive_lnk_and_loader_files.yml
+inferred: >-
+  The artefacts, block numbers and hooks are Symantec's; the ATT&CK mapping is
+  MITRE's. This toolkit's are the choice of Windows events to see them, the
+  order of the steps, and the rule that a host-side hit disqualifies that
+  host from reading its PLCs (it follows from Symantec's description of the
+  rootkit, which returns cleaned blocks). For T0835, T0877 and T0801 the
+  block comparison finds the code and data blocks that carry the I/O
+  recording, output interception and DP_RECV monitoring, not the act itself.
+  Symantec found the S7-417 sequence incomplete (DB8061 is never created),
+  so the absence of DB8064-DB8070 does not clear a 417. Siemens' own Stuxnet
+  notices were not reachable this round; without a clean-host block
+  comparison the controller side is not evaluated.
+confidence: medium
+sources:
+  - title: Symantec - W32.Stuxnet Dossier v1.4 (Falliere, O Murchu, Chien, February 2011), Load Point
+    url: https://docs.broadcom.com/doc/security-response-w32-stuxnet-dossier-11-en
+    accessed: "2026-11-08"
+    kind: vendor
+    quote: >-
+      MrxCls is a driver digitally signed with a compromised Realtek
+      certificate that was revoked on July 16, 2010 by Verisign. A different
+      version of the driver was also found signed by a different compromised
+      digital certificate from JMicron.
+    read: direct
+  - title: Symantec - W32.Stuxnet Dossier v1.4, Modifying PLCs
+    url: https://docs.broadcom.com/doc/security-response-w32-stuxnet-dossier-11-en
+    accessed: "2026-11-08"
+    kind: vendor
+    quote: >-
+      once Stuxnet executes, it renames the original s7otbxdx.dll file to
+      s7otbxsx.dll. It then replaces the original .dll file with its own
+      version.
+    read: direct
+  - title: Symantec - W32.Stuxnet Dossier v1.4, The rootkit
+    url: https://docs.broadcom.com/doc/security-response-w32-stuxnet-dossier-11-en
+    accessed: "2026-11-08"
+    kind: vendor
+    quote: The Stuxnet PLC rootkit code is contained entirely in the fake s7otbxdx.dll.
+    read: direct
+  - title: Symantec - W32.Stuxnet Dossier v1.4, Step 7 Project File Infections
+    url: https://docs.broadcom.com/doc/security-response-w32-stuxnet-dossier-11-en
+    accessed: "2026-11-08"
+    kind: vendor
+    quote: >-
+      In s7apromx.dll, mfc42.dll, and msvcrt.dll, CreateFileA is replaced to
+      point to “CreateFileA_hook”.
+    read: direct
+  - title: Symantec - W32.Stuxnet Dossier v1.4, S7P files
+    url: https://docs.broadcom.com/doc/security-response-w32-stuxnet-dossier-11-en
+    accessed: "2026-11-08"
+    kind: vendor
+    quote: xutils\listen\xr000000.mdx (an encrypted copy of the main Stuxnet DLL)
+    read: direct
+  - title: Symantec - W32.Stuxnet Dossier v1.4, Sequences A and B
+    url: https://docs.broadcom.com/doc/security-response-w32-stuxnet-dossier-11-en
+    accessed: "2026-11-08"
+    kind: vendor
+    quote: >-
+      One can recognize an infected PLC in a clean environment by examining
+      blocks OB1 and OB35.
+    read: direct
+  - title: Symantec - W32.Stuxnet Dossier v1.4, State 1 Recording
+    url: https://docs.broadcom.com/doc/security-response-w32-stuxnet-dossier-11-en
+    accessed: "2026-11-08"
+    kind: vendor
+    quote: >-
+      The input area of an I/O image is copied into each sub-block with a one
+      second interval between copies, forming a 21 second recording of the
+      input area.
+    read: direct
+  - title: MITRE ATT&CK - Stuxnet (S0603), T0873.001 procedure
+    url: https://attack.mitre.org/software/S0603/
+    accessed: "2026-11-08"
+    kind: researcher
+    quote: >-
+      Stuxnet copies itself into Step 7 projects in such a way that it
+      automatically executes when the Step 7 project is loaded.
+    read: direct
+  - title: MITRE ATT&CK - Stuxnet (S0603), T0874 procedure
+    url: https://attack.mitre.org/software/S0603/
+    accessed: "2026-11-08"
+    kind: researcher
+    quote: >-
+      Stuxnet modifies the Import Address Tables DLLs to hook specific APIs
+      that are used to open project files.
+    read: direct
+  - title: Sysmon v15.22 (Microsoft Sysinternals), capabilities
+    url: https://learn.microsoft.com/en-us/sysinternals/downloads/sysmon
+    accessed: "2026-11-08"
+    kind: vendor
+    quote: Logs loading of drivers or DLLs with their signatures and hashes.
+    read: direct

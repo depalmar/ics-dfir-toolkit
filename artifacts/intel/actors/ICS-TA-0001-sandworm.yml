@@ -78,6 +78,7 @@ stage_basis: >-
 platforms: [ICS-0011, ICS-0014]
 malware: [ICS-MAL-0003, ICS-MAL-0004, ICS-MAL-0006, ICS-MAL-0013]
 incidents: [ICS-INC-0001, ICS-INC-0002, ICS-INC-0004, ICS-INC-0008]
+iocs: [ICS-IOC-0002]
 tradecraft:
   - "Malware (ESET): Industroyer2 'only implements the IEC-104 (aka IEC 60870-5-104) protocol to communicate with industrial equipment'. Each build carries a hardcoded configuration (device IP addresses, ASDU address, information object addresses), so it is recompiled per victim."
   - "Malware (ESET): before connecting to targets, Industroyer2 'terminates a legitimate process that is used in standard daily operations' and renames it with a .MZ suffix so it does not restart."

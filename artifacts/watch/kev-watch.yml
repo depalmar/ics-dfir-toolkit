@@ -37,7 +37,12 @@ platforms:
   ICS-0015: {vendor: '.', product: 'OPC UA|OPC Unified|KEPServerEX|Kepware'}
 
 # No indicator sets exist yet.
-upstream: {}
+# sha256 of each publisher file as last parsed (artifacts/scripts/parse_iocs.py);
+# a change means re-parse and re-validate the indicator set.
+upstream:
+  ICS-IOC-0001: 46561b15550182c692c55c48565fd6758e9664665ecc6e0f402df713eb46dd6a
+  ICS-IOC-0002: 766ef2c3d41f4d2929193d6d227e399d946677450419a4746214f111bf677ccd
+  ICS-IOC-0003: 80ba4f866000572051366527aecd928a921bf5efd3ef2049fa2dd5db910c5069
 
 triaged:
   - cve: CVE-2023-6448

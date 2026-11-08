@@ -6,6 +6,12 @@ Knowledge-base content is derived from public vendor, government and researcher
 publications, cited in each record where it is used. Short verbatim quotes are
 reproduced for verification and attribution.
 
+Indicator sets ICS-IOC-0002 and ICS-IOC-0003 (artifacts/intel/iocs/) are parsed
+from ESET's github.com/eset/malware-ioc repository, Copyright (c) 2014-2018
+ESET spol. s r.o. All rights reserved, under the BSD 2-Clause licence, whose
+conditions and disclaimer each file carries in its header. Indicator set
+ICS-IOC-0001 is parsed from CISA's published STIX file, a US Government work.
+
 No third-party detection rules are vendored yet. Published rules are listed in
 the published_rules field of each malware record with their publisher's
 licence; when a rule is vendored, its licence will be carried in the rule file

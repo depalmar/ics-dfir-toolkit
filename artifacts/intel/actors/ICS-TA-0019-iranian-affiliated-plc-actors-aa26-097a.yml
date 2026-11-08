@@ -39,6 +39,7 @@ stage_basis: "AA26-097A does not use the ICS Cyber Kill Chain."
 platforms: [ICS-0001, ICS-0005, ICS-0003]
 malware: []
 incidents: [ICS-INC-0009]
+iocs: [ICS-IOC-0001]
 tradecraft:
   - "Hands-on operator (AA26-097A): 'The actors used leased, third-party hosted infrastructure and manufacturers’ PLC programming software to connect to misconfigured victim PLCs.' Inbound traffic on ports 44818, 2222, 102 and 502, and against modems on port 22."
   - "Hands-on operator (AA26-097A): used 'Rockwell Automation’s Studio 5000 Logix Designer, Schneider Electric’s EcoStruxure Control Expert, and Siemens’ Totally Integrated Automation (TIA) Portal' on leased infrastructure 'to exfiltrate device project files from PLC devices to threat-actor-controlled infrastructure'."
@@ -66,4 +67,10 @@ notes: >-
   entry; CompactLogix maps to ICS-0001, BMX P34/Modicon M340 to ICS-0005, S7-1200
   to ICS-0003. The modems are not identified by class or vendor in the
   technical section, so no gateway platform is listed. Indicators belong in an
-  ICS-IOC set parsed from CISA's STIX file, not here.
+  ICS-IOC set parsed from CISA's STIX file, not here (ICS-IOC-0001). CISA's July
+  2026 STIX bundle links all eight Table 2 addresses to a threat-actor object
+  named "HYDROKITTEN" and two of them to "CYBER AVENG3RS"; the advisory text does
+  not name either. That is CISA's machine-readable data, recorded here and in
+  ICS-IOC-0001's indicator context. It is not treated as the advisory equating
+  this group with CyberAv3ngers (ICS-TA-0009), so the records stay separate until
+  CISA's prose or another reporter says so.

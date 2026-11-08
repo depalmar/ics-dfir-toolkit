@@ -21,9 +21,16 @@ Ordered by value. The knowledge base comes first because every later layer
     ICS-0008 OMRON Sysmac, ICS-0009 CODESYS runtime, ICS-0012 historian,
     ICS-0014 substation RTU/IED (referenced nine times - highest priority),
     ICS-0015 OPC UA servers.
-- **New intel to record:** CISA AA26-231A (August 2026, Siemens S7-specific),
-  found by the hardening pass and not yet covered by an incident or actor
-  record.
+- ~~**New intel to record:** CISA AA26-231A~~ - recorded in round 2 as
+  ICS-INC-0013 (no actor, malware or indicator named by the advisory).
+- **SLMP authentication:** Mitsubishi's SLMP manual lists a "Remote Password"
+  (Lock/Unlock) section that may contradict ICS-PROTO-0020's
+  `authentication: none`; read it and correct the record.
+- **AA23-335A indicators:** not parsed; CISA calls them outdated. Parse only
+  if a saved copy of the publisher file can be obtained without retyping.
+- **CISA STIX attribution objects:** AA26-097A's STIX links addresses to
+  "HYDROKITTEN" and "CYBER AVENG3RS" while the advisory prose names no group
+  (noted on ICS-TA-0019 and ICS-IOC-0001). Revisit if CISA's text changes.
 - **Primary documents not yet read:** CERT Polska's full Poland 2025 report
   (PDF), Dragos 2026 Year in Review (PDF), Mandiant APT44 report, Dragos
   CRASHOVERRIDE and TRISIS reports, E-ISAC/SANS Ukraine 2015 report, the

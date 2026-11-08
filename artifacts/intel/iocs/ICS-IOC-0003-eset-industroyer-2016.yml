@@ -1,0 +1,226 @@
+# Indicators ICS-IOC-0003 - parsed in code from ESET's own malware-ioc files, never retyped.
+# Source: https://github.com/eset/malware-ioc at commit 825b826c5cbffcc1e59c16581ffdf7d527e8b695 (directory
+# industroyer/: README added in commit 447394f on 2017-06-12, samples.* in 7811cd3 on 2019-02-11 and 7a0483e on
+# 2019-07-26), fetched from raw.githubusercontent.com:
+#   industroyer/README.adoc    968 bytes, sha256 80ba4f866000572051366527aecd928a921bf5efd3ef2049fa2dd5db910c5069
+#   industroyer/samples.sha1   369 bytes, sha256 07eebe3212643bff281b59a6109f064485e8771e698bf9c5ddf47a8e90fdcbfb
+#   industroyer/samples.sha256 585 bytes, sha256 936ba6eb1b63b5cadc495c9f73316efc336effb3249f74b9607306729cb89296
+#   industroyer/samples.md5    297 bytes, sha256 3d325152f2a3a92aebd8838344e647831699ecf89750fa1c2d5c0be86917f13b
+#   LICENSE                   1300 bytes, sha256 995182e185856186fbbe49f150409ae026aa4cda7e94f83c6ed737cbb77fa9c7
+# Parser: artifacts/scripts/parse_iocs.py eset-industroyer (python3 -I). samples.sha1 holds exactly the README's nine
+# SHA-1 values. ESET does not map samples.sha256 or samples.md5 (nine values each) to README rows, so those carry
+# role unknown. This is the 2016 Industroyer: ESET's repository has no Industroyer2 directory.
+# Values are live, not defanged.
+# Licence: ESET malware-ioc LICENSE (BSD 2-Clause), reproduced below as its first condition requires.
+#   Copyright (c) 2014-2018 ESET spol. s r.o.
+#   All rights reserved.
+#
+#   Redistribution and use in source and binary forms, with or without
+#   modification, are permitted provided that the following conditions are met:
+#
+#   1. Redistributions of source code must retain the above copyright notice, this
+#   list of conditions and the following disclaimer.
+#
+#   2. Redistributions in binary form must reproduce the above copyright notice,
+#   this list of conditions and the following disclaimer in the documentation
+#   and/or other materials provided with the distribution.
+#
+#   THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
+#   AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+#   IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
+#   DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE
+#   FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
+#   DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR
+#   SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
+#   CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
+#   OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+#   OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+# Schema: ../../schema/ioc.schema.json
+
+id: ICS-IOC-0003
+title: ESET - Win32/Industroyer indicators of compromise (2017)
+publisher: ESET Research
+published: '2017-06-12'
+page_url: https://www.welivesecurity.com/2017/06/12/industroyer-biggest-threat-industrial-control-systems-since-stuxnet/
+file_url: https://raw.githubusercontent.com/eset/malware-ioc/825b826c5cbffcc1e59c16581ffdf7d527e8b695/industroyer/README.adoc
+file_format: text
+license: >-
+  BSD 2-Clause (eset/malware-ioc LICENSE, "Copyright (c) 2014-2018 ESET spol. s r.o. All rights reserved."); the
+  copyright notice, conditions and disclaimer are reproduced in this file's header.
+accessed: '2026-11-08'
+malware:
+- ICS-MAL-0004
+incidents:
+- ICS-INC-0002
+staleness: >-
+  Published 12 June 2017 for the malware used against a Ukrainian transmission substation in December 2016; the
+  sample hash lists were completed in 2019. ESET's own warning on the C&C addresses: "Most of the servers with these
+  IP addresses were part of Tor network, which means that the use of these indicators could result in false
+  positives." Treat the addresses as historical context only. The hashes identify the 2016 samples; they do not
+  cover Industroyer2 (2022).
+indicators:
+- type: sha1
+  value: f6c21f8189ced6ae150f9ef2e82a3a57843b587d
+  role: actor-controlled
+  context: Win32/Industroyer sample listed in ESET's Industroyer IoCs (README 'SHA-1 hashes'; the component is not
+    stated)
+- type: sha1
+  value: cccce62996d578b984984426a024d9b250237533
+  role: actor-controlled
+  context: Win32/Industroyer sample listed in ESET's Industroyer IoCs (README 'SHA-1 hashes'; the component is not
+    stated)
+- type: sha1
+  value: 8e39eca1e48240c01ee570631ae8f0c9a9637187
+  role: actor-controlled
+  context: Win32/Industroyer sample listed in ESET's Industroyer IoCs (README 'SHA-1 hashes'; the component is not
+    stated)
+- type: sha1
+  value: 2cb8230281b86fa944d3043ae906016c8b5984d9
+  role: actor-controlled
+  context: Win32/Industroyer sample listed in ESET's Industroyer IoCs (README 'SHA-1 hashes'; the component is not
+    stated)
+- type: sha1
+  value: 79ca89711cdaedb16b0ccccfdcfbd6aa7e57120a
+  role: actor-controlled
+  context: Win32/Industroyer sample listed in ESET's Industroyer IoCs (README 'SHA-1 hashes'; the component is not
+    stated)
+- type: sha1
+  value: 94488f214b165512d2fc0438a581f5c9e3bd4d4c
+  role: actor-controlled
+  context: Win32/Industroyer sample listed in ESET's Industroyer IoCs (README 'SHA-1 hashes'; the component is not
+    stated)
+- type: sha1
+  value: 5a5fafbc3fec8d36fd57b075ebf34119ba3bff04
+  role: actor-controlled
+  context: Win32/Industroyer sample listed in ESET's Industroyer IoCs (README 'SHA-1 hashes'; the component is not
+    stated)
+- type: sha1
+  value: b92149f046f00bb69de329b8457d32c24726ee00
+  role: actor-controlled
+  context: Win32/Industroyer sample listed in ESET's Industroyer IoCs (README 'SHA-1 hashes'; the component is not
+    stated)
+- type: sha1
+  value: b335163e6eb854df5e08e85026b2c3518891eda8
+  role: actor-controlled
+  context: Win32/Industroyer sample listed in ESET's Industroyer IoCs (README 'SHA-1 hashes'; the component is not
+    stated)
+- type: ipv4
+  value: 195.16.88.6
+  role: unknown
+  context: 'C&C server address listed by ESET (README ''IP addresses of C&C servers''); ESET warns: ''Most of the
+    servers with these IP addresses were part of Tor network, which means that the use of these indicators could
+    result in false positives.'' Which addresses were Tor relays is not stated'
+- type: ipv4
+  value: 46.28.200.132
+  role: unknown
+  context: 'C&C server address listed by ESET (README ''IP addresses of C&C servers''); ESET warns: ''Most of the
+    servers with these IP addresses were part of Tor network, which means that the use of these indicators could
+    result in false positives.'' Which addresses were Tor relays is not stated'
+- type: ipv4
+  value: 188.42.253.43
+  role: unknown
+  context: 'C&C server address listed by ESET (README ''IP addresses of C&C servers''); ESET warns: ''Most of the
+    servers with these IP addresses were part of Tor network, which means that the use of these indicators could
+    result in false positives.'' Which addresses were Tor relays is not stated'
+- type: ipv4
+  value: 5.39.218.152
+  role: unknown
+  context: 'C&C server address listed by ESET (README ''IP addresses of C&C servers''); ESET warns: ''Most of the
+    servers with these IP addresses were part of Tor network, which means that the use of these indicators could
+    result in false positives.'' Which addresses were Tor relays is not stated'
+- type: ipv4
+  value: 93.115.27.57
+  role: unknown
+  context: 'C&C server address listed by ESET (README ''IP addresses of C&C servers''); ESET warns: ''Most of the
+    servers with these IP addresses were part of Tor network, which means that the use of these indicators could
+    result in false positives.'' Which addresses were Tor relays is not stated'
+- type: sha256
+  value: 018eb62e174efdcdb3af011d34b0bf2284ed1a803718fba6edffe5bc0b446b81
+  role: unknown
+  context: 'ESET Industroyer IoCs, samples.sha256: one of the 9 sample hashes in the same directory as the README;
+    ESET does not map it to a README row'
+- type: sha256
+  value: 21c1fdd6cfd8ec3ffe3e922f944424b543643dbdab99fa731556f8805b0d5561
+  role: unknown
+  context: 'ESET Industroyer IoCs, samples.sha256: one of the 9 sample hashes in the same directory as the README;
+    ESET does not map it to a README row'
+- type: sha256
+  value: 37d54e3d5e8b838f366b9c202f75fa264611a12444e62ae759c31a0d041aa6e4
+  role: unknown
+  context: 'ESET Industroyer IoCs, samples.sha256: one of the 9 sample hashes in the same directory as the README;
+    ESET does not map it to a README row'
+- type: sha256
+  value: 3e3ab9674142dec46ce389e9e759b6484e847f5c1e1fc682fc638fc837c13571
+  role: unknown
+  context: 'ESET Industroyer IoCs, samples.sha256: one of the 9 sample hashes in the same directory as the README;
+    ESET does not map it to a README row'
+- type: sha256
+  value: 6d707e647427f1ff4a7a9420188a8831f433ad8c5325dc8b8cc6fc5e7f1f6f47
+  role: unknown
+  context: 'ESET Industroyer IoCs, samples.sha256: one of the 9 sample hashes in the same directory as the README;
+    ESET does not map it to a README row'
+- type: sha256
+  value: 7907dd95c1d36cf3dc842a1bd804f0db511a0f68f4b3d382c23a3c974a383cad
+  role: unknown
+  context: 'ESET Industroyer IoCs, samples.sha256: one of the 9 sample hashes in the same directory as the README;
+    ESET does not map it to a README row'
+- type: sha256
+  value: 893e4cca7fe58191d2f6722b383b5e8009d3885b5913dcd2e3577e5a763cdb3f
+  role: unknown
+  context: 'ESET Industroyer IoCs, samples.sha256: one of the 9 sample hashes in the same directory as the README;
+    ESET does not map it to a README row'
+- type: sha256
+  value: ad23c7930dae02de1ea3c6836091b5fb3c62a89bf2bcfb83b4b39ede15904910
+  role: unknown
+  context: 'ESET Industroyer IoCs, samples.sha256: one of the 9 sample hashes in the same directory as the README;
+    ESET does not map it to a README row'
+- type: sha256
+  value: ecaf150e087ddff0ec6463c92f7f6cca23cc4fd30fe34c10b3cb7c2a6d135c77
+  role: unknown
+  context: 'ESET Industroyer IoCs, samples.sha256: one of the 9 sample hashes in the same directory as the README;
+    ESET does not map it to a README row'
+- type: md5
+  value: 11a67ff9ad6006bd44f08bcc125fb61e
+  role: unknown
+  context: 'ESET Industroyer IoCs, samples.md5: one of the 9 sample hashes in the same directory as the README;
+    ESET does not map it to a README row'
+- type: md5
+  value: 497de9d388d23bf8ae7230d80652af69
+  role: unknown
+  context: 'ESET Industroyer IoCs, samples.md5: one of the 9 sample hashes in the same directory as the README;
+    ESET does not map it to a README row'
+- type: md5
+  value: 7a7ace486dbb046f588331a08e869d58
+  role: unknown
+  context: 'ESET Industroyer IoCs, samples.md5: one of the 9 sample hashes in the same directory as the README;
+    ESET does not map it to a README row'
+- type: md5
+  value: a193184e61e34e2bc36289deaafdec37
+  role: unknown
+  context: 'ESET Industroyer IoCs, samples.md5: one of the 9 sample hashes in the same directory as the README;
+    ESET does not map it to a README row'
+- type: md5
+  value: ab17f2b17c57b731cb930243589ab0cf
+  role: unknown
+  context: 'ESET Industroyer IoCs, samples.md5: one of the 9 sample hashes in the same directory as the README;
+    ESET does not map it to a README row'
+- type: md5
+  value: f67b65b9346ee75a26f491b70bf6091b
+  role: unknown
+  context: 'ESET Industroyer IoCs, samples.md5: one of the 9 sample hashes in the same directory as the README;
+    ESET does not map it to a README row'
+- type: md5
+  value: f9005f8e9d9b854491eb2fbbd06a16e0
+  role: unknown
+  context: 'ESET Industroyer IoCs, samples.md5: one of the 9 sample hashes in the same directory as the README;
+    ESET does not map it to a README row'
+- type: md5
+  value: fc4fe1b933183c4c613d34ffdb5fe758
+  role: unknown
+  context: 'ESET Industroyer IoCs, samples.md5: one of the 9 sample hashes in the same directory as the README;
+    ESET does not map it to a README row'
+- type: md5
+  value: ff69615e3a8d7ddcdc4b7bf94d6c7ffb
+  role: unknown
+  context: 'ESET Industroyer IoCs, samples.md5: one of the 9 sample hashes in the same directory as the README;
+    ESET does not map it to a README row'

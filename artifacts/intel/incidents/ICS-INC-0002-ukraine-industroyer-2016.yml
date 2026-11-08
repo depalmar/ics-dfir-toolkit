@@ -29,6 +29,8 @@ protocols:
   - ICS-PROTO-0011
 cves:
   - CVE-2015-5374
+iocs:
+  - ICS-IOC-0003
 summary: >-
   An outage that cut power to part of Kyiv for about an hour, which ESET judges "highly probable" was caused
   by Industroyer (Dragos: CRASHOVERRIDE), a modular framework whose payloads speak IEC 60870-5-101,

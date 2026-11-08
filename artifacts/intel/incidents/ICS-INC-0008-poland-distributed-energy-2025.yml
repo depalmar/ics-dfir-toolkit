@@ -29,6 +29,8 @@ malware:
   - ICS-MAL-0014
 platforms:
   - ICS-0014
+iocs:
+  - ICS-IOC-0002
 summary: >-
   An actor that entered through vulnerable internet-facing edge devices and pivoted with default
   credentials onto HMIs and RTUs at renewable-energy grid connection points carried out a partially

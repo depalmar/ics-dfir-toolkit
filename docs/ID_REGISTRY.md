@@ -144,11 +144,23 @@ Next free: ICS-MAL-0017.
 | ICS-INC-0010 | US water-sector MicroLogix 1100/1400 lockout campaign, July 2026 |
 | ICS-INC-0011 | Colonial Pipeline, May 2021 (IT incident, precautionary OT shutdown) |
 | ICS-INC-0012 | Florida water treatment sodium hydroxide setpoint change, February 2021 |
+| ICS-INC-0013 | Internet-exposed Siemens S7 PLCs read and written with AI-generated scripts (AA26-231A), 2026 |
 
 ICS-INC-0010 is separate from ICS-INC-0009 because CISA and the FBI neither
 attribute the July 2026 campaign nor link it to AA26-097A.
 
-Next free: ICS-INC-0013.
+Next free: ICS-INC-0014.
+
+## Indicator sets (`ICS-IOC-NNNN`)
+
+| Id | Set | Publisher |
+| --- | --- | --- |
+| ICS-IOC-0001 | AA26-097A PLC exploitation, STIX (April and July 2026) | CISA and partners |
+| ICS-IOC-0002 | DynoWiper, Poland December 2025 | ESET (BSD 2-Clause) |
+| ICS-IOC-0003 | Industroyer, 2016 | ESET (BSD 2-Clause) |
+
+Next free: ICS-IOC-0004. AA23-335A indicators are not parsed (CISA calls them
+outdated, and no saved copy of the file was obtained); AA25-343A publishes none.
 
 ## Visibility data sources (`ICS-DS-NNNN`)
 

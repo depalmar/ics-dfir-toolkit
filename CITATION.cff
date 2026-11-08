@@ -6,6 +6,7 @@ authors:
   - family-names: DePalma
     given-names: Raymond
 repository-code: "https://github.com/depalmar/ics-dfir-toolkit"
+url: "https://depalmar.github.io/ics-dfir-toolkit/"
 abstract: >-
   A sourced DFIR knowledge base for industrial control systems and operational
   technology: controller and OT-host artifact catalog with what normal and

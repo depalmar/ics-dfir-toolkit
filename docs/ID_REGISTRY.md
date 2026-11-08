@@ -179,6 +179,18 @@ Hardening (`artifacts/hardening/<stem>.yml`): `baseline` (ALL), `rockwell-logix`
 
 Response (`artifacts/response/<stem>.yml`): `baseline` (ALL).
 
+## Rule directories (`NN-<slug>/`)
+
+Numbered by when they were added; each needs a README.md. Files are
+`[a-z0-9_]+.yml` (Sigma), `.yar` (YARA) or `.rules` (Suricata).
+
+| Directory | Scope | Platforms |
+| --- | --- | --- |
+| `01-engineering-workstations/` | Sigma over Windows logs on EWS and HMI/SCADA hosts | ICS-0010, ICS-0011 |
+| `02-ot-network/` | Suricata over passive OT capture, flow and port level only | ALL |
+| `03-remote-access/` | Sigma over remote-access, VPN, jump-host and cellular gateway logs | ICS-0013 |
+| `04-ics-malware/` | YARA for ICS malware families, vendored only after licence review | ALL |
+
 ## Hunts, packs, indicator sets
 
 Allocated by the first record that needs one: ICS-HUNT-0001, ICS-PACK-0001,

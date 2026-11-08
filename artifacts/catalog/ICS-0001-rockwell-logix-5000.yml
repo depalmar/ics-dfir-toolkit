@@ -172,15 +172,24 @@ collection:
     description: >-
       The project (logic, AOIs, tags, I/O configuration) is the primary
       artifact. CISA asks owners to compare the running program with known-good
-      logic and to check AOIs for anomalous modification.
+      logic and to check AOIs for anomalous modification. Export the uploaded
+      ACD and the known-good ACD to the same text format offline - 1756-RM014:
+      "In the Logix Designer application, select File > Save As." then "From
+      the Save as type list, select the .L5K file format and select Save." (or
+      .L5X) - and compare the two text files (icstriage logic-diff,
+      docs/logic-compare.md).
     safety_note: >-
       Upload into a new file so the investigator's copy cannot be downloaded by
       mistake. Do not switch the controller to RUN until the project has been
       validated: CISA warns a mode change locks in the project currently on the
-      device. Operations approval required.
+      device. Operations approval required. Never import the investigator's
+      L5K back into a working project: RM014 states "If a project is exported
+      to an .L5K file and then imported, the resulting project .ACD file gets a
+      new creation stamp."
     confidence: high
     references:
       - https://www.cisa.gov/news-events/cybersecurity-advisories/aa26-097a
+      - https://literature.rockwellautomation.com/idc/groups/literature/documents/rm/1756-rm014_-en-p.pdf
   - method: Copy controller-log files from the removable media
     impact: process-risk
     description: >-
@@ -217,6 +226,9 @@ references:
     accessed: "2026-11-08"
   - title: CISA AA26-097A - Iranian-Affiliated Cyber Actors Exploit Programmable Logic Controllers Across US Critical Infrastructure
     url: https://www.cisa.gov/news-events/cybersecurity-advisories/aa26-097a
+    accessed: "2026-11-08"
+  - title: Logix 5000 Controllers Import/Export Reference Manual (1756-RM014), L5K export and import
+    url: https://literature.rockwellautomation.com/idc/groups/literature/documents/rm/1756-rm014_-en-p.pdf
     accessed: "2026-11-08"
 last_verified: "2026-11-08"
 notes: >-

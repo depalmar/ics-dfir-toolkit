@@ -7,7 +7,8 @@ vendor tool, and nothing is ever executed or imported from an input file.
 Subcommands (``python -m icstriage --help``):
 
     logic-diff   compare two exported controller projects (Rockwell L5X or
-                 PLCopen TC6 XML) and report every difference, classified.
+                 L5K, PLCopen TC6 XML or Siemens SimaticML) and report every
+                 difference, classified.
 
 See docs/logic-compare.md.
 """

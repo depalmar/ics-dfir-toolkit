@@ -1,0 +1,144 @@
+(*********************************************************************************
+Synthetic test fixture for ics-dfir-toolkit (tests/test_logic_compare.py).
+Written from scratch from the L5K keywords and statement shapes in Rockwell
+1756-RM014D. Not a vendor sample, not a real project: every name is a
+placeholder and every address is from 192.0.2.0/24 (RFC 5737). This banner and
+the version line below stand in for the export preamble that RM014 does not
+document; the reader keeps them as provenance only.
+Exported := Mon Nov 02 09:00:00 2026
+*********************************************************************************)
+
+IE_VER := 2.99;
+
+REMARK, synthetic fixture - an internal file comment, ignored on import (RM014 p.50)
+CONTROLLER EXAMPLE_CTRL (Description := "Synthetic example controller - placeholder project",
+        ProcessorType := "1756-L85E",
+        Major := 36,
+        TimeSlice := 20,
+        ShareUnusedTimeSlice := 1,
+        RedundancyEnabled := 0,
+        KeepTestEditsOnSwitchOver := 0,
+        DataTablePadPercentage := 50,
+        SecurityCode := 0,
+        ChangesToDetect := 16#ffff_ffff_ffff_ffff,
+        SFCExecutionControl := "CurrentActive",
+        SFCRestartPosition := "MostRecent",
+        SFCLastScan := "DontScan",
+        SerialNumber := 16#0000_0000,
+        MatchProjectToController := No,
+        CanUseRPIFromProducer := No,
+        InhibitAutomaticFirmwareUpdate := 0,
+        PassThroughConfiguration := EnabledWithAppend,
+        DownloadProjectDocumentationAndExtendedProperties := Yes)
+    DATATYPE UDT_ExamplePump (Description := "Example pump data", FamilyType := NoFamily)
+        REAL SpeedSP (Description := "Speed setpoint, percent", Radix := Float, ExternalAccess := Read/Write);
+        DINT FaultCode (Radix := Decimal, ExternalAccess := Read/Write);
+    END_DATATYPE
+    MODULE Local (Parent := "Local",
+            ParentModPortId := 1,
+            CatalogNumber := "1756-L85E",
+            Vendor := 1,
+            ProductType := 14,
+            ProductCode := 999,
+            Major := 36,
+            Minor := 11,
+            PortLabel := "RxBACKPLANE",
+            ChassisSize := 10,
+            Slot := 0,
+            Mode := 2#0000_0000_0000_0001,
+            CompatibleModule := 0,
+            KeyMask := 2#0000_0000_0001_1111)
+    END_MODULE
+    MODULE EX_IO_Adapter (Description := "Example remote adapter",
+            Parent := "Local",
+            ParentModPortId := 2,
+            CatalogNumber := "1756-EN2TR",
+            Vendor := 1,
+            ProductType := 12,
+            ProductCode := 998,
+            Major := 11,
+            Minor := 1,
+            PortLabel := "Ethernet",
+            Address := "192.0.2.20",
+            Mode := 2#0000_0000_0000_0000,
+            CompatibleModule := 1,
+            KeyMask := 2#0000_0000_0001_1111)
+        CONNECTION Example_Rack (Rate := 20000, EventID := 0)
+            InputData := [0,0,0,0];
+        END_CONNECTION
+    END_MODULE
+    ADD_ON_INSTRUCTION_DEFINITION AOI_ExampleValve (Description := "Example valve open command with permissive",
+            Revision := "1.0",
+            RevisionNote := "Initial release",
+            Vendor := "Example Vendor",
+            ExecutePrescan := No,
+            ExecutePostscan := No,
+            ExecuteEnableInFalse := No,
+            CreatedDate := "2026-01-05T08:00:00.000Z",
+            CreatedBy := "EXAMPLE\engineer1",
+            EditedDate := "2026-01-05T08:00:00.000Z",
+            EditedBy := "EXAMPLE\engineer1",
+            SoftwareRevision := "v36.00")
+        PARAMETERS
+            EnableIn : BOOL (Description := "Enable Input - System Defined Parameter", Usage := Input, RADIX := Decimal, Required := No, Visible := No, ExternalAccess := Read Only);
+            EnableOut : BOOL (Description := "Enable Output - System Defined Parameter", Usage := Output, RADIX := Decimal, Required := No, Visible := No, ExternalAccess := Read Only);
+            OpenCmd : BOOL (Description := "Request to open the valve", Usage := Input, RADIX := Decimal, Required := Yes, Visible := Yes, ExternalAccess := Read/Write, DefaultData := "0");
+            Permissive : BOOL (Usage := Input, RADIX := Decimal, Required := Yes, Visible := Yes, ExternalAccess := Read/Write, DefaultData := "0");
+            OpenOut : BOOL (Usage := Output, RADIX := Decimal, Required := No, Visible := Yes, ExternalAccess := Read Only, DefaultData := "0");
+        END_PARAMETERS
+        LOCAL_TAGS
+            OpenLatched : BOOL (RADIX := Decimal, ExternalAccess := None, DefaultData := "0");
+        END_LOCAL_TAGS
+        ROUTINE Logic
+            RC: "Open only while the permissive is true";
+            N: XIC(OpenCmd)XIC(Permissive)OTE(OpenLatched);
+            N: XIC(OpenLatched)OTE(OpenOut);
+        END_ROUTINE
+    END_ADD_ON_INSTRUCTION_DEFINITION
+    TAG
+        Example_Run : BOOL (Description := "Example run command", RADIX := Decimal, Constant := No, ExternalAccess := Read/Write) := 0;
+        Example_HighLimit : REAL (Description := "Example high limit, percent", RADIX := Float, Constant := Yes, ExternalAccess := Read Only) := 90.0;
+        Example_Timer : TIMER (Constant := No, ExternalAccess := Read/Write) := [5000,0,0];
+        Example_Pump1 : UDT_ExamplePump (Constant := No, ExternalAccess := Read/Write) := [50.0,0];
+        Example_Valve1 : AOI_ExampleValve (Constant := No, ExternalAccess := Read/Write) := [1];
+        Example_Fault OF Example_Pump1.FaultCode (RADIX := Decimal);
+    END_TAG
+    PROGRAM MainProgram (Description := "Example main program", MAIN := "MainRoutine", MODE := 0, DisableFlag := 0, UseAsFolder := 0)
+        TAG
+            StartDelayDone : BOOL (RADIX := Decimal, Constant := No, ExternalAccess := None) := 0;
+        END_TAG
+        ROUTINE MainRoutine (Description := "Example pump start sequence")
+            RC: "Start delay before the pump runs";
+            N: XIC(Example_Run)TON(Example_Timer,?,?);
+            RC: "Run only below the high limit";
+            N: XIC(Example_Timer.DN)LES(Example_Pump1.SpeedSP,Example_HighLimit)OTE(StartDelayDone);
+            N: AOI_ExampleValve(Example_Valve1,Example_Run,StartDelayDone,?);
+            N: JSR(CalcRoutine,0);
+        END_ROUTINE
+        ST_ROUTINE CalcRoutine
+            '// Example speed clamp
+            'IF Example_Pump1.SpeedSP > Example_HighLimit THEN
+            '    Example_Pump1.SpeedSP := Example_HighLimit; (* clamp *)
+            'END_IF;
+        END_ST_ROUTINE
+        FBD_ROUTINE FbdRoutine (SheetSize := "Letter (8.5x11in)", SheetOrientation := Landscape)
+            SHEET (Name := "")
+                IREF (ID := 0, X := 100, Y := 100, Operand := Example_Run, HideDescription := No)
+                END_IREF
+                OREF (ID := 1, X := 300, Y := 100, Operand := StartDelayDone, HideDescription := No)
+                END_OREF
+                WIRE (FromElementID := 0, ToElementID := 1)
+                END_WIRE
+                TEXT_BOX (ID := 2, X := 100, Y := 40, Width := 0, Text := "Example text box")
+                END_TEXT_BOX
+            END_SHEET
+        END_FBD_ROUTINE
+        CHILD_PROGRAMS
+        END_CHILD_PROGRAMS
+    END_PROGRAM
+    TASK MainTask (Description := "Example periodic task", Type := PERIODIC, Rate := 50, Priority := 10, Watchdog := 500, DisableUpdateOutputs := No, InhibitTask := No)
+        MainProgram;
+    END_TASK
+    CONFIG CST(SystemTimeMasterID := 0) END_CONFIG
+    CONFIG WallClockTime(LocalTimeAdjustment := 0, TimeZone := 0) END_CONFIG
+END_CONTROLLER

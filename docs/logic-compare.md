@@ -11,10 +11,11 @@ unmodified. CISA AA26-097A reports the reason, quoted in ICS-0001:
 
 `logic-diff` answers the question **offline**, from two exported projects an
 engineer has already produced: a baseline (known-good) and a current export
-(under review). It reads Rockwell L5X, PLCopen TC6 XML and Siemens SimaticML
-(the XML that TIA Portal Openness exports, one file per block, PLC data type
-or tag table, read as a single file or a directory). It is standard-library Python, reads the files as
-hostile input, and never connects to a controller, a network or a vendor tool.
+(under review). It reads Rockwell L5X and L5K, PLCopen TC6 XML and Siemens
+SimaticML (the XML that TIA Portal Openness exports, one file per block, PLC
+data type or tag table, read as a single file or a directory). It is
+standard-library Python, reads the files as hostile input, and never connects
+to a controller, a network or a vendor tool.
 Running it is a `passive` method: it works on copies only. Producing the
 current export usually is not passive; see [Producing the exports](#producing-the-exports-safely).
 
@@ -23,6 +24,7 @@ current export usually is not passive; see [Producing the exports](#producing-th
 ```bash
 python -m icstriage logic-diff --baseline good.L5X --current suspect.L5X              # Markdown to stdout
 python -m icstriage logic-diff --baseline good.L5X --current suspect.L5X --format json --out report.json
+python -m icstriage logic-diff --baseline good.L5K --current suspect.L5K              # Rockwell L5K text export
 python -m icstriage logic-diff --baseline good.xml --current suspect.xml               # PLCopen TC6 XML
 python -m icstriage logic-diff --baseline good_blocks/ --current suspect_blocks/       # SimaticML directories
 python -m icstriage logic-diff --baseline good/FB10.xml --current suspect/FB10.xml     # one SimaticML file
@@ -32,19 +34,22 @@ python -m icstriage logic-diff --baseline good/FB10.xml --current suspect/FB10.x
 | --- | --- |
 | 0 | `NO-DIFFERENCES-FOUND`: no counted difference in the elements compared |
 | 10 | `DIFFERENCES-FOUND`: at least one counted difference |
-| 1 | error: input refused (size, encoding, DTD, nesting), not well-formed, unrecognised format, two different formats, a duplicated object in a SimaticML directory, bad arguments |
+| 1 | error: input refused (size, line count, encoding, DTD, nesting), not well-formed, unrecognised format, two different formats (an L5K against an L5X included), a duplicated object in a SimaticML directory, bad arguments |
 
 The format is detected from the content, never the file extension: root
 element `RSLogix5000Content` is Rockwell L5X; `project` in a
 `http://www.plcopen.org/xml/tc6...` namespace is PLCopen TC6 XML; `Document`
-holding `SW.*` objects is SimaticML. A file that does not begin with markup is
-refused as "not an XML export". A directory is read as SimaticML: every `.xml`
-file in it (recursively, symbolic links not followed) is screened and parsed,
-and objects are matched by name across files, so file names and folder layout
-do not matter. Both inputs must be the same format. `--max-size-mb`
-(default 200) caps each input (for a directory, the total of its XML files).
-`--out` refuses to overwrite either input or to write inside an input
-directory.
+holding `SW.*` objects is SimaticML; plain text whose first statement is
+`CONTROLLER <name>` (after any banner comment, `name := value;` lines and
+`REMARK,` comments) is Rockwell L5K. A file that is neither markup nor an L5K
+is refused as "not an XML export ... and not an L5K export". A directory is
+read as SimaticML: every `.xml` file in it (recursively, symbolic links not
+followed) is screened and parsed, and objects are matched by name across
+files, so file names and folder layout do not matter. Both inputs must be the
+same format; an L5K is not compared with an L5X, for the reason given under
+[Rockwell Logix 5000 L5K](#rockwell-logix-5000-l5k). `--max-size-mb` (default
+200) caps each input (for a directory, the total of its XML files). `--out`
+refuses to overwrite either input or to write inside an input directory.
 
 ## Producing the exports safely
 
@@ -54,7 +59,7 @@ the platform records are the authority for each vendor path.
 
 | Platform | Baseline export | Current export | Impact of producing the current export |
 | --- | --- | --- | --- |
-| Rockwell Logix 5000 ([ICS-0001](../artifacts/catalog/ICS-0001-rockwell-logix-5000.yml)) | Open a **copy** of the change-managed ACD offline; File > Save As, then from the Save as type list select .L5X (1756-RM014, "Export a Project to an .L5X XML File") | Upload the running project with Studio 5000 Logix Designer **into a new, empty ACD**, then export that file to L5X offline | `online-vendor-tool` (ICS-0001). Do not switch the controller to RUN until the project is validated: CISA warns a mode change locks in the project on the device |
+| Rockwell Logix 5000 ([ICS-0001](../artifacts/catalog/ICS-0001-rockwell-logix-5000.yml)) | Open a **copy** of the change-managed ACD offline; File > Save As, then from the Save as type list select .L5X or .L5K (1756-RM014, "Export a Project to an .L5X XML File"; for L5K, "To export a project to an .L5K text file": "In the Logix Designer application, select File > Save As." ... "From the Save as type list, select the .L5K file format and select Save.") | Upload the running project with Studio 5000 Logix Designer **into a new, empty ACD**, then export that file to L5X or L5K offline, the same format as the baseline | `online-vendor-tool` (ICS-0001). Do not switch the controller to RUN until the project is validated: CISA warns a mode change locks in the project on the device |
 | CODESYS V3 runtimes ([ICS-0009](../artifacts/catalog/ICS-0009-codesys-v3-runtime-controllers.yml)) | Project → Export PLCopenXML from the known-good project | Export PLCopenXML from the project under review. Source Upload of Archive.prj is `online-vendor-tool` and, per ICS-0009, "Returns the archive someone last placed there with Source Download, not a reconstruction of the running code" | A PLCopen export never shows the running application. For that, use ICS-0009's "Login without any change" and Application Information (`online-vendor-tool`) |
 | Siemens S7-1200/1500 ([ICS-0003](../artifacts/catalog/ICS-0003-siemens-s7-1200-1500.yml)) | Open a **copy** of the change-managed TIA Portal project offline and export blocks, PLC data types and tag tables to files with TIA Portal Openness (`PlcBlock.Export`, `PlcTagTable.Export`; the manual's "Exporting blocks" lists "PLC is not online" as a requirement) | "Upload from device (software)" **into a new, empty project**, disconnect, then export that project offline the same way, with the same ExportOptions and TIA Portal version | `online-vendor-tool` for the upload (ICS-0003: possible in RUN or STOP; "Operations approval required; same session risks as any online connection"). The Openness export itself runs on the offline copy. TIA Portal's own online/offline comparison is the vendor alternative, same impact |
 
@@ -72,6 +77,16 @@ Practical rules:
   source-protected content is now exported in an encrypted format to prevent
   viewing or modifying components in the system."); CODESYS can add plain-text
   declarations as a schema extension. Mismatched settings produce noise.
+- **L5K and L5X share the source-protection switch, and an L5K is never
+  imported back.** 1756-RM014: "The Encode Source Protected Content check box
+  is available when you choose the .L5K or .L5X option." - use the same
+  setting on both sides. Importing an L5K changes the project: "If a project
+  is exported to an .L5K file and then imported, the resulting project .ACD
+  file gets a new creation stamp." and "When you import an .L5K file, the
+  project changes so that you cannot go online and access a previously
+  downloaded controller." The comparison needs only the two text files; never
+  import the investigator's copy into a project that is used to reach the
+  live controller.
 - **Siemens: same ExportOptions and the same TIA Portal version.** What a
   SimaticML file holds depends on the options (manual 6.1.5:
   `ExportOptions.WithReadOnly` - "The write-protected values are also
@@ -107,12 +122,12 @@ limits stated.
 | `logic` | Rung, ST/IL line or graphical body added, removed or changed; routine added or removed; program added; rung edit-state markers; vendor data inside a program POU; Siemens OB network (SCL line, STL statement, LAD/FBD/GRAPH network hash), OB added or removed | yes |
 | `aoi` | Add-On Instruction (Rockwell), IEC function / function block (PLCopen) or Siemens FB / FC changed: revision, parameters, local tags, defaults, routines, networks, encoded or know-how-protected body. AA26-097A's "reusable code modules" | yes |
 | `tasking` | Task type, rate/interval, priority, watchdog, inhibit, event trigger, scheduled programs and their order; program disable, main and fault routine; controller power-loss and major-fault programs; SFC execution options; Siemens OB attributes (`PriorityNumber`, `EventClass`, `SecondaryType`, cycle and time attributes) | yes |
-| `interface` | Tag, variable or data type added, removed, retyped; external access, constant flag, alias, produce/consume; parameter connections; Siemens block-interface members (data type, remanence, accessibility, member attributes, order), PLC data types, tag-table tags (`DataTypeName`, `LogicalAddress`, external access), instance-DB source | yes |
-| `value` | Stored or initial value, force data, module I/O tag data; Siemens `StartValue` (including array `Subelement` paths and the Constant section), tag-table constant `Value`, interface-snapshot values | yes |
-| `module` | Module identity, catalog number, revision, keying, ports, inhibit, configuration data; controller processor type and firmware revision | yes |
-| `metadata` | Controller settings (security, change-detection mask, redundancy, safety), AOI signature history, child-program grouping; Siemens block attributes (`Number`, `HeaderVersion`, `MemoryLayout`, `IsConsistent`, ...) and unmodelled SimaticML objects | yes |
-| `metadata` (provenance) | Export date and options, exporting software revision, project creation and modification dates, AOI edit date and editor, communication path; SimaticML `DocumentInfo`, `Engineering` version, block timestamps (`ModifiedDate`, `CompileDate`, ...), per-file hashes in a directory | **no** - reported only |
-| `documentation-only` | Descriptions, rung comments, comments inside ST/IL, FBD/SFC text boxes, engineering units, state names, display radix; Siemens block and network titles and comments, member comments, SCL/STL comments | **no** - reported only |
+| `interface` | Tag, variable or data type added, removed, retyped; external access, constant flag, alias (L5K `OF`), produce/consume; parameter connections (L5K `PARAMETER_CONNECTION` endpoints); Siemens block-interface members (data type, remanence, accessibility, member attributes, order), PLC data types, tag-table tags (`DataTypeName`, `LogicalAddress`, external access), instance-DB source | yes |
+| `value` | Stored or initial value, force data, module I/O tag data; L5K tag value lists, `TagForceData`, connection `InputData`/`OutputData` and their force data, type-specific tag attributes (alarm, message, axis ...) and tag-based `ALARM_CONDITION` / `ALARM_DEFINITION` attributes; Siemens `StartValue` (including array `Subelement` paths and the Constant section), tag-table constant `Value`, interface-snapshot values | yes |
+| `module` | Module identity, catalog number, revision, keying (L5K `CompatibleModule`, `KeyMask`), ports, inhibit, configuration data (L5K `ConfigData`, `ConfigScript`, `ExtendedProp` by hash); controller processor type and firmware revision | yes |
+| `metadata` | Controller settings (security, change-detection mask, redundancy, safety, L5K `CONFIG` objects and `PRIMARY_ACTION_SET`), AOI signature history, child-program grouping, trends; Siemens block attributes (`Number`, `HeaderVersion`, `MemoryLayout`, `IsConsistent`, ...) and unmodelled SimaticML objects; any block the L5K reader does not model | yes |
+| `metadata` (provenance) | Export date and options, exporting software revision, project creation and modification dates, AOI edit date and editor, communication path; L5K text before `CONTROLLER` and after `END_CONTROLLER`; SimaticML `DocumentInfo`, `Engineering` version, block timestamps (`ModifiedDate`, `CompileDate`, ...), per-file hashes in a directory | **no** - reported only |
+| `documentation-only` | Descriptions, rung comments (L5K `RC:`), comments inside ST/IL, FBD/SFC text boxes, engineering units, state names, display radix, alarm message text, L5K `REMARK` lines; Siemens block and network titles and comments, member comments, SCL/STL comments | **no** - reported only |
 
 Each counted `logic`/`aoi` difference carries ATT&CK for ICS candidate T0889
 (Modify Program), `tasking` T0821 (Modify Controller Tasking) and `value`
@@ -130,6 +145,17 @@ How differences are found:
   separately as documentation. Comments are not treated as nested; the only
   effect is that a comment edit could show as a logic change, never that a
   logic change is hidden.
+- **L5K rungs** are the `<RungType>: text;` statements of a `ROUTINE` in file
+  order (RM014: "In L5K, the rung number is defined by the order the rung
+  appears in the L5K format."), compared as the same sequence, so an inserted
+  rung is one addition here too. `RC: "..."` comments attach to the rung that
+  follows them ("In a L5K file, a rung comment must be followed by a rung.")
+  and are documentation. Rung types other than N (RM014's table: I, D, IR, rR,
+  R, rI, rN, e, er, d) are online-edit states and are reported. Structured
+  text lines lose their leading single quote ("Each line of structured text
+  must begin with a single quote") before the same comment stripping. `LOGIC
+  (Online_Edit_Type := Orig | Test | Pend)` blocks are separate edit states,
+  labelled with the L5X names (`[TestEdits]`, `[PendingEdits]`).
 - **Opaque bodies** (FBD, SFC, LD, encrypted or encoded content, vendor
   `addData`, unmodelled elements) are compared by SHA-256 of a canonical
   serialisation. A second hash with documentation elements removed lets a
@@ -183,6 +209,10 @@ Every report repeats these.
   (6.4.2.1), so a change to or from a default shows as an added or removed
   `StartValue`. F-blocks (`ProgrammingLanguage` prefixed `F_`) are compared
   like standard blocks; the safety program's own signatures were not read.
+- L5K: RM014 documents no file header, so text before the `CONTROLLER`
+  statement and after `END_CONTROLLER` is provenance only; FBD, SFC and
+  Equipment Sequence bodies, encoded content and undocumented blocks are
+  compared by hash; an L5K is compared only with an L5K.
 - `NO-DIFFERENCES-FOUND` means no counted difference in the elements this
   tool compares. It does not show that the controller is uncompromised.
 
@@ -213,12 +243,9 @@ pages.
 | Task, ch.12 (p.312-315) | `Task` @Type, @Class, @Rate, @Priority, @Watchdog, @DisableUpdateOutputs, @InhibitTask, @SynchronizeRedundancyDataDisabled; `EventInfo` attributes; `ScheduledPrograms/ScheduledProgram` @Name in order ("The programs are executed in the order they are specified.") | tasking |
 | Other controller children (ch.13-17) | `ParameterConnections` (interface), `QuickWatchLists` (not counted), `Trends`, controller configuration objects and anything else | by hash |
 
-Not read at all: the L5K text format and the binary ACD project file. L5K
-was considered and not implemented: a reader would need the L5K material of
-1756-RM014 re-read first, and that read was not done. It is not built from
-memory; an L5K file is refused as "not an XML export".
+Not read at all: the binary ACD project file.
 
-RM014 statements the treatment relies on:
+RM014 statements the L5X treatment relies on:
 
 - "Raw data format is a hex dump of the data and includes hidden (config)
   data." Decorated data is therefore preferred when both exports carry it.
@@ -231,6 +258,57 @@ RM014 statements the treatment relies on:
   file." An edited AOI that was imported should therefore carry a new
   EditedDate; the report always lists EditedDate changes, though as
   provenance they do not decide the verdict.
+
+### Rockwell Logix 5000 L5K
+
+Source: the same manual, 1756-RM014D-EN-P (September 2025), L5K sections,
+read directly (PDF text, 385 pages, through Firecrawl's PDF parser) on
+2026-11-08. Page numbers are the manual's printed pages as its table of
+contents gives them (the extracted text carries no page footers). L5K is the
+text export: RM014 ch.1 (p.21-22), "The entire controller project | L5K or
+L5X" (individual components export only as L5X). It is produced with File >
+Save As, Save as type .L5K (p.22); the current export is produced the same
+way from a project uploaded into a new, empty ACD (`online-vendor-tool`, see
+the table above).
+
+The format is detected from content: the first statement must be `CONTROLLER
+<name>` (p.55). RM014 documents no file header - every L5K example in the
+manual starts at `CONTROLLER` - so whatever an export writes before it (a
+`(* *)` banner, `name := value;` lines) and after `END_CONTROLLER` is kept as
+an uncounted, hashed provenance field (`Export` / `Preamble`, `Trailer`) and
+never parsed. `REMARK,` lines are internal file comments ("The import process
+ignores these comments.", p.50) and are documentation-only. Whitespace is
+collapsed outside quoted text ("If white space characters occur outside of
+descriptions, they are ignored.", p.50); `$` escapes in descriptions follow
+the p.50 table.
+
+| Component (RM014) | L5K statements and attributes read | Treatment |
+| --- | --- | --- |
+| Controller, ch.2 (structure p.55, attributes p.57-61, examples p.63) | `CONTROLLER <name> (Description, attributes)` ... `END_CONTROLLER`; `ProcessorType`, `Major` (module); `PowerLossProgram`, `MajorFaultProgram`, `SFCExecutionControl`, `SFCRestartPosition`, `SFCLastScan` (tasking); `CommPath`, `CommDriver`, `CurrentProjectLanguage` (provenance); every other attribute (metadata, counted); `CONFIG <object> (attributes) END_CONFIG` (p.332) as `Config:<object>`; `PARAMETER_CONNECTION (EndPoint1, EndPoint2)` (p.316) as one sorted `ParameterConnections` list | parsed |
+| Datatype, ch.3 (p.72, members p.74, example p.77) | `DATATYPE <name> (Description, EngineeringUnit, FamilyType) ... END_DATATYPE`; members `<TypeName> <MemberName>[dims] (attributes);` and `BIT <BitName> <HostMemberName> : <BitPosition> (attributes);`, member order | interface; `Radix`, `Description`, `EngineeringUnit`, `State0`, `State1` documentation |
+| Module, ch.4 (p.80, CONNECTION p.88, example p.93) | `MODULE <name> (attributes)`; `ConfigData := ...;`, `ConfigScript := ...;` (module); `ExtendedProp` (hash); `CONNECTION <name> (attributes)` with `InputData`, `OutputData` (value) and `InputForceData`, `OutputForceData` (value, force) | parsed; anything else inside a module by hash |
+| Add-On Instruction, ch.5 (p.97, PARAMETERS p.103, HISTORY_ENTRY p.108, LOCAL_TAGS p.110, ENCODED_DATA p.112, examples p.115-121) | `ADD_ON_INSTRUCTION_DEFINITION <name> (attributes)`; `CreatedDate`, `CreatedBy`, `EditedDate`, `EditedBy`, `SoftwareRevision`, `SignatureTimestamp` (provenance); `Description`, `RevisionNote`, `AdditionalHelpText` (documentation); other attributes (aoi); `HISTORY_ENTRY (User, Timestamp, SignatureID, Description) END_HISTORY_ENTRY` (metadata); `PARAMETERS` and `LOCAL_TAGS` statements as tags with `DefaultData` (aoi), parameter and local-tag order; routines; `ENCODED_DATA (EncodedType := ADD_ON_INSTRUCTION_DEFINITION, Name, ...)`: its `PARAMETERS`, `LOCAL_TAGS` and `HISTORY_ENTRY` are read, the payload is hashed ("the encoded_data information is encrypted") | `SCAN_MODE_ROUTINE` and `ENCRYPTION_INFO` by hash (RM014 names them without showing their L5K text) |
+| Tag, ch.6 (structure p.123, attributes p.123 ff., initial value p.173, examples p.175) | `<name> [OF alias] : <type[dims]> (attributes) [:= value][, TagForceData := [...]];` at controller scope, program scope and in AOIs; `AliasFor`, `DataType`, `Dimensions` and the documented tag, produced, consumed and safety-consume attributes (interface); `Value` and `Force` (value); `Radix`, `Description`, `Comment*`, `EngineeringUnit*`, `State0*`, `State1*` and `ALMMSG`/`ALMSG` message text (documentation); `PermissionSet`, `TrackingGroups` (metadata) | attributes outside the documented tag tables (alarm, message, axis, motion-group and other object-backed types, which RM014 places in the tag statement, p.131) are one `Parameters` field of class value |
+| Tag-based alarms (p.181) and alarm definitions (p.190) | `ALARM_CONDITION <name> (attributes) END_ALARM_CONDITION`, `ALARM_DEFINITION <name> (attributes) END_ALARM_DEFINITION` | value; message text documentation |
+| Program, ch.7 (p.195, CHILD_PROGRAM p.199, ENCODED_DATA p.201, example p.204) | `PROGRAM <name> (attributes)`; `MODE` (logic: the L5K test-edits flag); `MAIN`, `Fault`, `DisableFlag`, `UseAsFolder`, `Type`, `Class` and phase/sequence attributes (tasking); `EquipmentId`, `RecipePhaseNames`, `Revision`, `RevisionExtension` (metadata); `TAG` block; routines; `CHILD_PROGRAMS ... END_CHILD_PROGRAMS` (metadata); `ENCODED_DATA (EncodedType := ROUTINE, Name, Type, ...)` as an opaque routine | parsed |
+| Ladder, ch.8 (p.206, RUNG p.208, rung types p.208, examples p.211) | `ROUTINE <name> (Description)`; `RC: "comment";` and `<RungType>: <rung_neutral_text>;` | rungs compared in order; statements that are neither (for example `ENCRYPTION_INFO`) by hash and noted |
+| FBD, ch.9 (p.223, SHEET p.226, TEXT_BOX p.242, ATTACHMENT p.243); SFC, ch.10 (p.257, TEXT_BOX p.274, ATTACHMENT p.275); Equipment Sequence (p.301) | `FBD_ROUTINE`, `SFC_ROUTINE`, `ESQ_ROUTINE <name> (attributes)` ... `END_*`; `LOGIC (Online_Edit_Type := Orig \| Test \| Pend) ... END_LOGIC` | opaque; the documentation hash drops `TEXT_BOX ... END_TEXT_BOX`, `ATTACHMENT ... END_ATTACHMENT` and `Description := "..."` |
+| Structured text, ch.11 (p.285) | `ST_ROUTINE <name> (Description)`; lines beginning with `'`; `LOGIC` blocks | line comparison with `//`, `(* *)`, `/* */` comments removed; a line without the quote is compared as written and noted |
+| Task, ch.12 (p.312, example p.315) | `TASK <name> (attributes) <program>; ... END_TASK` | tasking; programs in order ("The programs are executed in the order they are specified.") |
+| Trend (p.320), Quick Watch (p.329), `PRIMARY_ACTION_SET` (p.55) | whole block | trends and permission caches metadata by hash; watch lists not counted |
+| Anything else | `KEYWORD ... END_KEYWORD` or a statement | by hash under the enclosing entity, named in a reader note |
+
+Cross-format comparison is **not** supported: an L5K baseline is compared
+only with an L5K. The names map onto the same model, but RM014 spells the
+same attributes differently in the two formats ("Many boolean attributes in
+the L5K format may have a value of 1 (enabled) or 0 (disabled). In the L5X
+format, these same attributes have a value of true (enabled) or false
+(disabled).", p.41; `Major` against `MajorRev`, `MODE` against `TestEdits`,
+`DisableFlag` against `Disabled`, p.57 and p.196) and encodes tag data
+differently (an L5K value list against decorated XML; "Unused data is not
+included in the L5K format. Unused data is included in the L5X format.",
+p.174), so a cross-format run would report differences that are not changes.
+The tool refuses the pair and says why; export both sides in one format.
 
 ### PLCopen TC6 XML
 
@@ -366,7 +444,13 @@ Export files are treated as hostile. Before any XML parser sees a document:
    with the XML declaration removed, under an element-count cap (5,000,000)
    and a nesting-depth cap (256).
 
-A file that does not begin with markup is refused before step 3. In a
+A file that does not begin with markup is refused before step 3 unless its
+first statement is `CONTROLLER`, in which case it is read as L5K text and
+never reaches an XML parser: the same size cap, a line cap (2,000,000), NUL
+bytes refused, a bracket and block nesting cap (256), quoted text that ends at
+its line, scans that always advance, and nothing evaluated. A statement the
+L5K reader cannot place is hashed under `Unparsed` and named in a reader note,
+never dropped; a block without its `END_` keyword is refused. In a
 SimaticML directory every `.xml` file goes through the same steps (one refused
 file refuses the directory), the size cap applies to the total, at most 50,000
 files are read, and symbolic links are not followed. SCL `Blank` counts are
@@ -389,6 +473,19 @@ member value change, force data, value formats with nothing in common,
 online-edit rung marker, source-protected routine, UTF-16 and exotic
 encodings, size/element/depth caps, malformed and unknown files, and the CLI
 exit codes.
+
+L5K fixtures (`tests/fixtures/logic/l5k/`, the same synthetic project written
+from scratch in L5K statements): identical pair with a different export
+banner (provenance only), rung changed (`logic`), tag added (`interface`),
+task period changed (`tasking`), AOI revision and rung changed (`aoi`),
+comment-only (`documentation-only`, still `NO-DIFFERENCES-FOUND`). Cases built
+in temporary files: value, force and alias changes, module connection data
+and keying, `CONFIG` and controller settings, `LOGIC` edit-state blocks and
+rung-type markers, encoded routine and encoded AOI by hash, an undocumented
+block and a parameter connection, an ST line without its quote, detection by
+content under any extension, garbage, oversized, too many lines, NUL bytes, a
+bracket bomb, a truncated file, L5K against L5X refused, and the CLI exit
+codes 0 / 10 / 1.
 
 SimaticML fixtures (`tests/fixtures/logic/simaticml/`): a baseline directory
 of seven files (an OB with a LAD and an SCL network, an SCL FB, an STL FC, a

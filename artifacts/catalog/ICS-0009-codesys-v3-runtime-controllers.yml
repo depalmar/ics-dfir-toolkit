@@ -1,0 +1,395 @@
+# ICS platform catalog entry
+# ICS-0009 - CODESYS V3 runtime-based controllers (multi-vendor)
+# Research notes: docs/research/2026-11-08/platforms-round2.md
+
+id: ICS-0009
+name: CODESYS V3 runtime-based controllers (multi-vendor)
+vendor: multiple
+products:
+  - CODESYS Control runtime systems (for example CODESYS Control Win SL) and OEM controllers built on the CODESYS V3 runtime
+  - Schneider Electric Modicon M251 / M258 programmed with EcoStruxure Machine Expert (the CODESYS-based devices INCONTROLLER's CODECALL module targeted; see also ICS-0005)
+asset_class: plc
+purdue_levels: ["1"]
+protocols: [ICS-PROTO-0015, ICS-PROTO-0010]
+os_base: >-
+  The CODESYS V3 runtime runs on the OEM's operating system (Windows, Linux or
+  an RTOS, depending on the device); the device vendor, not CODESYS, decides
+  much of what is logged and kept.
+filesystem: >-
+  Depends on the device. The runtime keeps application files on the device's
+  filesystem; CODESYS documents a source archive named Archive.prj written to
+  the controller by Source Download, and log files whose path is set in the
+  runtime configuration. Default locations differ per OEM and were not found
+  in vendor documentation.
+customer_shell: restricted
+memory_acquisition: not-available
+program_access: vendor-software-upload
+operating_modes: >-
+  Run/stop is controlled from the CODESYS IDE (or OEM switches, device-
+  specific). The AuditLog logger records start and stop actions with the user
+  name. From V3.5 SP17 only one CODESYS instance can be logged in to an
+  application at a time, so an owner who cannot log in may be locked out by
+  another active session.
+integrity_features:
+  - feature: AuditLog logger
+    description: >-
+      Records user interactions with the PLC with the user name - download,
+      start, stop, setting breakpoints - including failed attempts the user was
+      not allowed to make. V3.5 SP22 release notes add audit events for
+      successful and failed login, user lockout and certificate or password
+      expiry, rename the audit files from ".Audit.log" to ".AuditLog.csv", and
+      let the CODESYS OPC UA server forward audit messages as OPC UA
+      AuditEvents. Which runtime version first shipped the AuditLog was not
+      read.
+    versions: Described in the V3.5 SP22 online help and release notes
+    confidence: high
+    sources:
+      - title: Tab - Log (CODESYS Online Help, V3.5 SP22)
+        url: https://content.helpme-codesys.com/en/CODESYS%20Development%20System/_cds_edt_device_log.html
+        accessed: "2026-11-08"
+        kind: vendor
+        quote: >-
+          AuditLog: This logger shows all user interactions with the PLC. The
+          user name is also logged. These are actions such as download, start,
+          stop or set breakpoints. Failed attempts are also logged if a user is
+          not allowed to perform certain actions.
+        read: direct
+      - title: Release Notes CODESYS V3.5 SP22
+        url: https://api-www.codesys.com/fileadmin/user_upload/CODESYS_Group/Ecosystem/Up-to-Date/Releases-Lifecycle/Release-Updates/Release-Notes/Release_Notes_CODESYS_35220.html
+        accessed: "2026-11-08"
+        kind: vendor
+        quote: Auditlog events for certificate and password expiration and successful/failed login
+        read: direct
+  - feature: Login comparison and Application Information dialog
+    description: >-
+      At login the IDE reports whether the application on the controller is
+      unchanged since the last download, changed, unknown, or absent, and can
+      show the properties of the PLC's application (project name, last
+      modification, IDE version, author, description) beside the project's.
+      With the "Download application info" build option the contents can be
+      compared. It compares against the investigator's project, so it is only
+      as good as the known-good copy.
+    confidence: high
+    sources:
+      - title: Command - Login (CODESYS Online Help, V3.5 SP22)
+        url: https://content.helpme-codesys.com/en/CODESYS%20Development%20System/_cds_cmd_login.html
+        accessed: "2026-11-08"
+        kind: vendor
+        quote: >-
+          Application Information: The application properties of the
+          Application in the IDE (Integrated Development Environment) are
+          compared with those of the Application in the PLC: Project name, Last
+          modification, IDE version, Author, Description.
+        read: direct
+  - feature: Device user management
+    description: >-
+      Where online user management is configured, the IDE prompts for device
+      credentials at login. CODESYS states it is enforced by default on the
+      CODESYS Control runtime (see ICS-PROTO-0015 for that source); OEM
+      runtimes may differ.
+    confidence: high
+    sources:
+      - title: Command - Login (CODESYS Online Help, V3.5 SP22)
+        url: https://content.helpme-codesys.com/en/CODESYS%20Development%20System/_cds_cmd_login.html
+        accessed: "2026-11-08"
+        kind: vendor
+        quote: >-
+          If an online user management is configured on the target device, then
+          you are prompted for user credentials when you log in.
+        read: direct
+collection:
+  - method: Audit events already received by an OPC UA client from the CODESYS OPC UA server (V3.5 SP22, CmpOPCUAProviderAuditLog)
+    impact: passive
+    description: >-
+      Only where the provider component, the SendAuditLogViaOpcUaServer
+      setting and an encrypted client session were configured beforehand. The
+      SP22 notes say audit logs for written values and method calls are not
+      yet supported.
+    confidence: high
+    references:
+      - https://api-www.codesys.com/fileadmin/user_upload/CODESYS_Group/Ecosystem/Up-to-Date/Releases-Lifecycle/Release-Updates/Release-Notes/Release_Notes_CODESYS_35220.html
+  - method: Passive capture of CODESYS V3 traffic (UDP 1740-1743, TCP 11740, gateway TCP 1217) and Modbus to the controller (TAP or SPAN)
+    impact: passive
+    description: >-
+      Shows which hosts talked to the runtime and when. No open parser for the
+      CODESYS V3 protocol was verified (ICS-PROTO-0015), so expect flow-level
+      evidence; encrypted sessions show metadata only.
+    confidence: medium
+  - method: Read and export the PLC log and AuditLog from the device editor Log tab to XML
+    impact: online-vendor-tool
+    description: >-
+      Device tree → controller → Edit Object → Log tab; choose the logger
+      (default PlcLog; AuditLog) and use the export button to save XML. Record
+      the UTC-time option used, because the tab converts timestamps to the
+      workstation's time zone by default.
+    safety_note: >-
+      Needs a connection to the device through the gateway, normally with a
+      device user. Use an account without download rights if the OEM allows
+      it. Operations approval required.
+    confidence: high
+    references:
+      - https://content.helpme-codesys.com/en/CODESYS%20Development%20System/_cds_edt_device_log.html
+  - method: Log in with "Login without any change" and open Details (Application Information) against the known-good project
+    impact: online-vendor-tool
+    description: >-
+      Shows whether the controller's application changed since the last
+      download from this project, and its author, IDE version and last
+      modification.
+    safety_note: >-
+      The same dialog offers online change and download; choose only "Login
+      without any change". Never overwrite a running application. Operations
+      approval required.
+    confidence: high
+    references:
+      - https://content.helpme-codesys.com/en/CODESYS%20Development%20System/_cds_cmd_login.html
+  - method: Log in to a controller that has a CODESYS safety controller below it
+    impact: process-risk
+    description: >-
+      CODESYS warns Login can temporarily interrupt the safety controller's
+      connections, and safe field devices or other safety PLCs may react by
+      entering the safe state.
+    safety_note: Break-glass only, with the process in a state where a safety reaction is acceptable.
+    confidence: high
+    references:
+      - https://content.helpme-codesys.com/en/CODESYS%20Development%20System/_cds_cmd_login.html
+  - method: Source Upload of the Archive.prj project archive stored on the controller
+    impact: online-vendor-tool
+    description: >-
+      Returns the archive someone last placed there with Source Download, not
+      a reconstruction of the running code; compare it with the running
+      application before trusting it.
+    safety_note: Extract into a new directory; operations approval required.
+    confidence: high
+    references:
+      - https://content.helpme-codesys.com/en/CODESYS%20Development%20System/_cds_loading_sourcecode_to_from_plc.html
+volatility:
+  - >-
+    PLC log and AuditLog capacity is set by the runtime configuration and the
+    OEM; no default retention was found in vendor documentation. Export early.
+  - Log and audit files sit on the controller's own filesystem; INCONTROLLER's CODECALL can list and delete files over the CODESYS protocol (Mandiant).
+  - Before V3.5 SP22 audit files end in .Audit.log; from SP22 in .AuditLog.csv. Look for both.
+anti_forensics:
+  - technique: File deletion on the controller over the CODESYS protocol
+    seen_in: INCONTROLLER (CODECALL)
+    detail: >-
+      Mandiant lists deleting files, retrieving directory listings and
+      uploading/downloading files among CODECALL's CODESYS commands. Mandiant
+      does not report it being used against logs; it is a capability, listed
+      here because the logs live on the same filesystem.
+datasources: [ICS-DS-0001, ICS-DS-0002, ICS-DS-0003, ICS-DS-0004, ICS-DS-0005, ICS-DS-0007, ICS-DS-0013, ICS-DS-0014]
+confidence: high
+references:
+  - title: Tab - Log (CODESYS Online Help, V3.5 SP22)
+    url: https://content.helpme-codesys.com/en/CODESYS%20Development%20System/_cds_edt_device_log.html
+    accessed: "2026-11-08"
+  - title: Command - Login (CODESYS Online Help, V3.5 SP22)
+    url: https://content.helpme-codesys.com/en/CODESYS%20Development%20System/_cds_cmd_login.html
+    accessed: "2026-11-08"
+  - title: Downloading Source Code to and from the PLC (CODESYS Online Help, V3.5 SP22)
+    url: https://content.helpme-codesys.com/en/CODESYS%20Development%20System/_cds_loading_sourcecode_to_from_plc.html
+    accessed: "2026-11-08"
+  - title: Release Notes CODESYS V3.5 SP22
+    url: https://api-www.codesys.com/fileadmin/user_upload/CODESYS_Group/Ecosystem/Up-to-Date/Releases-Lifecycle/Release-Updates/Release-Notes/Release_Notes_CODESYS_35220.html
+    accessed: "2026-11-08"
+  - title: Mandiant - INCONTROLLER, New State-Sponsored Cyber Attack Tools Target Multiple Industrial Control Systems
+    url: https://cloud.google.com/blog/topics/threat-intelligence/incontroller-state-sponsored-ics-tool/
+    accessed: "2026-11-08"
+  - title: CISA AA22-103A - APT Cyber Tools Targeting ICS/SCADA Devices
+    url: https://www.cisa.gov/news-events/cybersecurity-advisories/aa22-103a
+    accessed: "2026-11-08"
+last_verified: "2026-11-08"
+notes: >-
+  A multi-vendor runtime record: what CODESYS documents is the floor, and each
+  OEM decides log sizes, file locations, extra logs and whether the AuditLog
+  is present. Check the device vendor's manual before relying on any of this
+  for a specific controller. The runtime configuration file and its default
+  logger file locations were seen only in forum posts and third-party blogs,
+  which are not used here; the SP22 release notes show the [CmpLog]
+  Logger.N.Name setting with example paths such as
+  /var/log/codesys/codesyscontrol.log. The CODESYS advisory on INCONTROLLER
+  (linked from Mandiant's report) was not read. Modbus is not listed under
+  protocols because no CODESYS document read ties the runtime to it, though
+  CODECALL used Modbus alongside CODESYS against Schneider devices.
+response: baseline
+artifacts:
+  - locator: PLC log (logger PlcLog) - device editor Log tab; XML export
+    class: diagnostics
+    volatility: rotating
+    retention: Runtime- and OEM-specific; not documented in the pages read
+    forensic_value: high
+    evidence_type: [execution, impair-process-control, timeline]
+    confidence: high
+    collection_impact: online-vendor-tool
+    description: >-
+      Startup and shutdown with component versions, application download and
+      boot-application loading, I/O-driver and data-source entries and custom
+      entries, each with severity, timestamp, description and component; for
+      example "Application [ <name> ] loaded via [OnlineChange]".
+    provides: When applications were downloaded, changed online or loaded at boot, and runtime errors around an incident.
+    normal: Downloads and online changes that match approved change records; boot loads after planned restarts.
+    suspicious: >-
+      Downloads or online changes outside a change window; boot-application
+      loads after an unexplained restart; exceptions after an unscheduled
+      change; components loaded that the OEM does not ship.
+    basis: vendor
+    sources:
+      - title: Tab - Log (CODESYS Online Help, V3.5 SP22)
+        url: https://content.helpme-codesys.com/en/CODESYS%20Development%20System/_cds_edt_device_log.html
+        accessed: "2026-11-08"
+        kind: vendor
+        quote: >-
+          You can view the PLC log on this tab of the generic device editor. It
+          lists the events that were recorded on the target system.
+        read: direct
+  - locator: AuditLog logger - device editor Log tab (Logger = AuditLog); audit files *.Audit.log (before SP22) or *.AuditLog.csv (SP22 and later) on the controller
+    class: audit-trail
+    volatility: rotating
+    retention: Not documented in the pages read
+    forensic_value: high
+    evidence_type: [credential-access, execution, impair-process-control, inhibit-response-function, timeline, attribution]
+    confidence: high
+    collection_impact: online-vendor-tool
+    description: >-
+      User interactions with the user name: download, start, stop,
+      breakpoints, failed attempts; in SP22 also login success and failure,
+      user locked, certificate and password expiry, and web-server
+      authentication failures with runtime user management.
+    seen_in: [INCONTROLLER (CODECALL credential brute force, per Mandiant)]
+    provides: Who did what to the PLC, including refused attempts.
+    normal: Logins and downloads by named engineers during change windows.
+    suspicious: >-
+      Bursts of failed logins or a user lockout (CODECALL brute-forces
+      credentials from a dictionary file); start or stop by an unexpected user;
+      breakpoints set on a production PLC; download by an account that does
+      not normally program.
+    basis: vendor
+    sources:
+      - title: Release Notes CODESYS V3.5 SP22
+        url: https://api-www.codesys.com/fileadmin/user_upload/CODESYS_Group/Ecosystem/Up-to-Date/Releases-Lifecycle/Release-Updates/Release-Notes/Release_Notes_CODESYS_35220.html
+        accessed: "2026-11-08"
+        kind: vendor
+        quote: "CmpUserMgr: New AuditLog Message to inform that a user was locked"
+        read: direct
+      - title: Mandiant - INCONTROLLER
+        url: https://cloud.google.com/blog/topics/threat-intelligence/incontroller-state-sponsored-ics-tool/
+        accessed: "2026-11-08"
+        kind: researcher
+        quote: >-
+          Attempting to login using a username/password and by brute forcing
+          credentials with a provided dictionary file
+        read: direct
+  - locator: Runtime logger file named by [CmpLog] Logger.N.Name in the runtime configuration (path set per installation)
+    class: system-logs
+    volatility: rotating
+    retention: Not documented in the pages read
+    forensic_value: medium
+    evidence_type: [execution, timeline]
+    confidence: high
+    collection_impact: online-vendor-tool
+    description: >-
+      The runtime can write loggers to files at a configured relative or
+      absolute path; SP22 notes give /var/log/codesys/codesyscontrol.log as an
+      example configuration, not a default.
+    provides: A file copy of runtime log entries that may outlast the in-memory view.
+    normal: Present at the path the site's runtime configuration names, with continuous entries.
+    suspicious: Missing or truncated file; a logger path changed in the runtime configuration; gaps around the incident window.
+    basis: vendor
+    sources:
+      - title: Release Notes CODESYS V3.5 SP22
+        url: https://api-www.codesys.com/fileadmin/user_upload/CODESYS_Group/Ecosystem/Up-to-Date/Releases-Lifecycle/Release-Updates/Release-Notes/Release_Notes_CODESYS_35220.html
+        accessed: "2026-11-08"
+        kind: vendor
+        quote: Logger.0.Name=/var/log/codesys/codesyscontrol.log
+        read: direct
+  - locator: Login result and Application Information (Details) dialog against the known-good project
+    class: integrity
+    volatility: live
+    forensic_value: high
+    evidence_type: [impair-process-control, inhibit-response-function, configuration]
+    confidence: high
+    collection_impact: online-vendor-tool
+    description: >-
+      Whether the PLC's application is unchanged since the last download,
+      changed, an unknown version, or absent; and whether applications exist
+      on the PLC that are not in the project.
+    provides: A vendor-side test of whether the running application matches the approved project.
+    normal: Login continues with no prompt (application unchanged since the last download from this project).
+    suspicious: >-
+      "Changed since the last download" or "unknown version" with no approved
+      change; unknown applications on the controller; author, IDE version or
+      last-modification values that do not belong to the site's engineers.
+      Not evaluated is not passed: without a trusted project this proves
+      nothing.
+    basis: vendor
+    sources:
+      - title: Command - Login (CODESYS Online Help, V3.5 SP22)
+        url: https://content.helpme-codesys.com/en/CODESYS%20Development%20System/_cds_cmd_login.html
+        accessed: "2026-11-08"
+        kind: vendor
+        quote: The application exists on the controller, but it has been changed since the last download.
+        read: direct
+  - locator: Source archive Archive.prj on the controller (File → Source Upload)
+    class: project-files
+    volatility: stable
+    forensic_value: medium
+    evidence_type: [configuration, impair-process-control]
+    confidence: high
+    collection_impact: online-vendor-tool
+    description: >-
+      The project source as last placed on the PLC with Source Download. A
+      later download does not have to update it (toolkit inference from the
+      separate commands), so it may not match the running code.
+    provides: The source the owner or attacker chose to leave on the device.
+    normal: Matches the approved project and the running application.
+    suspicious: An archive that differs from the running application or the approved project; archive missing where site practice stores one.
+    basis: vendor
+    sources:
+      - title: Downloading Source Code to and from the PLC (CODESYS Online Help, V3.5 SP22)
+        url: https://content.helpme-codesys.com/en/CODESYS%20Development%20System/_cds_loading_sourcecode_to_from_plc.html
+        accessed: "2026-11-08"
+        kind: vendor
+        quote: >-
+          CODESYS provides the capability of loading project source code to a
+          PLC as a project archive. You can then transfer this project archive
+          back to the development system from the PLC as needed.
+        read: direct
+  - locator: Network traffic to the runtime - UDP 1740-1743, TCP 11740, gateway TCP 1217 (or controller-specific ports), and Modbus
+    class: network
+    volatility: off-box
+    forensic_value: high
+    evidence_type: [discovery, initial-access, lateral-movement, impair-process-control]
+    confidence: high
+    collection_impact: passive
+    description: >-
+      CODESYS names these as the programming ports that must never be reachable
+      from the internet; Mandiant's CODECALL discovery guidance is ARP
+      scanning followed by abnormal Modbus/CODESYS traffic.
+    seen_in: [INCONTROLLER (CODECALL)]
+    provides: Who connected to the programming interface, from where and when.
+    normal: Programming traffic only from the site's engineering workstations, gateways and HMIs.
+    suspicious: ARP sweeps followed by CODESYS or Modbus sessions from a new host; programming-port traffic from outside the control network.
+    basis: researcher
+    sources:
+      - title: Command - Login (CODESYS Online Help, V3.5 SP22)
+        url: https://content.helpme-codesys.com/en/CODESYS%20Development%20System/_cds_cmd_login.html
+        accessed: "2026-11-08"
+        kind: vendor
+        quote: (mostly UDP ports 1740..1743 and TCP ports 1217 + 11740 or the controller-specific ports)
+        read: direct
+      - title: Mandiant - INCONTROLLER
+        url: https://cloud.google.com/blog/topics/threat-intelligence/incontroller-state-sponsored-ics-tool/
+        accessed: "2026-11-08"
+        kind: researcher
+        quote: >-
+          Search for and investigate evidence of ARP scanning followed by
+          abnormal Modbus/Codesys traffic differing from environment baselines.
+        read: direct
+      - title: CISA AA22-103A - APT Cyber Tools Targeting ICS/SCADA Devices
+        url: https://www.cisa.gov/news-events/cybersecurity-advisories/aa22-103a
+        accessed: "2026-11-08"
+        kind: government
+        quote: >-
+          Brute-force Schneider Electric PLC passwords using CODESYS and other
+          available device protocols via UDP port 1740 against defaults or a
+          dictionary word list
+        read: direct

@@ -302,6 +302,16 @@ verify:
     basis: government
 
 do_not:
+  - action: Run the vendor's password-recovery or factory-reset procedure on a locked-out controller before everything else on it is captured
+    because: >-
+      Recovery usually erases what the investigation needs. Rockwell's SD1790
+      for MicroLogix: "The IP address and program are now erased" (1400) and the
+      firmware update "will clear the user program and any configured controller
+      password" (1100). In the July 2026 water-sector campaign attackers set
+      passwords and changed IP addresses (ICS-INC-0010), so the lockout is itself
+      evidence. Photograph displays, capture network traffic and gateway logs,
+      and record that the logic could not be uploaded before recovering.
+    basis: vendor
   - action: Power-cycle, reboot, reset or re-flash a suspect PLC, HMI or gateway before its state and logic are captured
     because: >-
       CISA's ICS IR practice: a modified kernel is erased when power is removed,
@@ -371,6 +381,12 @@ do_not:
     basis: toolkit
 
 sources:
+  - title: Rockwell Automation SD1790 - Important Hardening Guidance and Instructions for Restoring Access When the Password Is Unknown (rev. 5.0)
+    url: https://www.rockwellautomation.com/en-us/trust-center/security-advisories/advisory.SD1790.html
+    accessed: "2026-11-08"
+    kind: vendor
+    quote: "The firmware update process will clear the user program and any configured controller password, restoring access to the device."
+    read: direct
   - title: CISA - Recommended Practice - Developing an Industrial Control Systems Cybersecurity Incident Response Capability (2009)
     url: https://www.cisa.gov/sites/default/files/2023-01/final-RP_ics_cybersecurity_incident_response_100609.pdf
     accessed: "2026-11-08"

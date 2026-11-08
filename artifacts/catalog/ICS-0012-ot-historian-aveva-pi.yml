@@ -1,0 +1,243 @@
+# ICS platform catalog entry
+# ICS-0012 - OT historian (AVEVA PI and similar)
+# Research notes: docs/research/2026-11-08/platforms-round2.md
+
+id: ICS-0012
+name: OT historian (AVEVA PI and similar)
+vendor: multiple
+products:
+  - AVEVA PI Server - PI Data Archive (formerly OSIsoft PI); the only historian documented here
+  - Other plant historians (not documented in this record)
+asset_class: historian
+purdue_levels: ["3", "3.5"]
+protocols: [ICS-PROTO-0011]
+os_base: >-
+  Windows Server host; the PI Data Archive runs as a set of subsystems (PI
+  Network Manager, base, archive, snapshot, message) and authenticates clients
+  with Windows Integrated Security or PI trusts, per AVEVA's message examples.
+filesystem: >-
+  PI directory tree on the host: PI\adm holds the command-line utilities
+  (including pigetmsg) and PI\log holds the online audit database files
+  pibasessAudit.dat, piarchssAudit.dat and pisnapssAudit.dat. Archive file
+  locations are site-configured and were not read.
+customer_shell: "yes"
+memory_acquisition: customer
+program_access: file-copy
+operating_modes: >-
+  No controller-style modes. Auditing is switched on per database with the
+  EnableAudit tuning parameter (see ICS-DS-0011), so what the audit database
+  holds depends on what the site enabled.
+integrity_features:
+  - feature: PI Audit Database
+    description: >-
+      Records edits and deletions of time-series data (values in the archive
+      files) and creation, deletion and editing of configuration on
+      time-series data (PI point configuration, access permissions for secure
+      objects). Normal operations such as interfaces adding data are not
+      audited. Three files, one per subsystem, in PI\log.
+    confidence: high
+    sources:
+      - title: Audit Database overview for PI Data Archive (AVEVA documentation)
+        url: https://docs.aveva.com/bundle/pi-server-s-da-reference/page/1021193.html
+        accessed: "2026-11-08"
+        kind: vendor
+        quote: The PI Audit Database contains records of changes made to Data Archive data.
+        read: direct
+      - title: Audit Database overview for PI Data Archive (AVEVA documentation)
+        url: https://docs.aveva.com/bundle/pi-server-s-da-reference/page/1021193.html
+        accessed: "2026-11-08"
+        kind: vendor
+        quote: Normal operations, such as interfaces adding data, are not audited.
+        read: direct
+  - feature: PI AuditViewer
+    description: >-
+      Searches, filters, views and exports audit records by period, type of
+      change and affected database. AVEVA states the records cannot be altered
+      (its 21 CFR Part 11 claim, not independently verified here). The tool is
+      downloaded from AVEVA's customer portal.
+    confidence: high
+    sources:
+      - title: PI AuditViewer (AVEVA documentation)
+        url: https://docs.aveva.com/bundle/pi-server-s-da-reference/page/1221516.html
+        accessed: "2026-11-08"
+        kind: vendor
+        quote: Audit records are computer-generated and time-stamped and cannot be altered.
+        read: direct
+  - feature: PI message log connection messages (pinetmgr)
+    description: >-
+      PI Network Manager records each client connection: TCP connection
+      accepted with a connection ID and source address, the client's published
+      process name, successful or unsuccessful login with the method (Windows
+      login, trust, explicit login), the identity list or trust used, and
+      disconnection.
+    confidence: high
+    sources:
+      - title: Client connection log messages (AVEVA PI Data Archive reference)
+        url: https://docs.aveva.com/bundle/pi-server-s-da-reference/page/1019276.html
+        accessed: "2026-11-08"
+        kind: vendor
+        quote: >-
+          PI Network Manager (pinetmgr) writes messages to the PI message log
+          that track communications between PI clients and the Data Archive
+          server.
+        read: direct
+collection:
+  - method: Export tag history, audit records and message logs from a historian replica, DMZ copy or backup
+    impact: passive
+    description: Reads copies only; no load on the production historian or the control network.
+    confidence: high
+    references:
+      - https://docs.aveva.com/bundle/pi-server-s-da-reference/page/1021193.html
+  - method: Retrieve PI message log entries with pigetmsg (PI\adm) on the Data Archive server
+    impact: read-only
+    description: >-
+      AVEVA's documented tool for reading the message log; filter to the
+      incident window and to pinetmgr connection messages.
+    safety_note: >-
+      Running commands on the production historian is host interaction (see
+      ICS-0011 cautions for OT hosts). Agree timing with operations; large
+      queries add load to a server that also feeds operator trends.
+    confidence: high
+    references:
+      - https://docs.aveva.com/bundle/pi-server-s-da-reference/page/1020103.html
+  - method: Search and export audit records with PI AuditViewer
+    impact: read-only
+    description: Filter by period, type of change and database; export to a file for analysis.
+    safety_note: >-
+      Read only. Do not edit, annotate or recalculate archived values during
+      the investigation - those actions are themselves audited and alter the
+      evidence.
+    confidence: high
+    references:
+      - https://docs.aveva.com/bundle/pi-server-s-da-reference/page/1221516.html
+volatility:
+  - The audit database covers only the databases whose EnableAudit bit was set (ICS-DS-0011); ordinary data flow from interfaces is never audited.
+  - Message-log retention was not read; export the incident window early.
+  - The historian archives whatever the controllers and HMIs report; falsified source values are stored faithfully (toolkit inference).
+datasources: [ICS-DS-0011, ICS-DS-0006, ICS-DS-0004, ICS-DS-0003, ICS-DS-0010]
+confidence: high
+references:
+  - title: Audit Database overview for PI Data Archive (AVEVA documentation)
+    url: https://docs.aveva.com/bundle/pi-server-s-da-reference/page/1021193.html
+    accessed: "2026-11-08"
+  - title: PI AuditViewer (AVEVA documentation)
+    url: https://docs.aveva.com/bundle/pi-server-s-da-reference/page/1221516.html
+    accessed: "2026-11-08"
+  - title: PI Message Subsystem log messages (AVEVA PI Data Archive reference)
+    url: https://docs.aveva.com/bundle/pi-server-s-da-reference/page/1020103.html
+    accessed: "2026-11-08"
+  - title: Client connection log messages (AVEVA PI Data Archive reference)
+    url: https://docs.aveva.com/bundle/pi-server-s-da-reference/page/1019276.html
+    accessed: "2026-11-08"
+last_verified: "2026-11-08"
+notes: >-
+  Only AVEVA PI Data Archive is documented. The connection-message examples
+  AVEVA gives are dated 2009 and labelled as applying to PI API 1.6.8 or
+  earlier for the trust example; message IDs and wording may differ on
+  current releases, so confirm against the server's own log. The PI trust
+  table (PITRUST), identity mappings (PIIDENTMAP), connection-history and
+  pigetmsg option pages appear in AVEVA's reference contents but were not
+  read. PI AuditViewer is downloaded from the AVEVA customer portal (login
+  required). No source read ties a malware family or campaign to PI itself;
+  ICS-MAL-0012 records Dragos's finding that EKANS force-stops GE Proficy
+  historian processes, a different product. ICS-PROTO-0011 is listed because
+  AVEVA publishes a PI Interface for OPC DA documentation set; interface
+  nodes were not otherwise researched.
+response: baseline
+artifacts:
+  - locator: PI message log - pinetmgr client connection messages, read with pigetmsg (PI\adm)
+    class: auth-logs
+    volatility: rotating
+    retention: Not read
+    forensic_value: high
+    evidence_type: [initial-access, credential-access, lateral-movement, timeline, attribution]
+    confidence: high
+    collection_impact: read-only
+    description: >-
+      AVEVA's examples show pinetmgr message IDs 7004 (TCP connection
+      accepted, connection ID, source address and port), 7039 (client process
+      name), 7082 (successful Windows login with identity list, environment
+      user name and method), 7076 (successful login via a trust), 7138
+      (unsuccessful login with credentials used, method and error) and 7096
+      (connection deleted). IDs come from AVEVA's examples and may vary by
+      release.
+    provides: Who connected to the historian, from where, with which application and authentication method.
+    normal: Connections from the site's interface nodes, PI Vision/AF servers and known analyst workstations, by Windows login with expected identities.
+    suspicious: >-
+      Unsuccessful-login bursts; logins via trust or explicit login where the
+      site uses Windows authentication; client process names not used at the
+      site; connections from IT or internet-facing addresses that do not
+      normally reach the historian; "No trust relation for this request"
+      denials from unknown hosts.
+    basis: vendor
+    sources:
+      - title: PI Message Subsystem log messages (AVEVA PI Data Archive reference)
+        url: https://docs.aveva.com/bundle/pi-server-s-da-reference/page/1020103.html
+        accessed: "2026-11-08"
+        kind: vendor
+        quote: >-
+          The PI Message Subsystem writes messages that Data Archive generates
+          during normal operation to the PI message log. Use the pigetmsg
+          utility in the PI\adm directory to retrieve messages.
+        read: direct
+      - title: Client connection log messages (AVEVA PI Data Archive reference)
+        url: https://docs.aveva.com/bundle/pi-server-s-da-reference/page/1019276.html
+        accessed: "2026-11-08"
+        kind: vendor
+        quote: >-
+          If the server is unable to authenticate a PI SDK-based client, it will
+          be forceably disconnected.
+        read: direct
+  - locator: PI Audit Database - PI\log\pibasessAudit.dat, piarchssAudit.dat, pisnapssAudit.dat (read with PI AuditViewer)
+    class: audit-trail
+    volatility: stable
+    forensic_value: high
+    evidence_type: [impair-process-control, evasion, configuration, timeline, attribution]
+    confidence: high
+    collection_impact: read-only
+    description: >-
+      Hierarchical audit records of edits and deletions of archived values
+      and of point-configuration and permission changes, one file per
+      subsystem (base, archive, snapshot).
+    provides: After-the-fact changes to the process record and to what the historian collects.
+    normal: Occasional, documented corrections by data stewards; point changes matching engineering change records.
+    suspicious: >-
+      Deletions or edits of archived values around the incident window
+      (hiding or fabricating the process record); point configuration
+      changes that stop or thin collection of safety-relevant tags;
+      permission changes on secure objects; auditing disabled on a database
+      (no records where there should be some).
+    basis: vendor
+    sources:
+      - title: Audit Database overview for PI Data Archive (AVEVA documentation)
+        url: https://docs.aveva.com/bundle/pi-server-s-da-reference/page/1021193.html
+        accessed: "2026-11-08"
+        kind: vendor
+        quote: All files for the online PI Audit Database are stored in the PI\log directory.
+        read: direct
+  - locator: Time-series archive - setpoints, modes, alarms and process variables for the incident window
+    class: process-data
+    volatility: stable
+    retention: Set by archive sizing and site policy (not read)
+    forensic_value: high
+    evidence_type: [impact, impair-process-control, timeline]
+    confidence: high
+    collection_impact: read-only
+    description: >-
+      The physical timeline against which network and host events are placed;
+      only the tags, rates and compression the site configured.
+    provides: What the process did and when, as reported to the historian.
+    normal: Values consistent with operator logs, alarm journals and field readings.
+    suspicious: >-
+      Setpoint or mode changes with no operator action; values flat-lining or
+      going stale (collection stopped); gaps across many tags at once;
+      historian values that disagree with field instruments (possible
+      manipulation of view upstream).
+    basis: toolkit
+    sources:
+      - title: Audit Database overview for PI Data Archive (AVEVA documentation)
+        url: https://docs.aveva.com/bundle/pi-server-s-da-reference/page/1021193.html
+        accessed: "2026-11-08"
+        kind: vendor
+        quote: Editing and deleting time-series data, such as values in the archive files.
+        read: direct

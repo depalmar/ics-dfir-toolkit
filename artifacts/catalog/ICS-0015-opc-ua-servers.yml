@@ -1,0 +1,324 @@
+# ICS platform catalog entry
+# ICS-0015 - OPC UA servers
+# Research notes: docs/research/2026-11-08/platforms-round2.md
+
+id: ICS-0015
+name: OPC UA servers
+vendor: multiple
+products:
+  - Standalone OPC UA servers and gateways on Windows or Linux hosts
+  - OPC UA servers embedded in controllers, HMI/SCADA and historians (for example the CODESYS OPC UA Server; see ICS-PROTO-0010 for others)
+asset_class: opc-server
+purdue_levels: ["2", "3"]
+protocols: [ICS-PROTO-0010]
+os_base: >-
+  An application, not a device: runs on a Windows or Linux host or inside a
+  controller or gateway firmware. What it logs and keeps is defined by the
+  OPC UA specification only in part and by the implementation for the rest.
+filesystem: >-
+  Implementation-specific. Servers keep configuration and a certificate store
+  (trust list and rejected certificates); on-disk locations differ per
+  product and are not given here.
+customer_shell: restricted
+memory_acquisition: customer
+program_access: file-copy
+operating_modes: >-
+  No controller-style modes. The security configuration (allowed security
+  policies and modes, user token types, trust list) governs who can connect;
+  CISA asks for application authentication with explicit trust lists.
+integrity_features:
+  - feature: OPC UA audit events
+    description: >-
+      Generated for actions clients take on the server; a rejected action for
+      security reasons produces a security audit event. Each carries the
+      AuditEntryId (typically who initiated the action and from where).
+      Delivery to subscribed clients is mandatory, persistence by the server
+      is optional - so with no subscribed audit client and no persistence
+      there is no audit trail. OPC 10000-5 6.4 defines the types: secure
+      channel (AuditOpenSecureChannelEventType), session
+      (AuditCreateSessionEventType, AuditActivateSessionEventType,
+      AuditUrlMismatchEventType, AuditCancelEventType), certificate (data
+      mismatch, expired, invalid, untrusted, revoked, mismatch), node
+      management (add/delete nodes and references) and updates
+      (AuditWriteUpdateEventType, AuditHistoryUpdateEventType,
+      AuditUpdateMethodEventType).
+    confidence: high
+    sources:
+      - title: OPC 10000-3 Address Space Model - 9.5 AuditEventType (OPC Foundation online reference)
+        url: https://reference.opcfoundation.org/specs/OPC-10000-3/9.5
+        accessed: "2026-11-08"
+        kind: standard
+        quote: >-
+          The Server may elect to optionally persist the AuditEvents in
+          addition to the mandatory Event Subscription delivery to Clients.
+        read: direct
+      - title: OPC 10000-3 Address Space Model - 9.5 AuditEventType (OPC Foundation online reference)
+        url: https://reference.opcfoundation.org/specs/OPC-10000-3/9.5
+        accessed: "2026-11-08"
+        kind: standard
+        quote: >-
+          The AuditEntryId typically contains who initiated the action and from
+          where it was initiated.
+        read: direct
+  - feature: Rejected certificate list (GetRejectedList)
+    description: >-
+      The server's list of certificates it rejected, returned in DER form to
+      an authenticated client holding the SecurityAdmin role. The
+      specification sets no retention; servers are recommended to keep every
+      valid but untrusted certificate while storage allows.
+    confidence: high
+    sources:
+      - title: OPC 10000-12 Discovery and Global Services - 7.10.12 GetRejectedList (OPC Foundation online reference)
+        url: https://reference.opcfoundation.org/specs/OPC-10000-12/7.10.12
+        accessed: "2026-11-08"
+        kind: standard
+        quote: >-
+          No rules are defined for how the Server updates this list or how long
+          a Certificate is kept in the list.
+        read: direct
+collection:
+  - method: Audit events already received by an audit client, historian or SIEM subscribed to the server; server audit logs already forwarded or backed up
+    impact: passive
+    description: >-
+      The only copy if the server does not persist audit events. Mandiant's
+      OPC UA guidance is to enable and aggregate audit logs for servers and
+      clients.
+    confidence: high
+    references:
+      - https://reference.opcfoundation.org/specs/OPC-10000-3/9.5
+      - https://cloud.google.com/blog/topics/threat-intelligence/incontroller-state-sponsored-ics-tool/
+  - method: Copy server configuration, certificate stores and logs from backups of the host
+    impact: passive
+    description: >-
+      Configuration and trust list for comparison with the approved state.
+      Copying from the live host is host triage; see ICS-0011 for the impact
+      of working on a live HMI/SCADA-class host.
+    confidence: medium
+  - method: Passive capture of OPC UA traffic (TCP 4840 by default) with the ICSNPP OPC UA Binary parser
+    impact: passive
+    description: >-
+      Shows sessions, browse and write services when the channel is not
+      encrypted; SignAndEncrypt leaves metadata only (ICS-PROTO-0010).
+    confidence: medium
+  - method: Subscribe a dedicated audit client to the server's audit events
+    impact: read-only
+    description: Captures events from now on only; no history unless the server persists it.
+    safety_note: >-
+      Creates a new session, which is itself audited, and adds a small load.
+      Use a client with read and subscribe rights only; agree with operations.
+    confidence: high
+    references:
+      - https://reference.opcfoundation.org/specs/OPC-10000-3/9.5
+  - method: Call GetRejectedList from a trusted administrative client
+    impact: read-only
+    description: Returns the DER certificates the server rejected; needs an authenticated channel and the SecurityAdmin role.
+    safety_note: >-
+      Use the owner's administrative client, not a new tool, and do not touch
+      trust-list methods in the same session. Agree with operations.
+    confidence: high
+    references:
+      - https://reference.opcfoundation.org/specs/OPC-10000-12/7.10.12
+  - method: Active discovery or browsing sweeps of the control network to find OPC UA servers
+    impact: process-risk
+    description: >-
+      This is what TAGRUN does. Use the asset inventory and passive capture
+      instead; an active sweep is break-glass only.
+    confidence: high
+    references:
+      - https://cloud.google.com/blog/topics/threat-intelligence/incontroller-state-sponsored-ics-tool/
+volatility:
+  - >-
+    Audit events are guaranteed only to clients subscribed when they occur;
+    server-side persistence is optional and implementation-defined.
+  - The rejected-certificate list has no defined retention, and servers may drop older entries from the returned list.
+  - >-
+    Implementations audit less than the specification allows. For example,
+    CODESYS V3.5 SP22 forwards its audit log as OPC UA AuditEvents but notes
+    that audit logs for written values and method calls are not yet supported.
+anti_forensics:
+  - technique: Writing OPC UA tag values to mask process changes
+    seen_in: INCONTROLLER (TAGRUN)
+    detail: Mandiant assesses TAGRUN's write capability could be used to modify data to support an attack or mask process changes.
+datasources: [ICS-DS-0001, ICS-DS-0002, ICS-DS-0003, ICS-DS-0004, ICS-DS-0006, ICS-DS-0010, ICS-DS-0011]
+confidence: high
+references:
+  - title: OPC 10000-3 Address Space Model - 9.5 AuditEventType (OPC Foundation online reference)
+    url: https://reference.opcfoundation.org/specs/OPC-10000-3/9.5
+    accessed: "2026-11-08"
+  - title: OPC 10000-5 Information Model - 6.4 ObjectTypes used as EventTypes (OPC Foundation online reference)
+    url: https://reference.opcfoundation.org/specs/OPC-10000-5/6.4
+    accessed: "2026-11-08"
+  - title: OPC 10000-12 Discovery and Global Services - 7.10.12 GetRejectedList (OPC Foundation online reference)
+    url: https://reference.opcfoundation.org/specs/OPC-10000-12/7.10.12
+    accessed: "2026-11-08"
+  - title: CISA AA22-103A - APT Cyber Tools Targeting ICS/SCADA Devices
+    url: https://www.cisa.gov/news-events/cybersecurity-advisories/aa22-103a
+    accessed: "2026-11-08"
+  - title: Mandiant - INCONTROLLER, New State-Sponsored Cyber Attack Tools Target Multiple Industrial Control Systems
+    url: https://cloud.google.com/blog/topics/threat-intelligence/incontroller-state-sponsored-ics-tool/
+    accessed: "2026-11-08"
+  - title: Release Notes CODESYS V3.5 SP22
+    url: https://api-www.codesys.com/fileadmin/user_upload/CODESYS_Group/Ecosystem/Up-to-Date/Releases-Lifecycle/Release-Updates/Release-Notes/Release_Notes_CODESYS_35220.html
+    accessed: "2026-11-08"
+last_verified: "2026-11-08"
+notes: >-
+  A protocol-defined server class: the specification says what an audit trail
+  can contain, and each product decides what it implements, keeps and where.
+  No vendor server manual (Kepware, Prosys, Unified Automation, Siemens,
+  Schneider) was read, so persisted log names, locations and retention are
+  not given. memory_acquisition "customer" and program_access "file-copy"
+  apply to host-based servers only (with the host-triage cautions of
+  ICS-0011); for servers embedded in controllers both are effectively not
+  available. customer_shell is "restricted" for the same reason. The OPC
+  Foundation's security best-practices PDF that CISA cites was not read.
+response: baseline
+artifacts:
+  - locator: Audit events - secure channel, session and certificate types (AuditOpenSecureChannel, AuditCreateSession, AuditActivateSession, AuditCertificate*)
+    class: auth-logs
+    volatility: off-box
+    forensic_value: high
+    evidence_type: [credential-access, initial-access, discovery, timeline, attribution]
+    confidence: high
+    collection_impact: passive
+    description: >-
+      Secure-channel and session establishment, activation with user
+      identity, and certificate validation failures, each with an AuditEntryId
+      naming the initiator. Security rejections produce security audit events.
+    seen_in: [INCONTROLLER (TAGRUN)]
+    provides: Who connected, with which identity and certificate, and which attempts failed.
+    normal: Sessions from the site's known clients (HMI, historian, MES) with their expected certificates and user accounts.
+    suspicious: >-
+      Repeated failed session activations (credential brute force); untrusted
+      or invalid certificate events from unknown applications; anonymous or
+      default-credential sessions; new client applications near the incident.
+    basis: standard
+    sources:
+      - title: OPC 10000-3 Address Space Model - 9.5 AuditEventType
+        url: https://reference.opcfoundation.org/specs/OPC-10000-3/9.5
+        accessed: "2026-11-08"
+        kind: standard
+        quote: >-
+          If the action is not accepted due to security reasons, a security
+          AuditEvent is generated and processed by the Server.
+        read: direct
+      - title: Mandiant - INCONTROLLER
+        url: https://cloud.google.com/blog/topics/threat-intelligence/incontroller-state-sponsored-ics-tool/
+        accessed: "2026-11-08"
+        kind: researcher
+        quote: >-
+          Review OPC UA audit records for evidence of credential bruteforcing,
+          nefarious certificate usage, irregular connection attempts,
+          configuration changes, and changes to OPC tags.
+        read: direct
+  - locator: Audit events - update and node-management types (AuditWriteUpdate, AuditHistoryUpdate, AuditUpdateMethod, AuditAddNodes/DeleteNodes/AddReferences/DeleteReferences)
+    class: audit-trail
+    volatility: off-box
+    forensic_value: high
+    evidence_type: [impair-process-control, impact, configuration, timeline, attribution]
+    confidence: high
+    collection_impact: passive
+    description: >-
+      Writes to variables, edits of history, method calls and address-space
+      changes, with the variable as source and the user and session as
+      initiators. Check what the product implements: some servers do not yet
+      audit writes or method calls.
+    seen_in: [INCONTROLLER (TAGRUN)]
+    provides: Which client changed which tag or history value, and when.
+    normal: Writes from operator HMIs and approved applications, matching operations.
+    suspicious: >-
+      Writes from a client or user that does not normally write; bursts of
+      writes to setpoints or status tags; history updates (archived values
+      edited); nodes or references added or deleted outside a change.
+    basis: standard
+    sources:
+      - title: OPC 10000-3 Address Space Model - 9.5 AuditEventType
+        url: https://reference.opcfoundation.org/specs/OPC-10000-3/9.5
+        accessed: "2026-11-08"
+        kind: standard
+        quote: >-
+          AuditEvents are Events of AuditEventType that are generated as a
+          result of an action taken on the Server by a Client of the Server
+        read: direct
+      - title: Release Notes CODESYS V3.5 SP22
+        url: https://api-www.codesys.com/fileadmin/user_upload/CODESYS_Group/Ecosystem/Up-to-Date/Releases-Lifecycle/Release-Updates/Release-Notes/Release_Notes_CODESYS_35220.html
+        accessed: "2026-11-08"
+        kind: vendor
+        quote: Auditlogs for written values and method calles are not supported right now.
+        read: direct
+  - locator: Rejected certificate list (GetRejectedList method; the server's rejected-certificate store)
+    class: identity
+    volatility: rotating
+    retention: Undefined by the specification
+    forensic_value: medium
+    evidence_type: [initial-access, discovery, attribution]
+    confidence: high
+    collection_impact: read-only
+    description: Certificates presented by clients the server refused - a record of connection attempts by applications it did not trust.
+    provides: The identity (application URI, subject, issuer) of unknown clients that tried to connect.
+    normal: Empty, or certificates of known clients awaiting approval.
+    suspicious: Certificates of unknown or self-signed applications appearing near the incident window; many distinct rejected certificates (scanning).
+    basis: standard
+    sources:
+      - title: OPC 10000-12 Discovery and Global Services - 7.10.12 GetRejectedList
+        url: https://reference.opcfoundation.org/specs/OPC-10000-12/7.10.12
+        accessed: "2026-11-08"
+        kind: standard
+        quote: GetRejectedList Method returns the list of Certificates that have been rejected by the Server.
+        read: direct
+  - locator: Server security configuration and trust list (allowed security policies and modes, user token types, trusted certificates)
+    class: config
+    volatility: stable
+    forensic_value: medium
+    evidence_type: [configuration, evasion, initial-access]
+    confidence: high
+    collection_impact: passive
+    description: >-
+      Whether the server allowed weak or anonymous access, and which client
+      certificates it trusted. CISA's mitigation is application
+      authentication with explicit trust lists.
+    provides: What an unauthenticated or unknown client could do.
+    normal: Application authentication enabled, explicit trust list matching the approved clients, no anonymous access.
+    suspicious: Security mode None or anonymous tokens enabled; certificates added to the trust list without a change record.
+    basis: government
+    sources:
+      - title: CISA AA22-103A
+        url: https://www.cisa.gov/news-events/cybersecurity-advisories/aa22-103a
+        accessed: "2026-11-08"
+        kind: government
+        quote: Ensure OPC UA security is correctly configured with application authentication enabled and explicit trust lists.
+        read: direct
+  - locator: OPC UA network traffic (TCP 4840 by default) - discovery, sessions, browse and write services
+    class: network
+    volatility: off-box
+    forensic_value: high
+    evidence_type: [discovery, initial-access, collection, impair-process-control]
+    confidence: high
+    collection_impact: passive
+    description: >-
+      CISA describes the APT tool identifying servers, connecting with default
+      or compromised credentials, reading the server structure and possibly
+      writing tag values; Mandiant adds ping sweeps.
+    seen_in: [INCONTROLLER (TAGRUN)]
+    provides: Scanning, enumeration and writes independent of server auditing.
+    normal: Sessions only from the site's known OPC UA clients.
+    suspicious: >-
+      Ping sweeps followed by connections to 4840 from a new host; large
+      browse sequences enumerating the address space; write services from
+      unexpected clients; connections from outside the OT network.
+    basis: government
+    sources:
+      - title: CISA AA22-103A
+        url: https://www.cisa.gov/news-events/cybersecurity-advisories/aa22-103a
+        accessed: "2026-11-08"
+        kind: government
+        quote: >-
+          The APT actors’ tool for OPC UA has modules with basic functionality
+          to identify OPC UA servers and to connect to an OPC UA server using
+          default or previously compromised credentials.
+        read: direct
+      - title: Mandiant - INCONTROLLER
+        url: https://cloud.google.com/blog/topics/threat-intelligence/incontroller-state-sponsored-ics-tool/
+        accessed: "2026-11-08"
+        kind: researcher
+        quote: Review OT network traffic for evidence of pingsweep activity.
+        read: direct

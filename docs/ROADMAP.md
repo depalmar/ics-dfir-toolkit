@@ -93,9 +93,10 @@ Ordered by value. The knowledge base comes first because every later layer
   names in the coverage view, cross-library search, "last changed" dates.
 - ~~Logic comparison~~ - `icstriage logic-diff`, the first triage-engine
   component (L5X, PLCopen TC6 XML; Siemens SimaticML added in round 5 from
-  the Openness system manual). Still open: Rockwell L5K (1756-RM014's L5K
-  chapters were not read, so it is not built), and a `logic_compare` runner
-  the analyzer can call per pack detection.
+  the Openness system manual; Rockwell L5K added in round 6 from 1756-RM014's
+  L5K chapters, read in full). Still open: a `logic_compare` runner the
+  analyzer can call per pack detection. Cross-format comparison (L5K against
+  L5X) is refused by design; export both sides the same way.
 - **Detection gaps 16 → 3** in round 5 (Stuxnet from Symantec's dossier,
   Havex OPC enumeration, removable media, inbound scanning); the three left
   are adversary-side capability development (T1587.004, T1588.007,

@@ -3,8 +3,8 @@
     python -m icstriage logic-diff --baseline good.L5X --current suspect.L5X \
         [--format md|json] [--out report.md] [--max-size-mb 200]
 
-Inputs are Rockwell L5X, PLCopen TC6 XML or Siemens SimaticML files, or a
-directory of SimaticML files (TIA Portal Openness writes one file per block).
+Inputs are Rockwell L5X or L5K, PLCopen TC6 XML or Siemens SimaticML files, or
+a directory of SimaticML files (TIA Portal Openness writes one file per block).
 The format is detected from the content, not the extension.
 
 Exit codes: 0 no counted differences, 10 differences found, 1 error (refused
@@ -32,11 +32,11 @@ def _parser() -> argparse.ArgumentParser:
     p = _Parser(prog="icstriage", description="Offline ICS/OT triage helpers. Never connects to a controller.")
     p.add_argument("--version", action="version", version=f"icstriage {__version__}")
     sub = p.add_subparsers(dest="command", required=True, parser_class=_Parser)
-    d = sub.add_parser("logic-diff", help="compare two exported controller projects (L5X, PLCopen TC6 XML or SimaticML)",
+    d = sub.add_parser("logic-diff", help="compare two exported controller projects (L5X, L5K, PLCopen TC6 XML or SimaticML)",
                        description="Compare a known-good export with an export under review. Verdicts: "
                                    "DIFFERENCES-FOUND or NO-DIFFERENCES-FOUND (with stated limits).")
     d.add_argument("--baseline", required=True,
-                   help="known-good export: L5X, PLCopen TC6 XML or SimaticML file, or a directory of SimaticML files")
+                   help="known-good export: L5X, L5K, PLCopen TC6 XML or SimaticML file, or a directory of SimaticML files")
     d.add_argument("--current", required=True, help="export under review, same format as the baseline")
     d.add_argument("--format", choices=("md", "json"), default="md", help="report format (default md)")
     d.add_argument("--out", help="write the report here instead of standard output")

@@ -36,6 +36,12 @@ without a source is still welcome; the fix will cite one.
 
 The maintainer aims to acknowledge a report within seven days.
 
+## How the repository itself is protected
+
+The workflow permissions, pinned actions, scanners and the repository settings
+that gate `main` are described in
+[docs/REPOSITORY_SETTINGS.md](docs/REPOSITORY_SETTINGS.md).
+
 ## Supported versions
 
 Only the `main` branch is supported. There are no release branches; fixes

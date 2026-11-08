@@ -594,3 +594,233 @@ def test_siemens_hostile_counts_and_nesting(tmp_path):
         load_model(str(d))
     except UnsafeInputError as exc:
         assert "nest" in str(exc)
+
+
+# ---- Rockwell L5K (text export). Keywords from 1756-RM014D's L5K sections; fixtures synthetic.
+
+L5K = FIX / "l5k"
+KBASE = L5K / "baseline.L5K"
+
+
+def test_l5k_same_file_twice_has_no_differences():
+    rep = run(KBASE, KBASE)
+    assert rep["verdict"] == NONE_FOUND and rep["differences"] == []
+    assert rep["inputs"]["baseline"]["format"] == "L5K"
+    cov = rep["inputs"]["baseline"]["coverage"]
+    assert cov["entities"]["tag"] == 7 and cov["routines"] == {"FBD": 1, "RLL": 2, "ST": 1} and cov["routines_compared_by_hash"] == 1
+
+
+def test_l5k_identical_project_new_export_banner_is_informational_only():
+    rep = run(KBASE, L5K / "current_identical.L5K")
+    assert rep["verdict"] == NONE_FOUND
+    assert [(d["class"], d["path"], d["field"], d["counted"], d["opaque"]) for d in rep["differences"]] == [
+        ("metadata", "Export", "Preamble", False, True)]
+    assert "RM014 documents no L5K file header" in rep["differences"][0]["note"]
+
+
+def test_l5k_rung_change_is_logic():
+    rep = run(KBASE, L5K / "current_rung_changed.L5K")
+    assert rep["verdict"] == DIFFERENCES
+    (d,) = counted(rep)
+    assert (d["class"], d["change"], d["path"], d["field"]) == ("logic", "changed", "Program:MainProgram/Routine:MainRoutine", "rung 1")
+    assert "LES(" in d["baseline"] and "LES(" not in d["current"]
+    assert d["attack_candidates"] == ["T0889"]
+
+
+def test_l5k_tag_added_is_interface():
+    (d,) = counted(run(KBASE, L5K / "current_tag_added.L5K"))
+    assert (d["class"], d["change"], d["path"]) == ("interface", "added", "Tag:Example_Bypass")
+    assert "DataType=BOOL" in d["current"]
+
+
+def test_l5k_task_period_change_is_tasking_t0821():
+    (d,) = counted(run(KBASE, L5K / "current_task_period.L5K"))
+    assert (d["class"], d["path"], d["field"], d["baseline"], d["current"]) == ("tasking", "Task:MainTask", "Rate", "10", "50")
+    assert d["attack_candidates"] == ["T0821"]
+
+
+def test_l5k_aoi_revision_and_body_change_is_aoi():
+    rep = run(KBASE, L5K / "current_aoi_changed.L5K")
+    got = {(d["class"], d["path"], d["field"]) for d in counted(rep)}
+    assert got == {("aoi", "AOI:AOI_ExampleValve", "Revision"), ("aoi", "AOI:AOI_ExampleValve/Routine:Logic", "rung 0")}
+    assert "EditedDate" in {d["field"] for d in rep["differences"] if not d["counted"]}
+
+
+def test_l5k_comment_only_change_is_documentation_only_and_not_counted():
+    rep = run(KBASE, L5K / "current_comment_only.L5K")
+    assert rep["verdict"] == NONE_FOUND and counted(rep) == []
+    docs = {(d["path"], d["field"]) for d in rep["differences"] if d["class"] == "documentation-only"}
+    assert docs == {("Program:MainProgram/Routine:MainRoutine", "rung 0 comment"),
+                    ("Program:MainProgram/Routine:CalcRoutine", "comments in code"),
+                    ("Program:MainProgram/Routine:FbdRoutine", "content (documentation elements only)"),
+                    ("Tag:Example_Run", "Description"), ("Tag:Example_Run", "Radix")}
+
+
+def test_l5k_model_follows_the_manual():
+    m = load_model(str(KBASE))
+    tag = m.entities["Tag:Example_HighLimit"]
+    assert tag.fields["Value"].value == "90.0" and tag.fields["Value"].note == "constant tag"
+    assert tag.fields["Radix"].cls == "documentation-only" and tag.fields["Constant"].value == "Yes"
+    assert m.entities["Tag:Example_Fault"].fields["AliasFor"].value == "Example_Pump1.FaultCode"
+    assert m.entities["DataType:UDT_ExamplePump"].fields["Member:SpeedSP"].value == "DataType=REAL; ExternalAccess=Read/Write"
+    assert m.entities["Module:EX_IO_Adapter"].fields["Connection:Example_Rack/InputData"].cls == "value"
+    assert m.entities["Controller"].fields["Config:WallClockTime"].value == "LocalTimeAdjustment=0; TimeZone=0"
+    assert m.entities["Controller"].fields["Major"].cls == "module"
+    assert m.entities["Program:MainProgram"].fields["MODE"].cls == "logic"
+    aoi = m.entities["AOI:AOI_ExampleValve"]
+    assert aoi.fields["ParameterOrder"].value == "EnableIn, EnableOut, OpenCmd, Permissive, OpenOut"
+    assert aoi.fields["EditedDate"].counted is False
+    assert m.entities["AOI:AOI_ExampleValve/Parameter:OpenCmd"].fields["DefaultData"].value == "0"
+    rll = m.routines["Program:MainProgram/Routine:MainRoutine"]
+    assert [u.label for u in rll.units] == ["0", "1", "2", "3"] and rll.units[0].doc == "Start delay before the pump runs"
+    st = m.routines["Program:MainProgram/Routine:CalcRoutine"]
+    assert [u.code for u in st.units] == ["IF Example_Pump1.SpeedSP > Example_HighLimit THEN",
+                                          "Example_Pump1.SpeedSP := Example_HighLimit;", "END_IF;"]
+    assert st.comments == ("// Example speed clamp", "(* clamp *)")
+    assert m.routines["Program:MainProgram/Routine:FbdRoutine"].opaque_hash
+    assert m.entities["Export"].fields["Remarks"].cls == "documentation-only"
+
+
+def test_l5k_value_force_and_alias_changes(tmp_path):
+    p = variant(tmp_path, "v.L5K", (":= [5000,0,0];", ":= [1,0,0],\n            TagForceData := [0,0,1];"),
+                ("Example_Fault OF Example_Pump1.FaultCode", "Example_Fault OF Example_Pump1.SpeedSP"), src=KBASE)
+    rep = run(KBASE, p)
+    assert keyset(rep) == {("value", "changed", "Tag:Example_Timer", "Value"), ("value", "added", "Tag:Example_Timer", "Force"),
+                           ("interface", "changed", "Tag:Example_Fault", "AliasFor")}
+    assert all(d["attack_candidates"] == ["T0836"] for d in counted(rep) if d["class"] == "value")
+
+
+def test_l5k_module_config_and_controller_classes(tmp_path):
+    p = variant(tmp_path, "m.L5K", ("InputData := [0,0,0,0];", "InputData := [0,1,0,0];"),
+                ("CompatibleModule := 1,", "CompatibleModule := 0,"),
+                ("TimeZone := 0)", "TimeZone := 60)"), ("SecurityCode := 0,", "SecurityCode := 1234567890,"), src=KBASE)
+    assert keyset(run(KBASE, p)) == {("value", "changed", "Module:EX_IO_Adapter", "Connection:Example_Rack/InputData"),
+                                     ("module", "changed", "Module:EX_IO_Adapter", "CompatibleModule"),
+                                     ("metadata", "changed", "Controller", "Config:WallClockTime"),
+                                     ("metadata", "changed", "Controller", "SecurityCode")}
+
+
+def test_l5k_online_edit_logic_blocks_and_rung_markers(tmp_path):
+    p = variant(tmp_path, "e.L5K",
+                ("        ST_ROUTINE CalcRoutine\n", "        ST_ROUTINE CalcRoutine\n            LOGIC (Online_Edit_Type := Orig)\n"),
+                ("            'END_IF;\n        END_ST_ROUTINE", "            'END_IF;\n            END_LOGIC\n            LOGIC (Online_Edit_Type := Pend)\n"
+                 "            'Example_Pump1.SpeedSP := 0.0;\n            END_LOGIC\n        END_ST_ROUTINE"),
+                ("N: JSR(CalcRoutine,0);", "I: JSR(CalcRoutine,0);"), src=KBASE)
+    rep = run(KBASE, p)
+    assert keyset(rep) == {("logic", "added", "Program:MainProgram/Routine:CalcRoutine[PendingEdits]", "routine"),
+                           ("logic", "changed", "Program:MainProgram/Routine:MainRoutine", "rung 3 Type")}
+    assert any("online edits (Original, PendingEdits)" in n for n in rep["notes"])
+    assert any("online-edit markers (Type I)" in n for n in rep["notes"])
+
+
+def test_l5k_encoded_routine_and_aoi_compared_by_hash_only(tmp_path):
+    start = KBASE.read_text(encoding="utf-8")
+    fbd = start[start.index("        FBD_ROUTINE FbdRoutine"):start.index("        END_FBD_ROUTINE") + len("        END_FBD_ROUTINE")]
+    enc = ('        ENCODED_DATA (EncodedType := ROUTINE, Name := "FbdRoutine", Type := FBD, EncryptionConfig := 2)\n'
+           "            QUJDREVGR0g=\n        END_ENCODED_DATA")
+    aoi = start[start.index("    ADD_ON_INSTRUCTION_DEFINITION"):start.index("    END_ADD_ON_INSTRUCTION_DEFINITION") + len("    END_ADD_ON_INSTRUCTION_DEFINITION")]
+    enc_aoi = ('    ENCODED_DATA (EncodedType := ADD_ON_INSTRUCTION_DEFINITION, Name := "AOI_ExampleValve", Revision := "1.0",\n'
+               '            EditedDate := "2026-01-05T08:00:00.000Z", SignatureID := 16#0000_0001, EncryptionConfig := 3)\n'
+               "        PARAMETERS\n            EnableIn : BOOL (Usage := Input, RADIX := Decimal, Required := No, Visible := No);\n"
+               "        END_PARAMETERS\n        UVJTVFVWV1g=\n    END_ENCODED_DATA")
+    b = variant(tmp_path, "enc_b.L5K", (fbd, enc), (aoi, enc_aoi), src=KBASE)
+    c = variant(tmp_path, "enc_c.L5K", ("QUJDREVGR0g=", "SUpLTE1OT1A="), ("UVJTVFVWV1g=", "WVphYmNkZWY="), src=b)
+    rep = run(b, c)
+    assert keyset(rep) == {("logic", "changed", "Program:MainProgram/Routine:FbdRoutine", "content"),
+                           ("aoi", "changed", "AOI:AOI_ExampleValve", "EncodedContent")}
+    assert all(d["opaque"] for d in counted(rep))
+    m = load_model(str(b))
+    assert m.entities["AOI:AOI_ExampleValve"].fields["Protection"].value == "encoded"
+    assert m.entities["AOI:AOI_ExampleValve/Parameter:EnableIn"].fields["DataType"].value == "BOOL"
+    assert m.routines["Program:MainProgram/Routine:FbdRoutine"].language == "FBD (encoded)"
+    assert sum("source-protected" in n or "encoded" in n for n in rep["notes"]) >= 2
+
+
+def test_l5k_unknown_block_and_parameter_connection(tmp_path):
+    extra = ('    PLACEHOLDER_BLOCK Example (Kind := "{k}")\n        Something := 1;\n    END_PLACEHOLDER_BLOCK\n'
+             "    PARAMETER_CONNECTION (EndPoint1 := \\MainProgram.StartDelayDone, EndPoint2 := \\MainProgram.{ep})\n"
+             "    END_PARAMETER_CONNECTION\n    CONFIG CST(")
+    b = variant(tmp_path, "u_b.L5K", ("    CONFIG CST(", extra.format(k="a", ep="Example_In")), src=KBASE)
+    c = variant(tmp_path, "u_c.L5K", ("    CONFIG CST(", extra.format(k="b", ep="Example_Other")), src=KBASE)
+    rep = run(b, c)
+    assert keyset(rep) == {("metadata", "changed", "Controller", "PLACEHOLDER_BLOCK:Example"),
+                           ("interface", "changed", "Controller", "ParameterConnections")}
+    assert [d for d in counted(rep) if d["field"].startswith("PLACEHOLDER")][0]["opaque"] is True
+    assert any("PLACEHOLDER_BLOCK block compared by hash only" in n for n in rep["notes"])
+    assert keyset(run(KBASE, b)) == {("metadata", "added", "Controller", "PLACEHOLDER_BLOCK:Example"),
+                                     ("interface", "added", "Controller", "ParameterConnections")}
+
+
+def test_l5k_st_line_without_quote_is_compared_and_noted(tmp_path):
+    p = variant(tmp_path, "q.L5K", ("            'END_IF;", "            END_IF;"), src=KBASE)
+    rep = run(KBASE, p)
+    assert counted(rep) == []
+    assert any("do not begin with the single quote" in n for n in rep["notes"])
+
+
+def test_l5k_detected_by_content_not_extension(tmp_path):
+    txt = tmp_path / "export.txt"
+    shutil.copy(KBASE, txt)
+    assert load_model(str(txt)).fmt == "L5K"
+    xml_named_l5k = tmp_path / "really_xml.L5K"
+    shutil.copy(BASE, xml_named_l5k)
+    assert load_model(str(xml_named_l5k)).fmt == "L5X"
+    garbage = tmp_path / "garbage.L5K"
+    garbage.write_text("placeholder text that is neither markup nor a CONTROLLER statement\nIE_VER := 2.99;\n", encoding="utf-8")
+    with pytest.raises(InputFormatError, match="not an L5K export"):
+        load_model(str(garbage))
+    with pytest.raises(InputFormatError, match="not an XML export"):
+        load_model(str(garbage))
+
+
+def test_l5k_hostile_input_refused(tmp_path):
+    with pytest.raises(UnsafeInputError, match="limit"):
+        load_model(str(KBASE), max_bytes=1000)
+    with pytest.raises(UnsafeInputError, match="lines"):
+        load_model(str(KBASE), max_lines=10)
+    nul = tmp_path / "nul.L5K"
+    nul.write_bytes(b"CONTROLLER x\x00\nEND_CONTROLLER\n")
+    with pytest.raises(InputFormatError, match="NUL"):
+        load_model(str(nul))
+    bomb = tmp_path / "bomb.L5K"
+    bomb.write_text("CONTROLLER x " + "(" * 300 + ")" * 300 + "\nEND_CONTROLLER\n", encoding="utf-8")
+    with pytest.raises(UnsafeInputError, match="nesting"):
+        load_model(str(bomb))
+    truncated = tmp_path / "trunc.L5K"
+    truncated.write_text("CONTROLLER x (TimeSlice := 20)\n    PROGRAM P (MAIN := \"R\")\n        TAG\n", encoding="utf-8")
+    with pytest.raises(InputFormatError, match="without END_"):
+        load_model(str(truncated))
+    unterminated = tmp_path / "paren.L5K"
+    unterminated.write_text("CONTROLLER x (TimeSlice := 20\nEND_CONTROLLER\n", encoding="utf-8")
+    with pytest.raises(InputFormatError, match="unterminated"):
+        load_model(str(unterminated))
+
+
+def test_l5k_compared_with_l5x_is_refused_with_reason():
+    with pytest.raises(FormatMismatch, match="both sides as L5K or both as L5X"):
+        compare(load_model(str(KBASE)), load_model(str(BASE)))
+
+
+def test_l5k_report_limits_and_no_clean_wording():
+    rep = run(KBASE, L5K / "current_comment_only.L5K")
+    md, js = to_markdown(rep), to_json(rep)
+    assert "RM014 documents no file header for L5K" in md and "rung number" in md and "Unused data is not included" in md
+    assert not re.search(r"\bclean\b", md + js, re.I)
+
+
+def test_l5k_cli_exit_codes(tmp_path):
+    same = cli("logic-diff", "--baseline", str(KBASE), "--current", str(L5K / "current_identical.L5K"))
+    assert same.returncode == 0 and "NO-DIFFERENCES-FOUND" in same.stdout
+    diff = cli("logic-diff", "--baseline", str(KBASE), "--current", str(L5K / "current_rung_changed.L5K"), "--format", "json")
+    assert diff.returncode == 10 and json.loads(diff.stdout)["verdict"] == DIFFERENCES
+    garbage = tmp_path / "garbage.L5K"
+    garbage.write_text("placeholder text, not an export\n" * 10, encoding="utf-8")
+    bad = cli("logic-diff", "--baseline", str(KBASE), "--current", str(garbage))
+    assert bad.returncode == 1 and "not an L5K export" in bad.stderr
+    big = tmp_path / "big.L5K"
+    big.write_text(KBASE.read_text(encoding="utf-8") + "REMARK, padding\n" * 90000, encoding="utf-8")
+    assert big.stat().st_size > 1024 * 1024
+    oversized = cli("logic-diff", "--baseline", str(KBASE), "--current", str(big), "--max-size-mb", "1")
+    assert oversized.returncode == 1 and "refused" in oversized.stderr
+    mixed = cli("logic-diff", "--baseline", str(KBASE), "--current", str(BASE))
+    assert mixed.returncode == 1 and "both sides as L5K" in mixed.stderr

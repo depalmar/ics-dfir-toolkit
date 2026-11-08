@@ -83,7 +83,9 @@ detect:
       classifies logic, AOI/FB, tasking (OB priority and events), interface,
       value and module differences (docs/logic-compare.md). Know-how-protected
       Siemens blocks export only their interface and are reported as not
-      evaluated. L5K and ACD files are not supported; use the vendor comparison.
+      evaluated. Rockwell L5K text exports are compared with L5K and L5X with
+      L5X, never across the two; ACD files are not supported - export the
+      offline copy to L5X or L5K first.
 
   - id: integrity-sis-execution-table-extra-program
     title: Safety controller runs a program or function not in the approved TriStation project

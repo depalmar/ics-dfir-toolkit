@@ -45,6 +45,26 @@ FORMAT_LIMITS = {
         "(RM014 attribute DownloadProjectDocumentationAndExtendedProperties); an uploaded project can therefore "
         "differ from its source in documentation only (toolkit inference, not a Rockwell statement).",
     ],
+    "L5K": [
+        "L5K keywords, statement shapes and attribute names follow the L5K sections of Rockwell 1756-RM014D "
+        "(September 2025). Rung text is compared as exported neutral text after whitespace normalisation; "
+        "instruction semantics are not interpreted. Rung numbers are positions in the file (\"In L5K, the rung number "
+        "is defined by the order the rung appears in the L5K format.\").",
+        "RM014 documents no file header for L5K: its examples begin at the CONTROLLER statement. Text before "
+        "CONTROLLER (export banner, version lines) and after END_CONTROLLER is reported as provenance and never counted.",
+        "FBD, SFC and Equipment Sequence routines, encoded (source-protected) content, SCAN_MODE_ROUTINE, "
+        "ENCRYPTION_INFO, TREND, PRIMARY_ACTION_SET, module ExtendedProp and any block RM014 does not document are "
+        "compared by content hash only.",
+        "Tag values are the L5K value lists as exported, with whitespace collapsed; type-specific tag attributes "
+        "(alarm, message, axis and other object-backed types) are compared as one 'Parameters' field. RM014: \"Unused "
+        "data is not included in the L5K format.\", so a value list is not a byte image of the tag.",
+        "An L5K is compared only with an L5K. RM014 spells the same attributes differently in L5K and L5X (Yes/No "
+        "against true/false, Major against MajorRev, MODE against TestEdits) and encodes tag data differently, so a "
+        "cross-format comparison would report differences that are not changes.",
+        "Rung comments and descriptions reach the controller only if the project downloads documentation "
+        "(RM014 attribute DownloadProjectDocumentationAndExtendedProperties); an uploaded project can therefore "
+        "differ from its source in documentation only (toolkit inference, not a Rockwell statement).",
+    ],
     "PLCopen TC6 XML": [
         "PLCopen elements read follow the TC6_XML_V201 schema. ST and IL bodies are compared line by line with "
         "comments removed; FBD, LD and SFC bodies and vendor addData are compared by hash.",

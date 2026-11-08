@@ -231,7 +231,13 @@ def _routines(out: list, notev: list, base: Model, cur: Model) -> None:
 
 def compare(base: Model, cur: Model) -> DiffResult:
     if base.fmt != cur.fmt:
-        raise FormatMismatch(f"cannot compare a {base.fmt} export with a {cur.fmt} export")
+        hint = ""
+        if {base.fmt, cur.fmt} == {"L5K", "L5X"}:
+            hint = (": both are Rockwell exports, but 1756-RM014 spells the same attributes differently in the two "
+                    "formats (Yes/No against true/false, Major against MajorRev, MODE against TestEdits) and encodes tag "
+                    "data differently (value lists against decorated XML), so a cross-format comparison would report "
+                    "differences that are not changes; export both sides as L5K or both as L5X")
+        raise FormatMismatch(f"cannot compare a {base.fmt} export with a {cur.fmt} export{hint}")
     res = DiffResult()
     _entities(res.differences, res.not_evaluated, base, cur)
     _routines(res.differences, res.not_evaluated, base, cur)

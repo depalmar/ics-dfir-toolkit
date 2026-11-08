@@ -1,0 +1,62 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/depalmar/ics-dfir-toolkit/artifacts/schema/hardening.schema.json",
+  "title": "Prevention and hardening controls",
+  "description": "Controls that prevent or blunt attacks on industrial systems. Guidance a person applies, never automation. Every control cites a primary source and states the vendor's own syntax or says there is none.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["platform_id", "name", "summary", "controls"],
+  "properties": {
+    "platform_id": {"$ref": "common.schema.json#/$defs/platform_or_all", "description": "ALL for the cross-platform baseline"},
+    "name": {"type": "string"},
+    "summary": {"type": "string"},
+    "controls": {"type": "array", "minItems": 1, "items": {"$ref": "#/$defs/control"}},
+    "notes": {"type": "string"}
+  },
+  "$defs": {
+    "control": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "control", "category", "priority", "why", "how", "confidence", "sources"],
+      "properties": {
+        "id": {"$ref": "common.schema.json#/$defs/slug"},
+        "control": {"type": "string", "description": "imperative, one line"},
+        "category": {
+          "enum": [
+            "asset-inventory",
+            "exposure",
+            "segmentation",
+            "remote-access",
+            "identity",
+            "controller-protection",
+            "services",
+            "logging-monitoring",
+            "patching",
+            "integrity",
+            "backup-recovery",
+            "safety",
+            "supply-chain",
+            "incident-readiness"
+          ]
+        },
+        "priority": {"enum": ["critical", "high", "medium"]},
+        "why": {"type": "string"},
+        "how": {"type": "string", "description": "as the vendor or authority documents it; say so when no syntax is given"},
+        "operational_impact": {"type": "string", "description": "what the plant must test or schedule first (outage window, vendor support, safety case)"},
+        "blunts": {
+          "type": "array",
+          "items": {"type": "string"},
+          "description": "CVEs, malware or campaigns the SOURCE ties to this control"
+        },
+        "frameworks": {
+          "type": "array",
+          "items": {"type": "string"},
+          "description": "control ids the source maps it to, e.g. 'IEC 62443-3-3 SR 5.1', 'NIST SP 800-82r3 6.2.1'"
+        },
+        "confidence": {"$ref": "common.schema.json#/$defs/confidence"},
+        "unverified": {"type": "boolean"},
+        "sources": {"$ref": "common.schema.json#/$defs/sources"}
+      }
+    }
+  }
+}

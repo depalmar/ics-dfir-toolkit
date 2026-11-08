@@ -1,0 +1,163 @@
+# ID registry
+
+Ids are permanent. Once a file exists, its id never changes meaning. Reserved
+ids below were allocated up front so records written in parallel can reference
+each other; a reserved id with no file yet is a dangling reference and fails
+the validator, so only reference one once its record exists (or create it).
+New entries take the next free number after the highest allocated one.
+
+| Prefix | Record | Directory |
+| --- | --- | --- |
+| `ICS-NNNN` | Platform (controller family, host role, gateway class) | `artifacts/catalog/` |
+| `ICS-PROTO-NNNN` | Industrial protocol | `artifacts/protocols/` |
+| `ICS-DS-NNNN` | Visibility data source | `artifacts/visibility/` |
+| `ICS-TA-NNNN` | Threat actor (one reporter's cluster) | `artifacts/intel/actors/` |
+| `ICS-MAL-NNNN` | Malware family or attack tool | `artifacts/intel/malware/` |
+| `ICS-IOC-NNNN` | Indicator set from one publication | `artifacts/intel/iocs/` |
+| `ICS-INC-NNNN` | Incident case study | `artifacts/intel/incidents/` |
+| `ICS-HUNT-NNNN` | Hunt | `artifacts/hunts/` |
+| `ICS-PACK-NNNN` | Detection pack | `artifacts/packs/` |
+
+Files are named `<id>-<slug>.yml`, e.g. `ICS-TA-0004-xenotime.yml`.
+
+## Platforms (`ICS-NNNN`)
+
+| Id | Platform | Asset class |
+| --- | --- | --- |
+| ICS-0001 | Rockwell Automation Logix 5000 controllers (ControlLogix, CompactLogix, GuardLogix) | plc |
+| ICS-0002 | Rockwell Automation MicroLogix 1100 / 1400 | plc |
+| ICS-0003 | Siemens SIMATIC S7-1200 / S7-1500 | plc |
+| ICS-0004 | Siemens SIMATIC S7-300 / S7-400 | plc |
+| ICS-0005 | Schneider Electric Modicon (M340, M580; M221, M241, M251, M258) | plc |
+| ICS-0006 | Unitronics Vision / Samba PLC+HMI | plc |
+| ICS-0007 | Schneider Electric Triconex safety controllers | safety-controller |
+| ICS-0008 | OMRON Sysmac NJ / NX | plc |
+| ICS-0009 | CODESYS V3 runtime-based controllers (multi-vendor) | plc |
+| ICS-0010 | Windows engineering workstation (TIA Portal, Studio 5000, EcoStruxure, CODESYS IDE) | engineering-workstation |
+| ICS-0011 | Windows HMI / SCADA server (WinCC, FactoryTalk View, iFIX, InTouch, Ignition) | hmi-scada-server |
+| ICS-0012 | OT historian (AVEVA PI and similar) | historian |
+| ICS-0013 | Cellular and industrial remote-access gateways (Sierra Wireless AirLink, Moxa, Teltonika, Digi) | remote-access-gateway |
+| ICS-0014 | Substation RTU and protection IED (IEC 60870-5-104, IEC 61850) | rtu |
+| ICS-0015 | OPC UA servers | opc-server |
+
+## Protocols (`ICS-PROTO-NNNN`)
+
+| Id | Protocol | Slug |
+| --- | --- | --- |
+| ICS-PROTO-0001 | Modbus TCP | `modbus-tcp` |
+| ICS-PROTO-0002 | S7comm (classic, S7-300/400) | `s7comm` |
+| ICS-PROTO-0003 | S7comm-plus (S7-1200/1500) | `s7comm-plus` |
+| ICS-PROTO-0004 | EtherNet/IP and CIP | `enip-cip` |
+| ICS-PROTO-0005 | PCCC (over CIP or DF1) | `pccc` |
+| ICS-PROTO-0006 | DNP3 | `dnp3` |
+| ICS-PROTO-0007 | IEC 60870-5-104 | `iec-104` |
+| ICS-PROTO-0008 | IEC 61850 MMS | `iec-61850-mms` |
+| ICS-PROTO-0009 | IEC 61850 GOOSE | `iec-61850-goose` |
+| ICS-PROTO-0010 | OPC UA | `opc-ua` |
+| ICS-PROTO-0011 | OPC DA / classic (DCOM) | `opc-da` |
+| ICS-PROTO-0012 | Schneider UMAS (Modbus function code 90) | `umas` |
+| ICS-PROTO-0013 | Unitronics PCOM | `pcom` |
+| ICS-PROTO-0014 | OMRON FINS | `fins` |
+| ICS-PROTO-0015 | CODESYS V3 protocol | `codesys-v3` |
+| ICS-PROTO-0016 | TriStation | `tristation` |
+| ICS-PROTO-0017 | PROFINET (incl. DCP) | `profinet` |
+| ICS-PROTO-0018 | BACnet/IP | `bacnet` |
+| ICS-PROTO-0019 | HART-IP | `hart-ip` |
+| ICS-PROTO-0020 | MELSEC SLMP / MC protocol | `slmp` |
+
+## Threat actors (`ICS-TA-NNNN`)
+
+One record per reporter's cluster. Overlaps are aliases with `equated: false`;
+never merge clusters the reporters do not equate.
+
+| Id | Cluster | Primary reporter |
+| --- | --- | --- |
+| ICS-TA-0001 | Sandworm Team / APT44 | US Government, Mandiant, ESET, CERT-UA |
+| ICS-TA-0002 | ELECTRUM | Dragos |
+| ICS-TA-0003 | KAMACITE | Dragos |
+| ICS-TA-0004 | XENOTIME / TEMP.Veles (TRITON) | Dragos; Mandiant |
+| ICS-TA-0005 | CHERNOVITE (PIPEDREAM) | Dragos |
+| ICS-TA-0006 | VOLTZITE | Dragos |
+| ICS-TA-0007 | Volt Typhoon | US Government, Microsoft |
+| ICS-TA-0008 | BAUXITE | Dragos |
+| ICS-TA-0009 | CyberAv3ngers (IRGC-CEC affiliated) | US Government |
+| ICS-TA-0010 | Cyber Army of Russia Reborn (CARR) | US Government |
+| ICS-TA-0011 | Z-Pentest | US Government |
+| ICS-TA-0012 | NoName057(16) | US Government, Europol |
+| ICS-TA-0013 | Sector16 | US Government |
+| ICS-TA-0014 | SYLVANITE | Dragos |
+| ICS-TA-0015 | AZURITE | Dragos |
+| ICS-TA-0016 | PYROXENE | Dragos |
+| ICS-TA-0017 | Dragonfly / Energetic Bear (Havex) | Symantec, US Government |
+
+Next free: ICS-TA-0018.
+
+## Malware (`ICS-MAL-NNNN`)
+
+| Id | Family | Note |
+| --- | --- | --- |
+| ICS-MAL-0001 | Stuxnet | S7-300/400 payload |
+| ICS-MAL-0002 | Havex | OPC DA scanning module |
+| ICS-MAL-0003 | BlackEnergy (2/3) | HMI-targeting plugins; Ukraine 2015 |
+| ICS-MAL-0004 | Industroyer / CrashOverride | IEC 101/104, 61850, OPC DA |
+| ICS-MAL-0005 | TRITON / TRISIS / HatMan | Triconex |
+| ICS-MAL-0006 | Industroyer2 | IEC 104 |
+| ICS-MAL-0007 | INCONTROLLER / PIPEDREAM | Schneider, OMRON, OPC UA, CODESYS |
+| ICS-MAL-0008 | COSMICENERGY | IEC 104 |
+| ICS-MAL-0009 | FrostyGoop / BUSTLEBERM | Modbus TCP |
+| ICS-MAL-0010 | Fuxnet | sensor gateways, Modbus / M-Bus |
+| ICS-MAL-0011 | IOCONTROL | embedded Linux IoT/OT |
+| ICS-MAL-0012 | EKANS / Snake | ICS-aware ransomware |
+
+Next free: ICS-MAL-0013 (2025-2026 families such as the ELECTRUM and BAUXITE
+wipers take numbers from here).
+
+## Incidents (`ICS-INC-NNNN`)
+
+| Id | Incident |
+| --- | --- |
+| ICS-INC-0001 | Ukraine power grid, December 2015 |
+| ICS-INC-0002 | Ukraine transmission substation (Industroyer), December 2016 |
+| ICS-INC-0003 | TRITON at a Middle East petrochemical facility, 2017 |
+| ICS-INC-0004 | Ukraine Industroyer2 attempt, April 2022 |
+| ICS-INC-0005 | Unitronics PLCs at US water utilities (CyberAv3ngers), November 2023 |
+| ICS-INC-0006 | Lviv district heating (FrostyGoop), January 2024 |
+| ICS-INC-0007 | Pro-Russia hacktivist HMI intrusions at water utilities, 2024 |
+| ICS-INC-0008 | Poland distributed-energy attack (ELECTRUM), December 2025 |
+| ICS-INC-0009 | Iranian-affiliated exploitation of internet-facing PLCs (AA26-097A), 2025-2026 |
+
+Next free: ICS-INC-0010.
+
+## Visibility data sources (`ICS-DS-NNNN`)
+
+| Id | Data source | Category |
+| --- | --- | --- |
+| ICS-DS-0001 | Passive ICS network capture parsed by Zeek with CISA ICSNPP parsers | network-passive |
+| ICS-DS-0002 | Suricata IDS alerts on OT network capture | network-passive |
+| ICS-DS-0003 | NetFlow / IPFIX at the IT/OT boundary and inside OT | network-flow |
+| ICS-DS-0004 | IT/OT boundary and DMZ firewall logs | perimeter-firewall |
+| ICS-DS-0005 | OT remote access logs (VPN, jump host, vendor remote-access platforms) | remote-access |
+| ICS-DS-0006 | Windows Security, Sysmon and PowerShell logs on EWS / HMI hosts | host-windows |
+| ICS-DS-0007 | Engineering software logs and project files (TIA Portal, Studio 5000, EcoStruxure) | application-audit |
+| ICS-DS-0008 | Rockwell Logix controller log and change detection audit value | controller-onboard |
+| ICS-DS-0009 | Siemens S7 diagnostic buffer | controller-onboard |
+| ICS-DS-0010 | SCADA / HMI application audit trail and alarm-event journal | alarm-event |
+| ICS-DS-0011 | Historian process data | historian |
+| ICS-DS-0012 | Cellular and industrial remote-access gateway logs | remote-access |
+| ICS-DS-0013 | Controller syslog and event logs (e.g. Modicon M580, S7-1500 syslog) | controller-onboard |
+| ICS-DS-0014 | Internet exposure data for the owner's own ranges (Shodan, Censys, CISA Cyber Hygiene) | perimeter-firewall |
+
+Next free: ICS-DS-0015.
+
+## Hardening and response file stems
+
+Hardening (`artifacts/hardening/<stem>.yml`): `baseline` (ALL), `rockwell-logix`
+(ICS-0001), `siemens-s7` (ICS-0003), `unitronics` (ICS-0006),
+`remote-access-gateways` (ICS-0013).
+
+Response (`artifacts/response/<stem>.yml`): `baseline` (ALL).
+
+## Hunts, packs, indicator sets
+
+Allocated by the first record that needs one: ICS-HUNT-0001, ICS-PACK-0001,
+ICS-IOC-0001 upward.

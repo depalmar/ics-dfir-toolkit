@@ -1,0 +1,184 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/depalmar/ics-dfir-toolkit/artifacts/schema/common.schema.json",
+  "title": "Shared definitions",
+  "description": "Vocabulary every record type shares. Change an enum here, not in the record schemas.",
+  "$defs": {
+    "confidence": {
+      "enum": ["high", "medium", "low"],
+      "description": "high = vendor-documented, a government cyber authority's own words, or verified on a device; medium = multiple independent sources; low = single-source or inferred, and must carry unverified: true"
+    },
+    "date": {"type": "string", "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}$"},
+    "fuzzy_date": {
+      "type": "string",
+      "pattern": "^[0-9]{4}(-[0-9]{2}(-[0-9]{2})?)?$",
+      "description": "only as precise as the source: year, month or day"
+    },
+    "https": {"type": "string", "pattern": "^https://"},
+    "slug": {"type": "string", "pattern": "^[a-z0-9][a-z0-9-]+$"},
+
+    "platform_id": {"type": "string", "pattern": "^ICS-[0-9]{4}$"},
+    "platform_or_all": {"type": "string", "pattern": "^(ICS-[0-9]{4}|ALL)$"},
+    "protocol_id": {"type": "string", "pattern": "^ICS-PROTO-[0-9]{4}$"},
+    "datasource_id": {"type": "string", "pattern": "^ICS-DS-[0-9]{4}$"},
+    "actor_id": {"type": "string", "pattern": "^ICS-TA-[0-9]{4}$"},
+    "malware_id": {"type": "string", "pattern": "^ICS-MAL-[0-9]{4}$"},
+    "ioc_id": {"type": "string", "pattern": "^ICS-IOC-[0-9]{4}$"},
+    "incident_id": {"type": "string", "pattern": "^ICS-INC-[0-9]{4}$"},
+    "hunt_id": {"type": "string", "pattern": "^ICS-HUNT-[0-9]{4}$"},
+    "pack_id": {"type": "string", "pattern": "^ICS-PACK-[0-9]{4}$"},
+    "cve": {"type": "string", "pattern": "^CVE-[0-9]{4}-[0-9]{4,}$"},
+    "attack_id": {
+      "type": "string",
+      "pattern": "^T[0-9]{4}(\\.[0-9]{3})?$",
+      "description": "MITRE ATT&CK technique; ICS matrix ids are T08xx/T0xxx and share the pattern with Enterprise ids"
+    },
+    "rule_path": {
+      "type": "string",
+      "pattern": "^[0-9]{2}-[a-z0-9-]+/[a-z0-9_]+\\.(yml|yar|rules)$",
+      "description": "a Sigma (.yml), YARA (.yar) or Suricata (.rules) file in a numbered rule directory"
+    },
+
+    "asset_class": {
+      "enum": [
+        "plc",
+        "safety-controller",
+        "dcs-controller",
+        "rtu",
+        "ied",
+        "hmi-panel",
+        "hmi-scada-server",
+        "engineering-workstation",
+        "historian",
+        "opc-server",
+        "remote-access-gateway",
+        "protocol-gateway",
+        "network-infrastructure",
+        "field-device"
+      ]
+    },
+    "purdue_level": {
+      "enum": ["0", "1", "2", "3", "3.5", "4"],
+      "description": "Purdue reference model level; 3.5 is the IT/OT DMZ"
+    },
+    "collection_impact": {
+      "enum": ["passive", "read-only", "online-vendor-tool", "process-risk"],
+      "description": "passive: touches only copies (TAP/SPAN, logs already forwarded, backups); read-only: a vendor-documented read path that changes no state; online-vendor-tool: going online with engineering software - read-only in intent, but the same session can download or force, so it needs operations approval; process-risk: can affect the controller or the process (active scan, mode change, restart, debug read) - break-glass only"
+    },
+    "artifact_class": {
+      "enum": [
+        "control-logic",
+        "firmware",
+        "diagnostics",
+        "audit-trail",
+        "alarms-events",
+        "process-data",
+        "project-files",
+        "network",
+        "identity",
+        "memory",
+        "process",
+        "sessions",
+        "integrity",
+        "config",
+        "auth-logs",
+        "web-logs",
+        "system-logs",
+        "filesystem",
+        "persistence",
+        "off-box"
+      ]
+    },
+    "volatility": {"enum": ["live", "rotating", "stable", "off-box"]},
+    "evidence_type": {
+      "enum": [
+        "initial-access",
+        "execution",
+        "persistence",
+        "privilege-escalation",
+        "evasion",
+        "discovery",
+        "lateral-movement",
+        "collection",
+        "command-and-control",
+        "inhibit-response-function",
+        "impair-process-control",
+        "impact",
+        "credential-access",
+        "exfiltration",
+        "timeline",
+        "configuration",
+        "attribution"
+      ],
+      "description": "ATT&CK for ICS tactics plus timeline, configuration and attribution"
+    },
+    "ics_effect": {
+      "enum": [
+        "damage-to-property",
+        "denial-of-control",
+        "denial-of-view",
+        "loss-of-availability",
+        "loss-of-control",
+        "loss-of-productivity-and-revenue",
+        "loss-of-protection",
+        "loss-of-safety",
+        "loss-of-view",
+        "manipulation-of-control",
+        "manipulation-of-view",
+        "theft-of-operational-information"
+      ],
+      "description": "ATT&CK for ICS Impact techniques, by name"
+    },
+    "basis": {
+      "enum": ["vendor", "researcher", "government", "standard", "toolkit"],
+      "description": "where a criterion comes from; toolkit means this project's own inference"
+    },
+
+    "reference": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["title", "url", "accessed"],
+      "properties": {
+        "title": {"type": "string", "minLength": 3},
+        "url": {"$ref": "#/$defs/https"},
+        "accessed": {"$ref": "#/$defs/date"}
+      }
+    },
+    "references": {"type": "array", "minItems": 1, "items": {"$ref": "#/$defs/reference"}},
+
+    "source": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["title", "url", "accessed", "kind", "quote", "read"],
+      "properties": {
+        "title": {"type": "string", "minLength": 3},
+        "url": {"$ref": "#/$defs/https"},
+        "accessed": {"$ref": "#/$defs/date"},
+        "kind": {
+          "enum": ["vendor", "government", "researcher", "standard", "press"],
+          "description": "press is a lead, never the basis for high confidence"
+        },
+        "quote": {"type": "string", "minLength": 10, "description": "verbatim from the page"},
+        "read": {
+          "enum": ["direct", "summariser"],
+          "description": "summariser: the quote came through a summarising fetch and must be checked against the page before the record can rest on it"
+        }
+      }
+    },
+    "sources": {"type": "array", "minItems": 1, "items": {"$ref": "#/$defs/source"}},
+
+    "alias": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["name", "by"],
+      "properties": {
+        "name": {"type": "string"},
+        "by": {"type": "string", "description": "who uses this name, or who equated it with the record's name"},
+        "equated": {
+          "type": "boolean",
+          "description": "true only when a reporter states the two are the same; false or absent for 'overlaps with'"
+        }
+      }
+    }
+  }
+}

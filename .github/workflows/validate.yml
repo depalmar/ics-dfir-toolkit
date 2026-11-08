@@ -1,0 +1,59 @@
+name: validate
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  knowledge-base:
+    name: Schemas and cross-references
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install
+        run: pip install -r requirements.txt
+      - name: Validate every record
+        run: python artifacts/scripts/validate.py
+
+  rules:
+    name: Sigma, YARA and Suricata rules parse
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install tooling
+        run: |
+          # The Sigma backend is arbitrary: it proves the rules parse. Nothing
+          # vendor-specific is committed. See CLAUDE.md.
+          pip install sigma-cli pysigma-backend-elasticsearch
+          sudo apt-get update && sudo apt-get install -y yara suricata
+      - name: Sigma
+        run: |
+          shopt -s nullglob
+          failed=0
+          for f in ./[0-9][0-9]-*/*.yml; do
+            echo "=== $f"
+            sigma convert -t lucene --without-pipeline "$f" > /dev/null || failed=$((failed + 1))
+          done
+          [ "$failed" -eq 0 ] || { echo "$failed Sigma rule(s) failed"; exit 1; }
+      - name: YARA
+        run: |
+          shopt -s nullglob
+          for f in ./[0-9][0-9]-*/*.yar; do echo "=== $f"; yara -w "$f" /dev/null; done
+      - name: Suricata
+        run: |
+          shopt -s nullglob
+          for f in ./[0-9][0-9]-*/*.rules; do
+            echo "=== $f"
+            suricata -T -S "$f" -c /etc/suricata/suricata.yaml -l /tmp
+          done

@@ -1,0 +1,27 @@
+cff-version: 1.2.0
+title: "ICS DFIR Toolkit"
+message: "If you use this toolkit or its knowledge base in research or published work, please cite it."
+type: software
+authors:
+  - family-names: DePalma
+    given-names: Raymond
+repository-code: "https://github.com/depalmar/ics-dfir-toolkit"
+abstract: >-
+  A sourced DFIR knowledge base for industrial control systems and operational
+  technology: controller and OT-host artifact catalog with what normal and
+  suspicious look like, industrial protocol operations to detect, visibility
+  data sources, threat actors with attribution as reported, ICS malware,
+  incident case studies, hardening controls and safety-first response
+  playbooks, each record validated against a JSON schema and tied to quoted
+  primary sources.
+keywords:
+  - digital forensics
+  - incident response
+  - DFIR
+  - ICS
+  - OT
+  - SCADA
+  - PLC
+  - detection engineering
+license: Apache-2.0
+date-released: "2026-11-08"

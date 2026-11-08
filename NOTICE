@@ -1,0 +1,12 @@
+ICS DFIR Toolkit
+Copyright 2026 Raymond DePalma and DePalma Research LLC
+
+This product is licensed under the Apache License, Version 2.0 (see LICENSE).
+Knowledge-base content is derived from public vendor, government and researcher
+publications, cited in each record where it is used. Short verbatim quotes are
+reproduced for verification and attribution.
+
+No third-party detection rules are vendored yet. Published rules are listed in
+the published_rules field of each malware record with their publisher's
+licence; when a rule is vendored, its licence will be carried in the rule file
+and recorded here.

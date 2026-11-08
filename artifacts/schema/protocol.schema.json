@@ -1,0 +1,98 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/depalmar/ics-dfir-toolkit/artifacts/schema/protocol.schema.json",
+  "title": "Industrial protocol reference",
+  "description": "What a protocol carries, which of its operations change a controller or the process, how those operations look on the wire, and which open parsers decode them. The operations list is what network detections are built from.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["id", "name", "slug", "transport", "authentication", "operations", "confidence", "sources"],
+  "properties": {
+    "id": {"$ref": "common.schema.json#/$defs/protocol_id"},
+    "name": {"type": "string"},
+    "slug": {"$ref": "common.schema.json#/$defs/slug"},
+    "aliases": {"type": "array", "items": {"type": "string"}},
+    "spec_owner": {"type": "string", "description": "standards body or vendor that defines it"},
+    "transport": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["layer"],
+        "properties": {
+          "layer": {"enum": ["tcp", "udp", "ethernet", "serial", "tls"]},
+          "port": {"type": "integer", "minimum": 0, "maximum": 65535},
+          "ethertype": {"type": "string", "pattern": "^0x[0-9A-Fa-f]{4}$"},
+          "notes": {"type": "string"}
+        }
+      }
+    },
+    "authentication": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["native", "detail"],
+      "properties": {
+        "native": {"enum": ["none", "optional", "mandatory"]},
+        "detail": {"type": "string"},
+        "secure_variant": {"type": "string", "description": "e.g. DNP3 Secure Authentication, CIP Security, Modbus/TCP Security, OPC UA security modes"}
+      }
+    },
+    "encryption": {"type": "string"},
+    "platforms": {"type": "array", "items": {"$ref": "common.schema.json#/$defs/platform_id"}},
+    "operations": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["operation", "category", "code", "effect", "basis"],
+        "properties": {
+          "operation": {"type": "string"},
+          "category": {
+            "enum": [
+              "read",
+              "write",
+              "program-download",
+              "program-upload",
+              "mode-change",
+              "restart",
+              "firmware-update",
+              "force",
+              "diagnostic",
+              "discovery",
+              "authentication",
+              "file-transfer",
+              "time-sync",
+              "other"
+            ]
+          },
+          "code": {"type": "string", "description": "function code, service id or message type as the spec or the publisher writes it"},
+          "effect": {"type": "string", "description": "what it does to the device or the process"},
+          "attack": {"type": "array", "items": {"$ref": "common.schema.json#/$defs/attack_id"}},
+          "seen_in": {"type": "array", "items": {"type": "string"}, "description": "malware or campaigns the reporter says used it"},
+          "zeek_field": {"type": "string", "description": "how an open parser names it, e.g. modbus.log func=WRITE_SINGLE_REGISTER"},
+          "basis": {"$ref": "common.schema.json#/$defs/basis"}
+        }
+      }
+    },
+    "parsers": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["tool", "url"],
+        "properties": {
+          "tool": {"type": "string"},
+          "url": {"$ref": "common.schema.json#/$defs/https"},
+          "logs": {"type": "array", "items": {"type": "string"}},
+          "license": {"type": "string"}
+        }
+      }
+    },
+    "malware": {"type": "array", "items": {"$ref": "common.schema.json#/$defs/malware_id"}},
+    "notes": {"type": "string"},
+    "confidence": {"$ref": "common.schema.json#/$defs/confidence"},
+    "unverified": {"type": "boolean"},
+    "sources": {"$ref": "common.schema.json#/$defs/sources"}
+  }
+}

@@ -1,0 +1,119 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/depalmar/ics-dfir-toolkit/artifacts/schema/platform.schema.json",
+  "title": "ICS platform catalog entry",
+  "description": "One controller family, host role or gateway class: what it is, how evidence can be read from it without touching the process, and what each artifact looks like when healthy and when not.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "id", "name", "vendor", "asset_class", "purdue_levels", "protocols",
+    "os_base", "customer_shell", "memory_acquisition", "program_access",
+    "collection", "confidence", "references"
+  ],
+  "properties": {
+    "id": {"$ref": "common.schema.json#/$defs/platform_id"},
+    "name": {"type": "string"},
+    "vendor": {"type": "string", "description": "a vendor name, or 'multiple' for a host role such as engineering workstation"},
+    "products": {"type": "array", "items": {"type": "string"}},
+    "asset_class": {"$ref": "common.schema.json#/$defs/asset_class"},
+    "purdue_levels": {"type": "array", "minItems": 1, "items": {"$ref": "common.schema.json#/$defs/purdue_level"}},
+    "protocols": {"type": "array", "items": {"$ref": "common.schema.json#/$defs/protocol_id"}},
+    "os_base": {"type": "string", "description": "RTOS, firmware family, or host OS"},
+    "filesystem": {"type": "string"},
+    "customer_shell": {"enum": ["yes", "restricted", "no"]},
+    "memory_acquisition": {"enum": ["customer", "vendor-assisted", "hypervisor-only", "not-available"]},
+    "program_access": {
+      "enum": ["vendor-software-upload", "web-export", "protocol-read", "file-copy", "not-available"],
+      "description": "how the running control logic (or the host's project files) can be obtained for comparison with a known-good copy"
+    },
+    "operating_modes": {
+      "type": "string",
+      "description": "key switch and run/program/remote modes, and whether a mode change is logged"
+    },
+    "integrity_features": {
+      "type": "array",
+      "description": "vendor features that let an investigator prove the logic or firmware changed (change detection counters, signed firmware, checksums, audit logs)",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["feature", "description", "confidence"],
+        "properties": {
+          "feature": {"type": "string"},
+          "description": {"type": "string"},
+          "versions": {"type": "string", "description": "firmware or software versions the source says support it"},
+          "confidence": {"$ref": "common.schema.json#/$defs/confidence"},
+          "unverified": {"type": "boolean"},
+          "sources": {"$ref": "common.schema.json#/$defs/sources"}
+        }
+      }
+    },
+    "profile": {"type": "string", "description": "stem of collectors/profiles/<stem>.yaml, once one exists"},
+    "collection": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["method", "impact", "description", "confidence"],
+        "properties": {
+          "method": {"type": "string"},
+          "impact": {"$ref": "common.schema.json#/$defs/collection_impact"},
+          "description": {"type": "string"},
+          "safety_note": {"type": "string", "description": "what operations must agree to first, and what could go wrong"},
+          "confidence": {"$ref": "common.schema.json#/$defs/confidence"},
+          "unverified": {"type": "boolean"},
+          "references": {"type": "array", "items": {"$ref": "common.schema.json#/$defs/https"}}
+        }
+      }
+    },
+    "volatility": {"type": "array", "items": {"type": "string"}},
+    "anti_forensics": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["technique", "seen_in"],
+        "properties": {
+          "technique": {"type": "string"},
+          "seen_in": {"type": "string"},
+          "detail": {"type": "string"}
+        }
+      }
+    },
+    "datasources": {"type": "array", "items": {"$ref": "common.schema.json#/$defs/datasource_id"}},
+    "confidence": {"$ref": "common.schema.json#/$defs/confidence"},
+    "unverified": {"type": "boolean"},
+    "references": {"$ref": "common.schema.json#/$defs/references"},
+    "last_verified": {"$ref": "common.schema.json#/$defs/date"},
+    "notes": {"type": "string"},
+    "artifacts": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["locator", "class", "volatility", "forensic_value", "evidence_type", "confidence", "description"],
+        "properties": {
+          "locator": {"type": "string", "description": "path, menu, command, diagnostic view, or protocol query"},
+          "class": {"$ref": "common.schema.json#/$defs/artifact_class"},
+          "volatility": {"$ref": "common.schema.json#/$defs/volatility"},
+          "retention": {"type": "string"},
+          "forensic_value": {"enum": ["high", "medium", "low"]},
+          "evidence_type": {"type": "array", "minItems": 1, "items": {"$ref": "common.schema.json#/$defs/evidence_type"}},
+          "confidence": {"$ref": "common.schema.json#/$defs/confidence"},
+          "unverified": {"type": "boolean"},
+          "collected_by": {"type": "string", "description": "profile step id, 'ingest', or 'manual'"},
+          "collection_impact": {"$ref": "common.schema.json#/$defs/collection_impact"},
+          "description": {"type": "string"},
+          "seen_in": {"type": "array", "items": {"type": "string"}, "description": "campaigns, malware or CVEs whose traces show up here, as the reporter names them"},
+          "provides": {"type": "string"},
+          "normal": {"type": "string", "description": "what it looks like on a healthy system"},
+          "suspicious": {"type": "string", "description": "what would make it a lead"},
+          "basis": {"$ref": "common.schema.json#/$defs/basis"},
+          "sources": {"$ref": "common.schema.json#/$defs/sources"}
+        }
+      }
+    },
+    "response": {"type": "string", "description": "stem of artifacts/response/<stem>.yml"},
+    "hardening": {"type": "string", "description": "stem of artifacts/hardening/<stem>.yml"}
+  }
+}

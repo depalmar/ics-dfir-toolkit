@@ -1,0 +1,54 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/depalmar/ics-dfir-toolkit/artifacts/schema/hunt.schema.json",
+  "title": "Hunt",
+  "description": "A hypothesis tested in data the owner already keeps - passive ICS network capture, flow, firewall, remote-access, Windows, historian, alarm and controller audit logs. Hunts never require touching a controller.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["id", "title", "platforms", "hypothesis", "data", "method", "normal", "suspicious", "confidence", "sources"],
+  "properties": {
+    "id": {"$ref": "common.schema.json#/$defs/hunt_id"},
+    "title": {"type": "string"},
+    "platforms": {"type": "array", "minItems": 1, "items": {"$ref": "common.schema.json#/$defs/platform_or_all"}},
+    "protocols": {"type": "array", "items": {"$ref": "common.schema.json#/$defs/protocol_id"}},
+    "actors": {"type": "array", "items": {"$ref": "common.schema.json#/$defs/actor_id"}},
+    "malware": {"type": "array", "items": {"$ref": "common.schema.json#/$defs/malware_id"}},
+    "incidents": {"type": "array", "items": {"$ref": "common.schema.json#/$defs/incident_id"}},
+    "seen_in": {"type": "array", "items": {"type": "string"}},
+    "cves": {"type": "array", "items": {"$ref": "common.schema.json#/$defs/cve"}},
+    "hypothesis": {"type": "string"},
+    "data": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "enum": [
+          "ics-network-capture",
+          "netflow",
+          "firewall",
+          "remote-access",
+          "windows-events",
+          "edr",
+          "controller-audit",
+          "historian",
+          "alarm-events",
+          "config-archive",
+          "identity",
+          "dns",
+          "syslog",
+          "exposure-scan"
+        ]
+      }
+    },
+    "datasources": {"type": "array", "items": {"$ref": "common.schema.json#/$defs/datasource_id"}},
+    "data_detail": {"type": "string"},
+    "method": {"type": "array", "minItems": 1, "items": {"type": "string"}},
+    "normal": {"type": "string"},
+    "suspicious": {"type": "string"},
+    "attack": {"type": "array", "items": {"$ref": "common.schema.json#/$defs/attack_id"}},
+    "rules": {"type": "array", "items": {"$ref": "common.schema.json#/$defs/rule_path"}},
+    "inferred": {"type": "string", "description": "the part of the method that is this toolkit's inference rather than the source's"},
+    "confidence": {"$ref": "common.schema.json#/$defs/confidence"},
+    "unverified": {"type": "boolean"},
+    "sources": {"$ref": "common.schema.json#/$defs/sources"}
+  }
+}

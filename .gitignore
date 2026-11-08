@@ -1,0 +1,13 @@
+__pycache__/
+*.pyc
+.pytest_cache/
+*.egg-info/
+build/
+dist/
+.venv/
+# Firecrawl scrape cache: raw third-party pages never belong in the repository
+.firecrawl/
+# Case output never belongs in the repository
+cases/
+# Generated site, once a generator exists; never committed
+docs/site/

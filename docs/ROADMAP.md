@@ -13,6 +13,32 @@ Ordered by value. The knowledge base comes first because every later layer
 - First-round records from Firecrawl reads of primary sources, with research
   notes in `docs/research/2026-11-08/`.
 
+## Round 1 follow-ups (found during research, 2026-11-08)
+
+- **Pending records** - referenced by other records but not written; the
+  validator lists them as `pending record` warnings:
+  - Platforms: ICS-0002 MicroLogix (no public source on its logging found),
+    ICS-0008 OMRON Sysmac, ICS-0009 CODESYS runtime, ICS-0012 historian,
+    ICS-0014 substation RTU/IED (referenced nine times - highest priority),
+    ICS-0015 OPC UA servers.
+- **New intel to record:** CISA AA26-231A (August 2026, Siemens S7-specific),
+  found by the hardening pass and not yet covered by an incident or actor
+  record.
+- **Primary documents not yet read:** CERT Polska's full Poland 2025 report
+  (PDF), Dragos 2026 Year in Review (PDF), Mandiant APT44 report, Dragos
+  CRASHOVERRIDE and TRISIS reports, E-ISAC/SANS Ukraine 2015 report, the
+  NRC-hosted TriStation 1131 manual (public; timed out), SANS Five ICS
+  Critical Controls, DOE CESER guidance.
+- **Behind vendor logins:** Rockwell Knowledgebase (security best practices,
+  5590 syslog setup), Siemens support entries, Sierra Wireless bulletins.
+  Records resting on CISA republications say so.
+- **Open attribution questions:** stage labels for SYLVANITE, AZURITE and
+  PYROXENE appear only in trade press; whether OpenPLC ScadaBR and Siemens
+  Software Center (KEV 2025) should become watched platforms; who observed
+  CVE-2018-4063 (Sierra Wireless) exploitation.
+- **Protocol operations tables** (which function codes write, download, stop
+  or restart) were deferred in round 1; protocol records carry identity only.
+
 ## Phase 1 - make the knowledge base trustworthy
 
 1. **Second-read every `read: summariser` quote** against the rendered page and

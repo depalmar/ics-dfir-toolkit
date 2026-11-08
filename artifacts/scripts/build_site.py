@@ -673,6 +673,10 @@ def matrix_html(data: dict, key: str, row_lib: str, facet: str, col_lib: str, no
         return n[len(v):].strip() if v and n.startswith(v) and len(n) > len(v) + 2 else n
     head = "".join(f'<th class="ch" scope="col"><a href="#{col_lib}/{e(c)}" title="{e(c)}: {e(names.get(c, c))}">'
                    f'<span>{e(col_name(c))}</span></a></th>' for c in mz["cols"])
+    # Column labels sit at 52 degrees so they read left to right. The header is only as tall as the
+    # longest label needs (sin 52 = 0.79), capped so a long name ends in an ellipsis, not a wall.
+    label_px = min(190, 16 + round(6.3 * max((len(col_name(c)) for c in mz["cols"]), default=8)))
+    head_px = round(label_px * 0.79 + 16)
     rows = []
     for r in mz["rows"]:
         tds, n_direct = [], 0
@@ -695,7 +699,8 @@ def matrix_html(data: dict, key: str, row_lib: str, facet: str, col_lib: str, no
                     f'{"".join(tds)}<td class="tot">{n_direct or "—"}</td></tr>')
     foot = "".join(f'<td class="tot">{flink(data, row_lib, facet, c, str(n)) if n else "—"}</td>'
                    for c in mz["cols"] for n in [sum(d for (r, cc), (d, _) in cells.items() if cc == c)])
-    return (f'<div class="mxs"><table class="mx" aria-label="{e(noun)} by {col_lib}"><thead><tr><th class="rh corner"></th>{head}'
+    return (f'<div class="mxs"><table class="mx" style="--mxl:{label_px}px;--mxh:{head_px}px" aria-label="{e(noun)} by {col_lib}">'
+            f'<thead><tr><th class="rh corner"></th>{head}'
             f'<th class="tot">named</th></tr></thead><tbody>{"".join(rows)}</tbody>'
             f'<tfoot><tr><th class="rh" scope="row">{e(noun)} naming it</th>{foot}<td></td></tr></tfoot></table></div>')
 
@@ -1152,14 +1157,20 @@ footer p{margin:4px 0}footer .credit a{color:var(--ink);font-weight:600}
 .viz>summary{cursor:pointer;padding:10px 14px;font-weight:600;font-size:14px;list-style-position:inside}
 .vizb{padding:2px 14px 14px;display:flex;flex-direction:column;gap:18px}.vizb>p{margin:0}
 .vizs h4{margin:0 0 2px;font-size:15px}.vizs>p{margin:0 0 8px;max-width:95ch}
-.mxs{overflow-x:auto;border:1px solid var(--line2);border-radius:8px;max-width:100%}
-table.mx{border-collapse:separate;border-spacing:0;font-size:var(--fs-sm);width:auto;min-width:100%;background:var(--panel)}
+.mxs{overflow-x:auto;border:1px solid var(--line2);border-radius:8px;width:-moz-fit-content;width:fit-content;max-width:100%}
+table.mx{border-collapse:separate;border-spacing:0;font-size:var(--fs-sm);width:auto;background:var(--panel)}
 .mx th,.mx td{padding:2px;border-bottom:1px solid var(--line2);text-align:center;vertical-align:middle;background:var(--panel);
 text-transform:none;letter-spacing:0;white-space:nowrap}
 .mx thead th{vertical-align:bottom;padding:8px 2px 4px;color:var(--muted);font-size:var(--fs-xs);font-weight:500;background:var(--panel)}
+/* column labels: angled 52deg from the column's foot, left to right, so they read without turning the head;
+   --mxh/--mxl are set per matrix from its longest label */
 .mx th.ch{width:30px;min-width:30px;max-width:30px}
-.mx th.ch span{display:inline-block;writing-mode:vertical-rl;transform:rotate(180deg);max-height:190px;overflow:hidden;text-overflow:ellipsis;line-height:1.15}
+.mx thead th.ch{position:relative;height:var(--mxh,160px);padding:0;overflow:visible;background:transparent}   /* a label crosses the cells to its right */
+.mx th.ch span{position:absolute;left:50%;bottom:8px;display:block;transform-origin:0 50%;transform:rotate(-52deg);white-space:nowrap;
+line-height:1;font-size:var(--fs-sm);color:var(--ink);max-width:var(--mxl,190px);overflow:hidden;text-overflow:ellipsis}
+.mx thead th.tot{min-width:calc(var(--mxl,190px) * .62);background:transparent}   /* room for the last label's overhang */
 .mx th.ch a{color:var(--ink);text-decoration:none}.mx th.ch a:hover span,.mx th.ch a:focus-visible span{color:var(--link);text-decoration:underline}
+.mx th.ch a:focus-visible span{outline:2px solid var(--link);outline-offset:2px}
 .mx th.rh{text-align:left;position:sticky;left:0;z-index:1;font-weight:500;font-size:var(--fs-md);padding:2px 10px 2px 8px;color:var(--ink);
 max-width:190px;overflow:hidden;text-overflow:ellipsis;box-shadow:1px 0 0 var(--line2)}
 .mx th.rh a{color:inherit;text-decoration:none}.mx th.rh a:hover{color:var(--link);text-decoration:underline}

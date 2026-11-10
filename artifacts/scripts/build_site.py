@@ -68,8 +68,10 @@ LIB_LABEL = {"platforms": "Platforms", "protocols": "Protocols", "datasources": 
 GROUPS = {"intel": ["actors", "malware", "incidents", "iocs"], "detections": ["packs", "rules"]}
 TABS = [("start", "Start"), ("platforms", "Platforms"), ("protocols", "Protocols"),
         ("datasources", "Data sources"), ("intel", "Threat intel"), ("hunts", "Hunts"),
-        ("detections", "Detections"), ("hardening", "Hardening"), ("response", "Response"),
-        ("coverage", "Coverage"), ("kev", "KEV ledger")]
+        ("detections", "Detections"), ("coverage", "Coverage"), ("hardening", "Hardening"),
+        ("kev", "KEV ledger"), ("response", "Response")]
+# A divider goes before each of these tabs, so the tab bar shows the same groups as the Start page's LANES.
+TAB_BREAKS = {"platforms", "intel", "hunts", "hardening"}
 TITLE_KEY = {"platforms": "name", "protocols": "name", "datasources": "name", "actors": "name",
              "malware": "name", "incidents": "name", "iocs": "title", "hunts": "title", "packs": "name",
              "rules": "title", "hardening": "control", "kev": "id", "coverage": "id"}
@@ -125,7 +127,38 @@ TILE = {"platforms": "controllers, EWS/HMI hosts, gateways", "protocols": "trans
         "iocs": "parsed from publishers' files", "hunts": "over data the owner keeps",
         "packs": "detections tied to evidence", "rules": "Sigma, YARA, Suricata",
         "hardening": "controls with vendor syntax", "kev": "exploited CVEs, triaged",
-        "coverage": "ATT&CK techniques mapped"}
+        "coverage": "ATT&CK techniques mapped", "response": "safety-first playbooks"}
+# Start page: every library once, grouped by the investigation step it serves. A row shows the count and
+# the name; the TILE words are its tooltip. TAB_BREAKS draws the same groups in the tab bar.
+LANES = [("plant", "Know the plant", "What evidence each asset keeps", ("platforms", "protocols", "datasources")),
+         ("threat", "Know the threat", "Who attacks OT, as the reporter says", ("actors", "malware", "incidents", "iocs")),
+         ("find", "Hunt and detect", "Find it in data the owner already keeps", ("hunts", "packs", "rules", "coverage")),
+         ("act", "Harden and respond", "Reduce exposure, contain safely", ("hardening", "kev", "response"))]
+# One line per impact rung on Start; the full IMPACT wording is the rung's tooltip and stays on every badge.
+IMPACT_SHORT = {"passive": "Copies only: TAP/SPAN, forwarded logs, existing backups.",
+                "read-only": "A vendor-documented read that changes no state.",
+                "online-vendor-tool": "Engineering software online; operations must approve.",
+                "process-risk": "Can change a controller's mode, restart it or load the network. Break-glass only."}
+# Inline stroke icons (24x24) for Start; nothing is fetched.
+ICON = {
+    "plant": '<rect x="6" y="6" width="12" height="12" rx="2"/><rect x="9.5" y="9.5" width="5" height="5" rx="1"/>'
+             '<path d="M9 2v4M15 2v4M9 18v4M15 18v4M2 9h4M2 15h4M18 9h4M18 15h4"/>',
+    "threat": '<circle cx="12" cy="12" r="8"/><circle cx="12" cy="12" r="3"/><path d="M12 2v4M12 18v4M2 12h4M18 12h4"/>',
+    "find": '<circle cx="11" cy="11" r="7"/><path d="M16.5 16.5 21 21M7 11h1.5l1.2-2.5 2.3 5 1.3-2.5H15"/>',
+    "act": '<path d="M12 3l8 3v6c0 4.5-3.4 8-8 9-4.6-1-8-4.5-8-9V6z"/><path d="M9 12l2 2 4-4"/>',
+    "quote": '<path d="M6 7h4v4c0 3-1.5 5-4 6M14 7h4v4c0 3-1.5 5-4 6"/>',
+    "scale": '<path d="M12 4v16M5 8h14M5 8l-3 6h6zM19 8l-3 6h6z"/>',
+    "gap": '<rect x="4" y="4" width="16" height="16" rx="3" stroke-dasharray="3 3"/><path d="M9 12h6"/>',
+    "warn": '<path d="M12 3l10 18H2z"/><path d="M12 10v5M12 18v.01"/>',
+    "notpassed": '<circle cx="12" cy="12" r="9"/><path d="M8 12h8"/>',
+    "clean": '<path d="M12 3l8 3v6c0 4.5-3.4 8-8 9-4.6-1-8-4.5-8-9V6z"/><path d="M9 12h6"/>',
+    "wire": '<circle cx="5" cy="12" r="2"/><circle cx="19" cy="5" r="2"/><circle cx="19" cy="19" r="2"/>'
+            '<path d="M7 11l10-5M7 13l10 5"/>',
+}
+
+
+def svg_icon(name: str) -> str:
+    return f'<svg class="ico" viewBox="0 0 24 24" aria-hidden="true" focusable="false">{ICON[name]}</svg>'
 
 XREF = re.compile(r"\b(?:ICS-(?:PROTO|DS|TA|MAL|IOC|INC|HUNT|PACK)-\d{4}|ICS-\d{4}|CVE-\d{4}-\d{4,})\b"
                   r"|\b\d{2}-[a-z0-9-]+/[a-z0-9_]+\.(?:yml|yar|rules)\b")
@@ -528,81 +561,101 @@ def flink(data: dict, lib: str, key: str, val: str, text: str, cls: str = "") ->
     return f'<a{c} href="#{lib}?{key}={e(val)}">{text}</a>' if have else f"<span{c}>{text}</span>"
 
 
+def lane_row(data: dict, lib: str) -> str:
+    """One library on Start: its count and name, and a link to its unverified records when it has any."""
+    if lib == "response":
+        n, label, n_unv = len(data["response"]), "Response", 0
+    else:
+        recs = data["libs"][lib]
+        n, label = len(recs), LIB_LABEL[lib]
+        n_unv = sum(1 for r in recs if r["_unv"] or r["_nunv"])
+    unv = (f'<a class="tu" href="#{lib}?unv=1" aria-label="{label}: {n_unv} with unverified content" '
+           f'title="Records that are unverified or hold unverified entries"><span>{n_unv} unverified</span></a>'
+           if n_unv else "")
+    return (f'<li class="tile"><a class="tl" href="#{lib}" title="{e(TILE[lib])}"><b>{n}</b><span>{label}</span></a>'
+            f"{unv}</li>")
+
+
 def render_start(data: dict) -> str:
     libs = data["libs"]
-    tiles = ""
-    for lib in ["platforms", "protocols", "datasources", "actors", "malware", "incidents", "iocs", "hunts",
-                "packs", "rules", "hardening", "kev", "coverage"]:
-        n_unv = sum(1 for r in libs[lib] if r["_unv"] or r["_nunv"])
-        unv = (f'<a class="tu" href="#{lib}?unv=1" title="Records that are unverified or hold unverified entries">'
-               f'{n_unv} with unverified content</a>') if n_unv else ""
-        tiles += (f'<div class="tile"><a class="tl" href="#{lib}"><b>{len(libs[lib])}</b><span>{LIB_LABEL[lib]}</span>'
-                  f"<small>{e(TILE[lib])}</small></a>{unv}</div>")
-    n_resp = len(data["response"])
-    tiles += (f'<div class="tile"><a class="tl" href="#response"><b>{n_resp}</b><span>Response</span>'
-              "<small>safety-first playbooks</small></a></div>")
+    lanes = "".join(
+        f'<section class="lane lane-{key}" aria-labelledby="lane-{key}"><div class="lh"><span class="lic">{svg_icon(key)}</span>'
+        f'<div><h4 id="lane-{key}">{e(title)}</h4><p>{e(sub)}</p></div></div>'
+        f'<ul class="rows">{"".join(lane_row(data, lib) for lib in members)}</ul></section>'
+        for key, title, sub, members in LANES)
     rungs = ""
-    for i, (imp, words) in enumerate(IMPACT.items(), 1):
+    for imp, words in IMPACT.items():
         n_methods = sum(1 for r in libs["platforms"] for c in r.get("collection") or [] if c.get("impact") == imp) \
             + sum(1 for r in libs["platforms"] for a in r.get("artifacts") or [] if a.get("collection_impact") == imp) \
             + sum(1 for r in libs["datasources"] for c in r.get("collection") or [] if c.get("impact") == imp)
         links = " &#183; ".join(flink(data, lib, "impact", imp, LIB_LABEL[lib].lower()) for lib in ("platforms", "datasources"))
-        rungs += (f'<li class="rung rung-{imp}"><span class="rn">{i}</span><div><code class="b imp imp-{imp}">{imp}</code>'
-                  f'<p>{e(words)}</p><p class="small muted">{n_methods} collection methods and artifacts rated {imp}: {links}</p></div></li>')
+        rungs += (f'<li class="rung rung-{imp}" title="{e(words)}"><span class="bar" aria-hidden="true"></span>'
+                  f'<code class="b imp imp-{imp}">{imp}</code><span>{e(IMPACT_SHORT[imp])}</span>'
+                  f'<span class="small muted"><b>{n_methods}</b> methods and artifacts: {links}</span></li>')
     cov = libs["coverage"]
     n_gap = sum("gap" in t["_f"]["status"] for t in cov)
     n_blind = sum("blind" in t["_f"]["status"] for t in cov)
     n_nodet = sum("none" in m["_f"]["detection"] for m in libs["malware"])
     n_def = sum("deferred" in k["_f"]["decision"] for k in libs["kev"])
-    gaps = (f"<li>{flink(data, 'coverage', 'status', 'gap', f'<b>{n_gap}</b> ATT&amp;CK techniques')} recorded in use with "
-            "nothing hunting or detecting them: the detection backlog.</li>"
-            f"<li>{flink(data, 'coverage', 'status', 'blind', f'<b>{n_blind}</b> techniques')} recorded in use that no "
-            "data source here records.</li>"
-            f"<li>{flink(data, 'malware', 'detection', 'none', f'<b>{n_nodet}</b> malware families')} with no "
-            "detection, each stating why.</li>"
-            f"<li>{flink(data, 'kev', 'decision', 'deferred', f'<b>{n_def}</b> KEV entries')} deferred: not yet read "
-            "against primary sources.</li>")
-    confs = "".join(f'<li><span class="b c-{c}">{c}</span> {e(w)}</li>' for c, w in CONF.items())
+
+    def gap(lib: str, key: str, val: str, n: int, words: str) -> str:
+        return flink(data, lib, key, val, f"<b>{n}</b><span>{words}</span>", "gapc")
+    gaps = (gap("coverage", "status", "gap", n_gap, "ATT&amp;CK techniques in use with nothing hunting or detecting them: the detection backlog")
+            + gap("coverage", "status", "blind", n_blind, "techniques in use that no data source here records")
+            + gap("malware", "detection", "none", n_nodet, "malware families with no detection, each stating why")
+            + gap("kev", "decision", "deferred", n_def, "KEV entries deferred: not yet read against primary sources"))
+    confs = " ".join(f'<span class="b c-{c}" title="{e(w)}">{c}</span>' for c, w in CONF.items())
+    pills = "".join(f"<li>{svg_icon(i)}{w}</li>" for i, w in (
+        ("quote", "Every claim quoted from its source"), ("scale", "Confidence reflects provenance"),
+        ("gap", "Gaps stated, never guessed")))
+
+    def prin(ico: str, title: str, body: str, extra: str = "") -> str:
+        return f'<li class="prin"{extra}>{svg_icon(ico)}<div><b>{title}</b>{body}</div></li>'
+    prins = (prin("notpassed", "Not evaluated is not passed", "A detection that lacks the evidence it needs says so.")
+             + prin("clean", "Never call a system clean", "The lowest verdict is <code>NO-INDICATORS-FOUND</code>.")
+             + prin("wire", "Most evidence is not on the controller",
+                    "The logic is the best artifact: keep a trusted known-good copy.")
+             + prin("quote", "Confidence reflects provenance", f'<span class="confb">{confs}</span>', ' id="confidence"'))
+    conf_full = "".join(f'<li><span class="b c-{c}">{c}</span> {e(w)}</li>' for c, w in CONF.items())
+    n_records = sum(len(libs[lib]) for lib in LIBS)
     return f"""
-<div class="hero">
-  <h2>Evidence for industrial control system incidents, with its sources quoted</h2>
-  <p>A DFIR knowledge base for industrial control systems and operational technology: what evidence each controller,
-  engineering workstation, HMI, historian and gateway keeps; the protocols and data sources that see an intrusion; the
-  actors, malware and incidents as their reporters describe them; hunts, Sigma and Suricata detections, hardening and a
-  safety-first response playbook. Every claim cites a primary source and quotes it, confidence reflects provenance, and
-  a gap is stated rather than filled with a guess.</p>
-  <div class="warnbox"><b>Knowledge base first, tooling later.</b> There is no collector or analyzer yet. Nothing here
-  should be run against a live control system: where a record describes a collection method it states its impact on
-  the process, and anything above <code>passive</code> needs operations' approval.</div>
+<div class="intro">
+  <div class="intro-t"><h2>Evidence for industrial control system incidents, with its sources quoted</h2>
+    <p>What each controller, engineering workstation, HMI and gateway keeps, who attacks them, and how to find and
+    contain them.</p><ul class="pills">{pills}</ul></div>
+  <div class="warnbox" role="note">{svg_icon("warn")}<span><b>Knowledge base first, tooling later.</b> There is no
+  collector or analyzer yet. Nothing here should be run against a live control system; anything above
+  <code>passive</code> needs operations' approval.</span></div>
 </div>
-<div class="tiles">{tiles}</div>
-<div class="cols">
-  <section class="box rulebox"><h3>Not evaluated is not passed</h3><p>A detection that lacks the evidence it needs
-  says so. A controller whose logic was not compared with a known-good copy has not been shown to be unmodified.</p></section>
-  <section class="box rulebox"><h3>Never call a system clean</h3><p>The lowest verdict is
-  <code>NO-INDICATORS-FOUND</code>. Controllers cannot be imaged the way hosts can, and every report carries that gap.</p></section>
-  <section class="box rulebox"><h3>Most evidence is not on the controller</h3><p>Diagnostic buffers are small ring
-  buffers, many PLCs keep no audit log, and the logic itself is the best artifact, so a trusted known-good copy is a
-  precondition. The rest is on engineering workstations and HMIs, on the wire, and in remote-access and historian logs.</p></section>
+<section class="browse" aria-labelledby="browse-h"><div class="sh"><h3 id="browse-h">Browse by investigation step</h3>
+  <span class="small muted">{n_records} records, every claim quoted from its source</span></div>
+  <div class="lanes">{lanes}</div></section>
+<div class="duo">
+  <section class="box" id="safety"><h3>Safety before evidence</h3>
+    <p class="small muted">In OT the process outranks the investigation. Every collection method states its impact on
+    the process, and none is rated lower than it is.</p><ol class="scale">{rungs}</ol>
+    <p class="small muted scale-note">Active scanning of a live control network is <code>process-risk</code>, always.</p></section>
+  <section class="box" id="gaps"><h3>Where the gaps are</h3>
+    <p class="small muted">Stated, not filled with a guess.</p><div class="gapg">{gaps}</div></section>
 </div>
-<div class="cols wide">
-  <section class="box" id="safety"><h3>Safety before evidence: collection impact</h3>
-    <p class="small">In OT the process outranks the investigation. Every collection method declares its impact on the
-    process, and none is rated lower than it is.</p><ol class="ladder">{rungs}</ol></section>
-  <div>
-    <section class="box" id="confidence"><h3>How confidence works</h3><ul class="plain conf">{confs}</ul>
-      <p class="small"><span class="b unvb">unverified</span> marks a record or entry that must be checked before it is
-      relied on: every <code>low</code> carries it, and so does a record whose every source came through a summarising
-      fetch. Each source says how it was read: <code>read: direct</code> (quote copied from the rendered page) or
-      <code>read: summariser</code> (check the quote). A government authority is <code>high</code> for what it
-      recommends or reports; press is a lead, never the basis for <code>high</code>.</p>
-      <p class="small">Attribution is reported, never computed. Link confidence is ours and measures provenance; stated
-      confidence is the attributing party's own words, verbatim.</p></section>
-    <section class="box" id="gaps"><h3>Where the gaps are</h3><ul class="plain gapl">{gaps}</ul>
-      <p class="small muted">An omitted path, event id or menu location is honest; a guessed one becomes somebody's
-      failed collection during an incident.</p></section>
-  </div>
-</div>"""
+<section class="readrec" aria-labelledby="read-h"><h3 id="read-h">How to read a record</h3>
+  <ul class="prins">{prins}</ul>
+  <details class="box more"><summary>The rules in full: confidence, unverified entries, attribution</summary>
+    <ul class="plain conf">{conf_full}</ul>
+    <p><span class="b unvb">unverified</span> marks a record or entry that must be checked before it is relied on:
+    every <code>low</code> carries it, and so does a record whose every source came through a summarising fetch. Each
+    source says how it was read: <code>read: direct</code> (quote copied from the rendered page) or
+    <code>read: summariser</code> (check the quote). A government authority is <code>high</code> for what it recommends
+    or reports; press is a lead, never the basis for <code>high</code>.</p>
+    <p>Attribution is reported, never computed. Link confidence is ours and measures provenance; stated confidence is
+    the attributing party's own words, verbatim.</p>
+    <p>A controller whose logic was not compared with a known-good copy has not been shown to be unmodified.
+    Controllers cannot be imaged the way hosts can, and every report carries that gap. Diagnostic buffers are small ring
+    buffers and many PLCs keep no audit log; the rest of the evidence is on engineering workstations and HMIs, on the
+    wire, and in remote-access and historian logs.</p>
+    <p>An omitted path, event id or menu location is honest; a guessed one becomes somebody's failed collection during
+    an incident.</p></details>
+</section>"""
 
 
 def render_kev_head(d: dict) -> str:
@@ -794,7 +847,8 @@ def page(d: dict) -> tuple[str, dict]:
     libs = data["libs"]
     tab_n = {"intel": sum(len(libs[m]) for m in GROUPS["intel"]), "detections": len(libs["packs"]),
              "response": len(data["response"])}
-    tabbar = "".join(f'<a href="#{t}" data-go="{t}" data-tab="{t}">{label}'
+    tabbar = "".join(('<span class="tsep" aria-hidden="true"></span>' if t in TAB_BREAKS else "")
+                     + f'<a href="#{t}" data-go="{t}" data-tab="{t}">{label}'
                      + (f'<span class="n">{tab_n.get(t, len(libs[t]) if t in libs else "")}</span>' if t != "start" else "")
                      + "</a>" for t, label in TABS)
     panels = f'<section class="panel" id="tab-start" role="tabpanel" hidden>{render_start(data)}</section>'
@@ -1121,23 +1175,53 @@ max-height:540px;font-size:12.5px;line-height:1.45;white-space:pre;overflow-wrap
 details.rule{border:1px solid var(--line2);border-radius:6px;padding:4px 8px;background:var(--panel)}details.rule+details.rule{margin-top:6px}
 details.rule summary{cursor:pointer;font-size:13px}.rulelist{display:flex;flex-direction:column}
 .iocs table code{font-size:12.5px}.ioc-tools{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:6px}td.ctx{font-size:12.5px;color:var(--muted);min-width:220px}
-.hero,.box{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:16px 18px}
-.hero{margin-bottom:16px}.hero h2{font-size:22px;margin:0 0 8px}.hero p{margin:0;max-width:95ch}
-.warnbox{border:1px solid var(--warn);background:var(--warn-bg);border-radius:8px;padding:9px 13px;margin-top:12px;font-size:14px}
-.tiles{display:grid;grid-template-columns:repeat(auto-fill,minmax(165px,1fr));gap:10px;margin:0 0 16px}
-.tile{background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:10px 12px}
-.tile:hover{border-color:var(--accent)}.tl{display:block;text-decoration:none;color:var(--ink)}
-.tl b{display:block;font-size:24px;line-height:1.15;font-variant-numeric:tabular-nums}.tl span{font-weight:650}
-.tl small{display:block;color:var(--muted);font-size:12px}.tu{display:inline-block;margin-top:4px;font-size:12px;color:var(--warn)}
-.cols{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,300px),1fr));gap:14px;margin-bottom:14px}
-.cols.wide{grid-template-columns:minmax(0,1.15fr) minmax(0,1fr);align-items:start}.cols.wide>div{display:flex;flex-direction:column;gap:14px}
-.box h3{margin:0 0 8px;font-size:16px}.box p{margin:6px 0 0}.rulebox{border-top:4px solid var(--accent)}
-.ladder{list-style:none;margin:10px 0 0;padding:0;display:flex;flex-direction:column;gap:8px}
-.rung{display:flex;gap:12px;padding:9px 12px;border-radius:7px;border-left:6px solid}.rung p{margin:4px 0 0}
-.rn{font-weight:800;font-size:18px;line-height:1.3;min-width:14px}
-.rung-passive{border-color:var(--ok);background:var(--ok-bg)}.rung-read-only{border-color:var(--info);background:var(--info-bg)}
-.rung-online-vendor-tool{border-color:var(--warn);background:var(--warn-bg)}.rung-process-risk{border-color:var(--bad);background:var(--bad-bg)}
-.conf li{margin:4px 0}.gapl li{margin:6px 0}
+.box{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:16px 18px}
+.box h3{margin:0 0 8px;font-size:16px}.box p{margin:6px 0 0}
+.tabs .tsep{flex:none;align-self:center;width:1px;height:18px;margin:0 6px;background:var(--line)}
+.ico{width:22px;height:22px;flex:none;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+.intro{display:flex;flex-wrap:wrap;align-items:flex-end;gap:14px 36px;margin:2px 0 22px}
+.intro-t{flex:999 1 520px;min-width:0}.intro h2{font-size:27px;line-height:1.2;letter-spacing:-.01em;margin:0 0 8px;max-width:38ch}
+.intro p{margin:0;color:var(--muted);font-size:16px;max-width:62ch}
+.pills{list-style:none;margin:12px 0 0;padding:0;display:flex;flex-wrap:wrap;gap:8px}
+.pills li{display:inline-flex;align-items:center;gap:7px;padding:5px 12px;border:1px solid var(--line);border-radius:999px;
+background:var(--panel);font-size:13.5px;font-weight:550}.pills .ico{width:16px;height:16px;stroke-width:2;color:var(--accent)}
+.warnbox{flex:1 1 300px;max-width:470px;display:flex;gap:10px;align-items:flex-start;border:1px solid var(--warn);
+background:var(--warn-bg);border-radius:10px;padding:11px 14px;font-size:13.5px;line-height:1.45}
+.warnbox .ico{width:18px;height:18px;stroke-width:2;color:var(--warn);margin-top:1px}
+.sh{display:flex;flex-wrap:wrap;align-items:baseline;justify-content:space-between;gap:4px 12px;margin:0 0 10px}
+.sh h3,.readrec>h3{margin:0;font-size:17px}.readrec>h3{margin-bottom:10px}
+.lanes{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,250px),1fr));gap:14px;margin:0 0 22px}
+.lane{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:14px 14px 8px;min-width:0}
+.lh{display:flex;align-items:center;gap:12px;padding:0 2px 10px}.lh h4{margin:0;font-size:16px}
+.lh p{margin:0;font-size:13px;color:var(--muted)}
+.lic{width:40px;height:40px;flex:none;border-radius:10px;display:flex;align-items:center;justify-content:center}
+.lane-plant .lic{background:var(--info-bg);color:var(--info)}.lane-threat .lic{background:var(--bad-bg);color:var(--bad)}
+.lane-find .lic{background:var(--accent-bg);color:var(--accent)}.lane-act .lic{background:var(--warn-bg);color:var(--warn)}
+.rows{list-style:none;margin:0;padding:0}.tile{display:flex;align-items:center;gap:6px;border-top:1px solid var(--line2)}
+.tl{flex:1 1 auto;min-width:0;display:flex;align-items:center;gap:12px;min-height:46px;padding:4px 8px;border-radius:8px;
+text-decoration:none;color:var(--ink)}.tl:hover{background:var(--panel2)}
+.tl b{flex:none;width:34px;text-align:right;font-size:19px;font-variant-numeric:tabular-nums}.tl span{font-weight:600}
+.tu{flex:none;display:flex;align-items:center;min-height:44px;text-decoration:none}
+.tu span{font-size:12px;font-weight:650;color:var(--warn);background:var(--warn-bg);border-radius:999px;padding:2px 9px}
+.tu:hover span{outline:1px solid var(--warn)}
+.duo{display:flex;flex-wrap:wrap;gap:14px;margin:0 0 22px}.duo>.box{min-width:0}#safety{flex:999 1 540px}#gaps{flex:1 1 320px}
+.duo .box>p{margin:0 0 12px}.duo .box>p.scale-note{margin:12px 0 0;padding-top:10px;border-top:1px solid var(--line2)}
+.scale{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px}
+.rung{display:flex;flex-direction:column;align-items:flex-start;gap:7px;font-size:13.5px;line-height:1.4}
+.rung .bar{align-self:stretch;height:8px;border-radius:4px}.rung .small{margin-top:auto}
+.rung-passive .bar{background:var(--ok)}.rung-read-only .bar{background:var(--info)}
+.rung-online-vendor-tool .bar{background:var(--warn)}.rung-process-risk .bar{background:var(--bad)}
+.gapg{display:flex;flex-direction:column;gap:6px}
+.gapc{display:flex;align-items:center;gap:12px;min-height:48px;padding:6px 12px;border-radius:10px;background:var(--panel2);
+text-decoration:none;color:var(--ink)}a.gapc:hover{outline:1px solid var(--accent)}
+.gapc b{flex:none;width:38px;text-align:right;font-size:24px;line-height:1.1;font-variant-numeric:tabular-nums}
+.gapc span{font-size:13.5px;color:var(--muted);line-height:1.35}.prin code{white-space:nowrap}
+.prins{list-style:none;margin:0 0 12px;padding:0;display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,240px),1fr));gap:12px}
+.prin{display:flex;gap:12px;align-items:flex-start;padding:13px 15px;background:var(--panel);border:1px solid var(--line);
+border-radius:12px;font-size:13.5px;color:var(--muted)}.prin .ico{color:var(--accent);margin-top:1px}
+.prin b{display:block;color:var(--ink);font-size:14.5px}.confb{display:flex;flex-wrap:wrap;gap:6px;margin-top:5px}
+details.more{padding:8px 16px}details.more summary{font-weight:600;min-height:28px}details.more p{font-size:13.5px;max-width:95ch}
+.conf li{margin:4px 0}
 .stats{display:flex;gap:8px;flex-wrap:wrap;margin:4px 0 8px}
 .stat{padding:4px 12px;border-radius:7px;border:1px solid var(--line);background:var(--panel);text-decoration:none;color:var(--ink);font-size:14px}
 .st-bad{border-color:var(--bad);color:var(--bad);background:var(--bad-bg)}.st-warn{border-color:var(--warn);color:var(--warn);background:var(--warn-bg)}
@@ -1207,7 +1291,7 @@ a.cc:hover,a.cc:focus-visible{border-color:var(--ink);outline:none}.cc.sel{outli
 @media (max-width:1100px){.tagline{display:none}}
 @media (max-width:900px){.shell{grid-template-columns:minmax(0,1fr);padding:12px}
 .rail{position:static;max-height:none;display:none;border:1px solid var(--line);border-radius:8px;padding:10px 10px 12px;background:var(--panel)}
-.shell.railopen:not(.norail) .rail{display:block}.railT{display:inline-block}.cols.wide{grid-template-columns:minmax(0,1fr)}}
+.shell.railopen:not(.norail) .rail{display:block}.railT{display:inline-block}}
 @media (max-width:600px){.fld,.sub .fld{grid-template-columns:minmax(0,1fr);gap:1px}.fkey,.fval{line-height:1.5}
 .hdr-in{padding:8px 12px 0;position:relative}.dhead,.dbody{padding-left:12px;padding-right:12px}.lgrid{grid-template-columns:minmax(0,1fr)}
 .brandrow{flex-wrap:wrap;gap:8px 10px}.gs{order:3;flex:1 1 100%;max-width:none;position:static}.hright{margin-left:auto}

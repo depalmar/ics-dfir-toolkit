@@ -281,6 +281,23 @@ def test_start_states_the_verdict_rules_and_the_impact_ladder(built):
     assert [m for m in re.findall(r'class="rung rung-([a-z-]+)"', start)] == list(bs.IMPACT)
 
 
+def test_start_lanes_hold_every_library_once_and_the_tab_bar_follows_them(built):
+    _, doc, _ = built
+    members = [lib for *_, libs in bs.LANES for lib in libs]
+    assert sorted(members) == sorted([*bs.FACET_KEYS, "response"])
+    assert set(bs.IMPACT_SHORT) == set(bs.IMPACT) and set(bs.TILE) == set(members)
+    # each lane is a run of tabs in the tab bar, with a divider before its first tab
+    tab_of = {lib: g for g, libs in bs.GROUPS.items() for lib in libs}
+    expect = []
+    for *_, libs in bs.LANES:
+        tabs = list(dict.fromkeys(tab_of.get(lib, lib) for lib in libs))
+        assert tabs[0] in bs.TAB_BREAKS, tabs
+        expect += tabs
+    assert [t for t, _ in bs.TABS if t != "start"] == expect and len(bs.TAB_BREAKS) == len(bs.LANES)
+    nav = doc.split('<nav class="tabs"', 1)[1].split("</nav>", 1)[0]
+    assert nav.count('class="tsep"') == len(bs.LANES)
+
+
 # ---------------------------------------------------------------- browser
 
 @pytest.fixture(scope="module")
